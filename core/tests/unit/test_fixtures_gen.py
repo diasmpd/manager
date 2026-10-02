@@ -37,6 +37,19 @@ def test_other_groups_invariants(seed: int) -> None:
         assert home[club] == 4
 
 
+@pytest.mark.parametrize("seed", range(200))
+def test_no_more_than_two_home_or_away_in_a_row(seed: int) -> None:
+    # Owner decision (stage 1 review): real fixture lists alternate; max 2 in a row.
+    matchdays = build_group_fixtures(GROUPS, Matching.OTHER_GROUPS, rounds=1, seed=seed)
+    for club in ALL_CLUBS:
+        venues = []
+        for day in matchdays:
+            for h, a in day:
+                if club in (h, a):
+                    venues.append("H" if club == h else "A")
+        assert "HHH" not in "".join(venues) and "AAA" not in "".join(venues), (club, venues)
+
+
 def test_deterministic() -> None:
     a = build_group_fixtures(GROUPS, Matching.OTHER_GROUPS, 1, seed=5)
     b = build_group_fixtures(GROUPS, Matching.OTHER_GROUPS, 1, seed=5)

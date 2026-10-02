@@ -1,8 +1,8 @@
 """Group-stage fixtures (research R6).
 
 `other_groups`: every matchday is a perfect matching of the cross-group graph, found by a
-seeded backtracking search over all matchdays at once; home/away comes from an Eulerian
-orientation, which gives every club exactly half its matches at home.
+seeded backtracking search over all matchdays at once; home/away is then chosen so every club
+has exactly half its matches at home and never more than 2 home or 2 away in a row.
 `all` / `own_group`: round-robin by the circle method; a second round mirrors the first.
 """
 
@@ -46,8 +46,7 @@ def _other_groups(groups: Sequence[Group], seed: int) -> list[Matchday]:
     days: list[list[tuple[str, str]]] = []
     if not _search(clubs, remaining, days, degree):
         raise ValueError("no valid matchday schedule exists for these groups")
-    edges = [pair for day in days for pair in day]
-    home_of = _orient(clubs, edges)
+    home_of = _orient(days, clubs)
     return [[(a, b) if home_of[frozenset((a, b))] == a else (b, a) for a, b in day]
             for day in days]
 
@@ -86,31 +85,63 @@ def _matchings(clubs: list[str], remaining: dict[str, list[str]], current: list[
         used.difference_update((free, opponent))
 
 
-def _orient(clubs: list[str], edges: list[tuple[str, str]]) -> dict[frozenset[str], str]:
-    """Eulerian orientation (every degree is even): in-degree == out-degree for every club."""
-    adjacency: dict[str, list[str]] = {c: [] for c in clubs}
-    for a, b in edges:
-        adjacency[a].append(b)
-        adjacency[b].append(a)
-    for c in clubs:
-        adjacency[c].sort(reverse=True)
-    used: set[frozenset[str]] = set()
-    home_of: dict[frozenset[str], str] = {}
-    for start in clubs:
-        stack = [start]
-        while stack:
-            node = stack[-1]
-            while adjacency[node] and frozenset((node, adjacency[node][-1])) in used:
-                adjacency[node].pop()
-            if not adjacency[node]:
-                stack.pop()
-                continue
-            nxt = adjacency[node].pop()
-            key = frozenset((node, nxt))
-            used.add(key)
-            home_of[key] = node  # walking node -> nxt: node hosts
-            stack.append(nxt)
-    return home_of
+MAX_STREAK = 2  # no club plays more than 2 home or 2 away matches in a row (owner decision)
+
+
+def _orient(days: list[list[tuple[str, str]]], clubs: list[str]) -> dict[frozenset[str], str]:
+    """Choose the host of every match: exactly half of each club's matches at home and never
+    more than MAX_STREAK home or away matches in a row. Exact backtracking in matchday order."""
+    pairs = [pair for day in days for pair in day]
+    total = {c: 0 for c in clubs}
+    for a, b in pairs:
+        total[a] += 1
+        total[b] += 1
+    homes = {c: 0 for c in clubs}
+    played = {c: 0 for c in clubs}
+    streak: dict[str, tuple[str, int]] = {c: ("", 0) for c in clubs}
+    choice: dict[frozenset[str], str] = {}
+
+    def fits(club: str, venue: str) -> bool:
+        target = total[club] // 2
+        home_after = homes[club] + (venue == "H")
+        away_after = played[club] + 1 - home_after
+        if home_after > target or away_after > total[club] - target:
+            return False
+        last, length = streak[club]
+        return not (last == venue and length >= MAX_STREAK)
+
+    def apply(club: str, venue: str) -> tuple[str, int]:
+        before = streak[club]
+        homes[club] += venue == "H"
+        played[club] += 1
+        streak[club] = (venue, before[1] + 1 if before[0] == venue else 1)
+        return before
+
+    def undo(club: str, venue: str, before: tuple[str, int]) -> None:
+        homes[club] -= venue == "H"
+        played[club] -= 1
+        streak[club] = before
+
+    def search(index: int) -> bool:
+        if index == len(pairs):
+            return True
+        a, b = pairs[index]
+        # try the club that needs home matches more first (deterministic)
+        options = [(a, b), (b, a)]
+        options.sort(key=lambda o: (homes[o[0]] - played[o[0]] / 2, o[0]))
+        for host, guest in options:
+            if fits(host, "H") and fits(guest, "A"):
+                saved_host, saved_guest = apply(host, "H"), apply(guest, "A")
+                choice[frozenset((a, b))] = host
+                if search(index + 1):
+                    return True
+                undo(host, "H", saved_host)
+                undo(guest, "A", saved_guest)
+        return False
+
+    if not search(0):
+        raise ValueError("no home/away assignment satisfies the balance and streak rules")
+    return choice
 
 
 # ---- round robin ----------------------------------------------------------------------------
