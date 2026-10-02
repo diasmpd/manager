@@ -137,6 +137,27 @@ def _dup_membership(d: Path) -> None:
     _append_row(d, "squads.csv", {"player_id": "p-a03", "club_id": "clube-b", "shirt_number": "40"})
 
 
+def _extra_cell(d: Path) -> None:
+    path = d / "sources.csv"
+    lines = path.read_bytes().decode("utf-8-sig").split("\n")
+    lines[1] += ";extra cell"
+    path.write_bytes(b"\xef\xbb\xbf" + "\n".join(lines).encode("utf-8"))
+
+
+def _dup_external_ref(d: Path) -> None:
+    def ref(pid: str) -> dict[str, str]:
+        return {"record_type": "player", "record_id": pid, "source": "transfermarkt",
+                "source_id": "123"}
+
+    rows = [ref("p-a03"), ref("p-a03"), ref("p-a04")]  # exact duplicate + shared source id
+    _save(d, "external_refs.csv", _load(d, "external_refs.csv")[0], rows)
+
+
+def _dup_column(d: Path) -> None:
+    columns, rows = _load(d, "clubs.csv")
+    _save(d, "clubs.csv", [*columns, "city"], rows)
+
+
 def _dup_player(d: Path) -> None:
     _append_row(d, "players.csv", _copy_row(d, "players.csv", "p-a03"))
 
@@ -186,6 +207,10 @@ INVALID: list[tuple[str, Defect, str]] = [
      "E024;attributes.csv;p-a03;player_id"),
     ("E025_missing_column", lambda d: _drop_column(d, "attributes.csv", "finishing"),
      "E025;attributes.csv;;finishing"),
+    ("E026_extra_cell", _extra_cell, "E026;sources.csv;Fixture escrita à mão / 2026-10-02;"),
+    ("E027_duplicate_external_ref", _dup_external_ref,
+     "E027;external_refs.csv;p-a03;source_id\nE027;external_refs.csv;p-a04;source_id"),
+    ("E028_duplicate_column", _dup_column, "E028;clubs.csv;;city"),
     ("E030_bad_version",
      lambda d: _edit_cells(d, "dataset.csv", "1.0", {"format_version": "abc"}),
      "E030;dataset.csv;;format_version"),

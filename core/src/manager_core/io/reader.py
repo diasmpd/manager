@@ -13,8 +13,10 @@ from pathlib import Path
 
 from manager_core.domain.attributes import (
     ALL_ATTRIBUTES,
+    ATTRIBUTE_GROUPS,
     HIDDEN_ATTRIBUTES,
     HIDDEN_DEFAULTS,
+    AttributeGroup,
     Attributes,
 )
 from manager_core.domain.club import Club, ExternalRef
@@ -33,7 +35,7 @@ from manager_core.io.validate import (
     parse_int,
     parse_list,
 )
-from manager_core.ratings.ability import current_ability
+from manager_core.ratings.ability import current_ability, is_goalkeeper
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,6 +203,8 @@ def _build(tables: dict[str, Table | None], report: ValidationReport) -> Dataset
             contract_expiry=parse_date(expiry) if expiry else None,
         )
 
+    _domain_warnings(report, tables, clubs, players, memberships)
+
     sources = tuple(
         Source(
             name=r.values["name"],
@@ -225,3 +229,34 @@ def _build(tables: dict[str, Table | None], report: ValidationReport) -> Dataset
         memberships=memberships,
         record_flags=tuple(flags),
     )
+
+
+_GK_ATTRS = ATTRIBUTE_GROUPS[AttributeGroup.GOALKEEPING]
+
+
+def _domain_warnings(
+    report: ValidationReport,
+    tables: dict[str, Table | None],
+    clubs: dict[str, Club],
+    players: dict[str, Player],
+    memberships: dict[str, SquadMembership],
+) -> None:
+    """W001-W003: plausibility checks that need the domain's goalkeeper rule
+    (best position = GK), so validation and gameplay agree on who is a goalkeeper."""
+    keepers = {pid for pid, p in players.items() if is_goalkeeper(p)}
+    attr_rows = {r.values["player_id"]: r for r in _rows(tables, "attributes.csv")}
+    for pid in sorted(players):
+        attrs, row = players[pid].attributes, attr_rows[pid]
+        if pid in keepers:
+            if attrs.finishing > 12 or attrs.dribbling > 12:
+                report.add("W003", "attributes.csv", row=row, record_id=pid, field="finishing")
+        elif any(attrs.get(n) > 10 for n in _GK_ATTRS):
+            report.add("W002", "attributes.csv", row=row, record_id=pid, field="goalkeeping")
+    club_rows = {r.values["club_id"]: r for r in _rows(tables, "clubs.csv")}
+    squads: dict[str, set[str]] = {cid: set() for cid in clubs}
+    for m in memberships.values():
+        squads[m.club_id].add(m.player_id)
+    for cid in sorted(squads):
+        if len(squads[cid]) < 11 or not squads[cid] & keepers:
+            report.add("W001", "clubs.csv", row=club_rows[cid], record_id=cid, field="club_id",
+                       value=cid)

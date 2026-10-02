@@ -144,8 +144,8 @@ file, then row, then field (deterministic).
 
 ### Errors (block the import)
 
-Codes are stable once published. Gaps (E006–E009, E012, E026–E029) are reserved for future rules,
-and retired codes are never reused.
+Codes are stable once published. Gaps (E006–E009, E012, E029) are reserved for future rules,
+and retired codes are never reused. E026–E028 were added in the PR #1 review.
 
 | Code | Rule |
 |---|---|
@@ -169,6 +169,9 @@ and retired codes are never reused.
 | E023 | Invalid or missing currency for money fields |
 | E024 | Player missing from `attributes.csv` or `positions.csv` (or extra row there) |
 | E025 | Required column missing from a file |
+| E026 | Row has more cells than the header (nothing is dropped silently) |
+| E027 | Duplicate external reference: the same (record_type, source, source_id) is used twice (also catches exact duplicate rows) |
+| E028 | Duplicate column name in a header |
 | E030 | Unsupported format version |
 | E031 | Format version newer than this build supports |
 | E032 | No provenance source |
@@ -178,7 +181,7 @@ and retired codes are never reused.
 
 | Code | Rule |
 |---|---|
-| W001 | Club not playable: fewer than 11 players or no goalkeeper |
+| W001 | Club not playable: fewer than 11 players or no goalkeeper (goalkeeper = best position GK, the domain rule) |
 | W002 | Outfield player with any goalkeeping attribute > 10 |
 | W003 | Goalkeeper with finishing or dribbling > 12 |
 | W004 | Age ≥ 34 with pace or acceleration ≥ 17 |

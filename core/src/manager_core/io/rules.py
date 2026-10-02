@@ -12,7 +12,7 @@ from datetime import date
 from functools import cache
 from importlib import resources
 
-from manager_core.domain.attributes import ATTRIBUTE_GROUPS, HIDDEN_ATTRIBUTES, AttributeGroup
+from manager_core.domain.attributes import HIDDEN_ATTRIBUTES
 from manager_core.domain.dataset import FlagKind, RecordType
 from manager_core.domain.positions import NATURAL_THRESHOLD, Position
 from manager_core.i18n import t
@@ -29,7 +29,6 @@ _CURRENCY = re.compile(r"^[A-Z]{3}$")
 _ABBREVIATION = re.compile(r"^[A-Z]{3}$")
 _COLOUR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 _VERSION = re.compile(r"^(\d+)\.(\d+)$")
-_GK_ATTRS = ATTRIBUTE_GROUPS[AttributeGroup.GOALKEEPING]
 
 
 @cache
@@ -131,31 +130,24 @@ def check_rules(tables: Mapping[str, Table | None]) -> ValidationReport:
             report.add("E024", name, record_id=pid, field="player_id", value=pid, file=name)
         covered[name] = seen
 
-    # ---- positions (E016) and goalkeeper detection ------------------------------------------
-    goalkeepers: set[str] = set()
+    # ---- positions (E016) ---------------------------------------------------------------------
     for pid, row in covered["positions.csv"].items():
-        values = {p: parse_int(row.values[p.value]) for p in Position if row.values.get(p.value)}
-        if not any(v >= NATURAL_THRESHOLD for v in values.values()):
+        values = [parse_int(row.values[p.value]) for p in Position if row.values.get(p.value)]
+        if not any(v >= NATURAL_THRESHOLD for v in values):
             report.add("E016", "positions.csv", row=row, record_id=pid, field="positions")
-        if values.get(Position.GK, 1) >= NATURAL_THRESHOLD:
-            goalkeepers.add(pid)
 
-    # ---- attribute plausibility warnings (W002-W005) -----------------------------------------
+    # ---- raw-table plausibility warnings (W004, W005) ----------------------------------------
+    # W001-W003 depend on who is a goalkeeper, which is a domain rule (best position = GK):
+    # the reader raises them after building players, so there is one definition only.
     for pid, row in covered["attributes.csv"].items():
         v = row.values
-        if pid in goalkeepers:
-            if parse_int(v["finishing"]) > 12 or parse_int(v["dribbling"]) > 12:
-                report.add("W003", "attributes.csv", row=row, record_id=pid, field="finishing")
-        elif any(parse_int(v[n]) > 10 for n in _GK_ATTRS):
-            report.add("W002", "attributes.csv", row=row, record_id=pid, field="goalkeeping")
         if ages.get(pid, 0) >= 34 and max(parse_int(v["pace"]), parse_int(v["acceleration"])) >= 17:
             report.add("W004", "attributes.csv", row=row, record_id=pid, field="pace")
         hidden = [v.get(n, "") for n in HIDDEN_ATTRIBUTES]
         if all(hidden) and len(set(hidden)) == 1:
             report.add("W005", "attributes.csv", row=row, record_id=pid, field="hidden")
 
-    # ---- squads.csv (E017, E018, E019, E023) and W001 ---------------------------------------
-    members: dict[str, set[str]] = {cid: set() for cid in club_ids}
+    # ---- squads.csv (E017, E018, E019, E023) ------------------------------------------------
     numbers: dict[tuple[str, int], str] = {}
     seen_players: set[str] = set()
     for row in _rows(tables, "squads.csv"):
@@ -170,8 +162,6 @@ def check_rules(tables: Mapping[str, Table | None]) -> ValidationReport:
         if pid in seen_players:
             report.add("E018", "squads.csv", row=row, record_id=pid, field="player_id", value=pid)
         seen_players.add(pid)
-        if cid in members and pid in player_rows:
-            members[cid].add(pid)
         if v.get("shirt_number"):
             key = (cid, parse_int(v["shirt_number"]))
             if key in numbers:
@@ -183,13 +173,17 @@ def check_rules(tables: Mapping[str, Table | None]) -> ValidationReport:
         if (money and not currency) or (currency and not _CURRENCY.match(currency)):
             report.add("E023", "squads.csv", row=row, record_id=pid, field="currency",
                        value=currency)
-    for cid in sorted(members):
-        squad = members[cid]
-        if len(squad) < 11 or not squad & goalkeepers:
-            report.add("W001", "clubs.csv", record_id=cid, field="club_id", value=cid)
-
     # ---- external_refs.csv / record_flags.csv ------------------------------------------------
     known = {RecordType.CLUB.value: club_ids, RecordType.PLAYER.value: set(player_rows)}
+    ref_owner: dict[tuple[str, str, str], str] = {}
+    for row in _rows(tables, "external_refs.csv"):
+        v = row.values
+        ref_key = (v["record_type"], v["source"], v["source_id"])
+        if ref_key in ref_owner:  # also catches exact duplicate rows
+            report.add("E027", "external_refs.csv", row=row, record_id=v["record_id"],
+                       field="source_id", value=v["source_id"], source=v["source"],
+                       source_id=v["source_id"], other=ref_owner[ref_key])
+        ref_owner.setdefault(ref_key, v["record_id"])
     for name, extra in (("external_refs.csv", None), ("record_flags.csv", "flag")):
         for row in _rows(tables, name):
             v = row.values

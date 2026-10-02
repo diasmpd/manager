@@ -28,8 +28,9 @@ class DialectError(Exception):
 
 @dataclass(frozen=True, slots=True)
 class Row:
-    number: int  # spreadsheet row number: the header is row 1
+    number: int  # first physical line of the record (the header is line 1)
     values: dict[str, str]
+    extra: tuple[str, ...] = ()  # cells beyond the header width (reported as E026)
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,18 +68,27 @@ def write_table(
 
 
 def read_text_table(text: str) -> Table:
+    """Parse a canonical table. Row numbers come from the reader's physical line counter, so they
+    stay right when a quoted cell spans several lines. Nothing is dropped silently: cells beyond
+    the header are kept in `Row.extra` for validation to report."""
     reader = csv.reader(io.StringIO(text, newline=""), delimiter=DELIMITER)
-    lines = list(reader)
-    if not lines:
-        return Table((), [])
-    columns = tuple(c.strip() for c in lines[0])
+    columns: tuple[str, ...] | None = None
     rows: list[Row] = []
-    for number, cells in enumerate(lines[1:], start=2):
-        if not any(c.strip() for c in cells):
+    previous_line = 0
+    for cells in reader:
+        first_line = previous_line + 1
+        previous_line = reader.line_num
+        stripped = [c.strip() for c in cells]
+        if columns is None:
+            columns = tuple(stripped)
             continue
-        padded = [c.strip() for c in cells] + [""] * (len(columns) - len(cells))
-        rows.append(Row(number, dict(zip(columns, padded, strict=False))))
-    return Table(columns, rows)
+        if not any(stripped):
+            continue
+        width = len(columns)
+        padded = stripped[:width] + [""] * (width - len(stripped[:width]))
+        values = dict(zip(columns, padded, strict=True))
+        rows.append(Row(first_line, values, tuple(stripped[width:])))
+    return Table(columns or (), rows)
 
 
 def read_table(path: Path) -> Table:

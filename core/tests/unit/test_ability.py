@@ -45,6 +45,15 @@ def test_best_position_tie_uses_fm_order() -> None:
     assert best_position(p) is Position.ML
 
 
+def test_best_position_uses_familiarity_for_mirrored_positions() -> None:
+    # Regression (PR #1 review): AML/AMR share weights, so the bases tie. The natural AMR must
+    # win over his accomplished AML, not lose on FM order.
+    p = player(positions={Position.AMR: 20, Position.AML: 15})
+    assert best_position(p) is Position.AMR
+    q = player(positions={Position.DR: 20, Position.DL: 16})
+    assert best_position(q) is Position.DR
+
+
 def test_is_goalkeeper() -> None:
     assert is_goalkeeper(player(positions={Position.GK: 20}))
     assert not is_goalkeeper(player(positions={Position.ST: 20}))

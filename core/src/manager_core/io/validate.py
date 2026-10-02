@@ -183,6 +183,12 @@ def check_structure(tables: Mapping[str, Table | None]) -> ValidationReport:
                 report.add("E001", name)
             continue
         present = set(table.columns)
+        for col_name in sorted({c for c in table.columns if table.columns.count(c) > 1}):
+            report.add("E028", name, field=col_name)
+        for row in table.rows:
+            if row.extra:
+                report.add("E026", name, row=row, record_id=record_id_of(spec, row),
+                           value=";".join(row.extra), count=len(row.extra))
         missing = {c.name for c in spec.columns if c.required and c.name not in present}
         for col_name in sorted(missing):
             report.add("E025", name, field=col_name)

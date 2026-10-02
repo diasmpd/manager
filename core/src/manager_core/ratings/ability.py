@@ -13,7 +13,7 @@ from __future__ import annotations
 from manager_core.domain.attributes import ATTRIBUTE_GROUPS, AttributeGroup
 from manager_core.domain.player import Player
 from manager_core.domain.positions import Position
-from manager_core.ratings.suitability import base
+from manager_core.ratings.suitability import base, suitability_milli
 
 KEY_SHARE = 0.85
 GENERAL_SHARE = 0.15
@@ -45,9 +45,14 @@ def current_ability(player: Player) -> int:
 
 
 def best_position(player: Player) -> Position:
-    """Highest key-attribute base among natural positions; ties go to the earlier FM position."""
+    """Highest suitability (familiarity included) among positions with familiarity >= 15.
+
+    Integer milli-points make ties exact; ties go to the earlier FM position. Using suitability
+    rather than the raw base matters for mirrored positions (AML/AMR share weights): a natural
+    AMR who is only accomplished at AML is an AMR.
+    """
     naturals = player.positions.natural_positions()  # already in FM order
-    return max(naturals, key=lambda p: (base(player, p), -p.order))
+    return max(naturals, key=lambda p: (suitability_milli(player, p), -p.order))
 
 
 def is_goalkeeper(player: Player) -> bool:
