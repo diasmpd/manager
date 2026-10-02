@@ -1,0 +1,108 @@
+# Campeonato Mineiro – Módulo I, formato FMF 2026.
+#
+# Fontes (consultadas em 2026-10-02):
+#   Lance:     https://www.lance.com.br/futebol-nacional/grandes-classificam-e-equipe-de-serie-b-cai-veja-as-definicoes-da-primeira-fase-do-campeonato-mineiro.html
+#   Flashscore: https://www.flashscore.com.br/noticias/futebol-mineiro-guia-do-campeonato-mineiro-2026-regulamento-times-grupos-e-onde-assistir/tfUf0gJr/
+#   Itatiaia:  https://www.itatiaia.com.br/esportes/futebol/futebol-nacional/campeonato-mineiro/fmf-confirma-retorno-da-final-unica-para-o-campeonato-mineiro-de-2026/
+# Itens marcados "a confirmar" ainda precisam ser checados no regulamento oficial da FMF.
+
+format_version = 1
+
+[competition]
+id = "mg-modulo-i-2026"            # edição do regulamento
+name = "Campeonato Mineiro – Módulo I"
+short_name = "Mineiro"
+state = "MG"
+country = "BRA"
+participants = 12
+regulation_year = 2026
+valid_from = 2026                  # vale até um regulamento novo definir valid_to aqui
+
+[scoring]
+win = 3
+draw = 1
+loss = 0
+# A confirmar: ordem usual dos regulamentos estaduais brasileiros.
+tiebreakers = ["wins", "goal_difference", "goals_for", "head_to_head",
+               "fewer_red_cards", "fewer_yellow_cards", "draw"]
+
+[calendar]
+window_start = "01-08"             # primeiro fim de semana a partir desta data
+window_end = "03-08"               # limite da CBF para datas dos estaduais (aprox.)
+weekend_days = ["sat", "sun"]
+midweek_days = ["wed", "thu"]
+kickoff_weekend = "16:00"
+kickoff_midweek = "21:30"          # acoplado a min_rest_hours: qua 21:30 -> sáb 16:00 = 66,5 h
+min_rest_hours = 66
+avoid_windows = ["fifa"]
+
+[venues.neutral]
+name = "Arena Estadual das Gerais" # equivalente fictício do Mineirão
+city = "Vale do Ouro"
+capacity = 62000
+
+# Primeira fase: 3 grupos de 4; cada clube enfrenta os 8 clubes dos outros dois grupos (Lance).
+[[stages]]
+id = "primeira-fase"
+type = "groups"
+group_count = 3
+group_size = 4
+matching = "other_groups"
+rounds = 1
+draw = "pots_by_reputation"        # FMF usa ranking próprio; reputação é o substituto no M0
+outcomes = [{ kind = "relegated", overall_places = [11, 12] }]   # dois piores (Lance)
+
+# Semifinal: líderes dos grupos + melhor 2º; ida e volta; empate no agregado -> pênaltis (Flashscore).
+[[stages]]
+id = "semifinal"
+type = "knockout"
+track = "main"
+legs = 2
+entrants = [
+  { from = "primeira-fase", rule = "group_winners" },
+  { from = "primeira-fase", rule = "best_of_place", place = 2, count = 1 },
+]
+pairing = "campaign_1v4_2v3"       # a confirmar
+deciding_leg_host = "better_campaign"
+tie_rule = "penalties"
+venue = "home"
+
+# Final em jogo único no Mineirão (Itatiaia); empate -> pênaltis (a confirmar).
+[[stages]]
+id = "final"
+type = "knockout"
+track = "main"
+title = "Campeão Mineiro"
+legs = 1
+entrants = [{ from = "semifinal", rule = "winners_of" }]
+pairing = "campaign_high_low"
+tie_rule = "penalties"
+venue = "neutral"
+
+# Troféu Inconfidência: 5º-8º na classificação geral, pulando semifinalistas (decisão do dono;
+# a confirmar). Ida e volta; empate -> soma de pontos, depois melhor campanha (Flashscore).
+[[stages]]
+id = "inconfidencia-semifinal"
+type = "knockout"
+track = "inconfidencia"
+legs = 2
+entrants = [{ from = "primeira-fase", rule = "overall_places", places = [5, 8], exclude_tracks = ["main"] }]
+pairing = "campaign_1v4_2v3"
+deciding_leg_host = "better_campaign"
+tie_rule = "points_then_campaign"
+venue = "home"
+dates_with = "semifinal"
+
+[[stages]]
+id = "inconfidencia-final"
+type = "knockout"
+track = "inconfidencia"
+title = "Troféu Inconfidência"
+legs = 2
+entrants = [{ from = "inconfidencia-semifinal", rule = "winners_of" }]
+pairing = "campaign_high_low"
+deciding_leg_host = "better_campaign"
+tie_rule = "points_then_campaign"
+venue = "home"
+dates_with = "final"
+may_exceed_window = true           # 2º jogo no fim de semana após a final (decisão do dono)

@@ -83,8 +83,7 @@ type = "knockout"
 track = "inconfidencia"
 legs = 2
 # Places 5-8 overall; a semifinalist in that range is skipped and the next place fills in.
-entrants = [{ from = "primeira-fase", rule = "overall_places", places = [5, 8],
-              exclude_tracks = ["main"] }]
+entrants = [{ from = "primeira-fase", rule = "overall_places", places = [5, 8], exclude_tracks = ["main"] }]
 pairing = "campaign_1v4_2v3"
 deciding_leg_host = "better_campaign"
 tie_rule = "points_then_campaign"

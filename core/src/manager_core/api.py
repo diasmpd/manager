@@ -6,12 +6,16 @@ Spec 004 (saves) and 010 (out-of-process API) will replace it with a session/han
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
+from manager_core.competition import rules
+from manager_core.competition.results import Result, ResultProvider
+from manager_core.competition.rules import Ruleset, RulesetReport, RulesetSummary
+from manager_core.competition.season import Match, Season
 from manager_core.domain.attributes import (
     ATTRIBUTE_GROUPS,
     AttributeGroup,
@@ -304,3 +308,70 @@ def suggest_lineup(dataset: Dataset, club_id: str, formation: str = "4-4-2") -> 
 
 def list_formations() -> list[Formation]:
     return list(load_catalogue().values())
+
+
+# ---- competitions (spec 002) -----------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class GroupView:
+    label: str
+    club_ids: tuple[str, ...]
+    club_names: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MatchView:
+    id: str
+    stage_id: str
+    round: int
+    kickoff: datetime
+    home_id: str
+    home_name: str
+    away_id: str
+    away_name: str
+    venue: str
+    result: Result | None
+
+
+def list_rulesets() -> list[RulesetSummary]:
+    return rules.list_rulesets()
+
+
+def load_ruleset(ruleset_id: str) -> Ruleset:
+    try:
+        return rules.load_ruleset(ruleset_id)
+    except rules.RulesetNotFoundError:
+        raise NotFoundError("ruleset", ruleset_id) from None
+
+
+def validate_ruleset(path: Path) -> RulesetReport:
+    return rules.validate_ruleset_file(path)
+
+
+def start_season(dataset: Dataset, ruleset_id: str, year: int, master_seed: int,
+                 participants: Sequence[str] | None = None, *,
+                 result_provider: ResultProvider | None = None) -> Season:
+    return Season.start(dataset, load_ruleset(ruleset_id), year, master_seed, participants,
+                        result_provider)
+
+
+def season_groups(season: Season) -> list[GroupView]:
+    return [GroupView(g.label, g.club_ids, tuple(season.club_name(c) for c in g.club_ids))
+            for g in season.groups]
+
+
+def _match_view(season: Season, m: Match) -> MatchView:
+    return MatchView(m.id, m.stage_id, m.round, m.kickoff, m.home_id, season.club_name(m.home_id),
+                     m.away_id, season.club_name(m.away_id), m.venue, season.results.get(m.id))
+
+
+def season_fixtures(season: Season, club_id: str | None = None,
+                    round: int | None = None) -> list[MatchView]:
+    if club_id is not None and club_id not in season.participants:
+        raise NotFoundError("club", club_id)
+    return [
+        _match_view(season, m) for m in season.sorted_matches()
+        if (club_id is None or club_id in (m.home_id, m.away_id))
+        and (round is None or (m.stage_id == season.ruleset.group_stage.id and m.round == round))
+    ]

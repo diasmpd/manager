@@ -6,9 +6,11 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 
 from manager_core import api
+from manager_core.competition.season import Season, SeasonError
 from manager_core.domain.dataset import Dataset
 from manager_core.domain.positions import Position
 from manager_core.i18n import t
@@ -231,6 +233,61 @@ def _cmd_formation_list(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+# ---- season (spec 002) ----------------------------------------------------------------------
+
+
+def _fmt_kickoff(when: datetime) -> str:
+    return f"{t(f'weekday.{when.weekday()}')} {when:%d/%m/%Y %H:%M}"
+
+
+def _season(args: argparse.Namespace) -> Season | None:
+    """Rebuild the season deterministically (no saves until spec 004)."""
+    dataset = _load(args.data)
+    if dataset is None:
+        return None
+    return api.start_season(dataset, args.ruleset, args.year, args.master_seed)
+
+
+def _match_line(m: api.MatchView) -> str:
+    score = "x"
+    if m.result is not None:
+        score = f"{m.result.home_goals} x {m.result.away_goals}"
+    return f"  {_fmt_kickoff(m.kickoff)}  {m.home_name} {score} {m.away_name}  ({m.venue})"
+
+
+def _cmd_season_groups(args: argparse.Namespace) -> int:
+    season = _season(args)
+    if season is None:
+        return EXIT_INVALID
+    for g in api.season_groups(season):
+        print(t("season.group", label=g.label))
+        for name in g.club_names:
+            print(f"  {name}")
+    return EXIT_OK
+
+
+def _cmd_season_fixtures(args: argparse.Namespace) -> int:
+    season = _season(args)
+    if season is None:
+        return EXIT_INVALID
+    matches = api.season_fixtures(season, club_id=args.club, round=args.round)
+    current: tuple[str, int] | None = None
+    for m in matches:
+        key = (m.stage_id, m.round)
+        if args.club is None and key != current:
+            current = key
+            stage = t(f"season.stage.{m.stage_id}")
+            print(f"{stage} – {t('season.round', round=m.round)}")
+        print(_match_line(m))
+    return EXIT_OK
+
+
+def _add_season_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--ruleset", default="mg-modulo-i-2026")
+    parser.add_argument("--year", type=int, default=2027)
+    parser.add_argument("--master-seed", type=int, default=20261002)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="manager_core", description=t("cli.description"))
     parser.add_argument("--data", type=Path, default=_default_data_dir())
@@ -278,6 +335,15 @@ def _build_parser() -> argparse.ArgumentParser:
 
     formation = groups.add_parser("formation").add_subparsers(dest="command", required=True)
     formation.add_parser("list").set_defaults(func=_cmd_formation_list)
+
+    season = groups.add_parser("season")
+    _add_season_options(season)
+    season_cmds = season.add_subparsers(dest="command", required=True)
+    season_cmds.add_parser("groups").set_defaults(func=_cmd_season_groups)
+    cmd = season_cmds.add_parser("fixtures")
+    cmd.add_argument("--club")
+    cmd.add_argument("--round", type=int)
+    cmd.set_defaults(func=_cmd_season_fixtures)
     return parser
 
 
@@ -293,4 +359,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except api.NotFoundError as exc:
         print(t(f"cli.not_found.{exc.kind}", id=exc.id), file=sys.stderr)
         return EXIT_NOT_FOUND
+    except SeasonError as exc:
+        print(exc.message, file=sys.stderr)
+        return EXIT_INVALID
     return code

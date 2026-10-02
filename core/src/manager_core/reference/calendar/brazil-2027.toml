@@ -1,0 +1,37 @@
+# Datas FIFA de 2027 (aproximadas, padrão do calendário FIFA: setembro, outubro, novembro e
+# março/junho). Ajustar quando o calendário oficial for publicado.
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "03-22"
+to = "03-30"
+blocks = ["state"]
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "06-07"
+to = "06-15"
+blocks = ["state"]
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "09-06"
+to = "09-14"
+blocks = ["state"]
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "10-04"
+to = "10-12"
+blocks = ["state"]
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "11-08"
+to = "11-16"
+blocks = ["state"]

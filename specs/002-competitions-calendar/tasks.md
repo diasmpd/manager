@@ -18,8 +18,8 @@ description: "Task list for 002 Competitions and Calendar"
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the package `core/src/manager_core/competition/__init__.py` and the reference folders `core/src/manager_core/reference/competitions/` and `core/src/manager_core/reference/calendar/`, each with `__init__.py` so `importlib.resources` can read them. Add `reference/competitions/*.toml` and `reference/calendar/*.toml` to package data in `core/pyproject.toml`.
-- [ ] T002 [P] Create the test folders `core/tests/fixtures/rulesets/` and `core/tests/fixtures/tiebreaks/`
+- [X] T001 Create the package `core/src/manager_core/competition/__init__.py` and the reference folders `core/src/manager_core/reference/competitions/` and `core/src/manager_core/reference/calendar/`, each with `__init__.py` so `importlib.resources` can read them. Add `reference/competitions/*.toml` and `reference/calendar/*.toml` to package data in `core/pyproject.toml`.
+- [X] T002 [P] Create the test folders `core/tests/fixtures/rulesets/` and `core/tests/fixtures/tiebreaks/`
 
 ---
 
@@ -27,31 +27,31 @@ description: "Task list for 002 Competitions and Calendar"
 
 ### Tests first
 
-- [ ] T003 [P] Unit tests `core/tests/unit/test_seeds.py`:
+- [X] T003 [P] Unit tests `core/tests/unit/test_seeds.py`:
   - `season_seed(master, year)` is stable across runs and differs by year and master;
   - `sub_seed(seed, label)` is stable and label-sensitive;
   - Python `hash()` is never used (assert values for known inputs).
-- [ ] T004 [P] Contract test `core/tests/contract/test_ruleset_format.py`:
+- [X] T004 [P] Contract test `core/tests/contract/test_ruleset_format.py`:
   - `mg-modulo-i-2026.toml` loads into the `Ruleset` dataclasses with exactly the values in contracts/ruleset-format.md: 12 participants, `regulation_year` 2026 and `valid_from` 2026, 3×4 groups, `other_groups`, 1 round, tiebreaker order, window 01-08 to 03-08, 66 h, neutral venue "Arena Estadual das Gerais", Inconfidência entrants `overall_places [5, 8]` with `exclude_tracks = ["main"]`, Inconfidência final `may_exceed_window = true`;
   - five stages in order, with the tracks `main` and `inconfidencia` and their titles.
-- [ ] T005 [P] Unit tests `core/tests/unit/test_results.py`: `Result` and `Shootout` invariants (non-negative goals, the shootout winner consistent with the kicks, sudden death after 5 each), `source` is required, and `PlaceholderProvider` satisfies the `ResultProvider` protocol.
+- [X] T005 [P] Unit tests `core/tests/unit/test_results.py`: `Result` and `Shootout` invariants (non-negative goals, the shootout winner consistent with the kicks, sudden death after 5 each), `source` is required, and `PlaceholderProvider` satisfies the `ResultProvider` protocol.
 
 ### Implementation
 
-- [ ] T006 [P] Implement `core/src/manager_core/competition/seeds.py`: `season_seed(master_seed: int, year: int) -> int` and `sub_seed(seed: int, label: str) -> int`, both via SHA-256 (research R4).
-- [ ] T007 [P] Implement `core/src/manager_core/competition/rules.py`:
+- [X] T006 [P] Implement `core/src/manager_core/competition/seeds.py`: `season_seed(master_seed: int, year: int) -> int` and `sub_seed(seed: int, label: str) -> int`, both via SHA-256 (research R4).
+- [X] T007 [P] Implement `core/src/manager_core/competition/rules.py`:
   - frozen dataclasses `Ruleset`, `Scoring`, `CalendarRule`, `NeutralVenue`, `GroupStageRule`, `KnockoutStageRule`, `EntrantRule`, `OutcomeRule`;
   - enums `Tiebreaker`, `Matching`, `Pairing`, `TieRule`, `Venue`;
   - `load_ruleset(id)` (bundled) and `load_ruleset_file(path)`, using `tomllib`;
   - a `RulesetReport` with codes R001–R014 from data-model.md, collecting every problem before any object is built;
   - `list_rulesets()`.
-- [ ] T008 [P] Write `core/src/manager_core/reference/competitions/mg-modulo-i-2026.toml` exactly per contracts/ruleset-format.md, with comments citing the press sources from the spec header and marking the unconfirmed rules ("a confirmar no regulamento FMF 2026").
-- [ ] T009 [P] Write `core/src/manager_core/reference/calendar/brazil.toml` with fixed windows and the Easter-based Carnival windows from contracts/ruleset-format.md (Carnival Saturday to Ash Wednesday labelled; Monday and Tuesday `blocks = ["state"]`), plus `brazil-2027.toml` with the 2027 FIFA windows (dates marked approximate). Fixed reserved windows (month-day, labels, blocks):
+- [X] T008 [P] Write `core/src/manager_core/reference/competitions/mg-modulo-i-2026.toml` exactly per contracts/ruleset-format.md, with comments citing the press sources from the spec header and marking the unconfirmed rules ("a confirmar no regulamento FMF 2026").
+- [X] T009 [P] Write `core/src/manager_core/reference/calendar/brazil.toml` with fixed windows and the Easter-based Carnival windows from contracts/ruleset-format.md (Carnival Saturday to Ash Wednesday labelled; Monday and Tuesday `blocks = ["state"]`), plus `brazil-2027.toml` with the 2027 FIFA windows (dates marked approximate). Fixed reserved windows (month-day, labels, blocks):
   - FIFA windows 03-23–03-31, 06-01–06-09, 09-01–09-09, 10-05–10-13 and 11-09–11-17, each `blocks = ["state"]`;
   - "Copa do Brasil (fases iniciais)" 02-18–05-31;
   - "Brasileirão Séries A–D" 03-28–12-06;
   - all marked approximate in comments.
-- [ ] T010 Implement `core/src/manager_core/competition/results.py`:
+- [X] T010 Implement `core/src/manager_core/competition/results.py`:
   - `Result` (home/away goals, `source`, optional cards, optional `Shootout`) and `Shootout` (kicks, winner);
   - the `ResultProvider` protocol and `MatchContext`;
   - `PlaceholderProvider`, per research R9:
@@ -61,12 +61,12 @@ description: "Task list for 002 Competitions and Calendar"
     - the RNG is seeded from `sub_seed(season_seed, "match:{id}")`;
     - `source = "placeholder"`;
     - strengths are cached per club.
-- [ ] T011 Add competition strings to `core/src/manager_core/i18n/pt_BR.py`:
+- [X] T011 Add competition strings to `core/src/manager_core/i18n/pt_BR.py`:
   - R-code messages, stage and track names, zone labels (Semifinal / Troféu Inconfidência / Rebaixado);
   - table column labels, weekday and month names;
   - "(provisório)", event texts (sorteio, classificado, rebaixado, campeão);
   - tiebreaker names.
-- [ ] T012 Add the facade signatures from contracts/facade.md to `core/src/manager_core/api.py` (they raise `NotImplementedError` until implemented), and add a `season` command group skeleton to `core/src/manager_core/cli.py`. The skeleton has the shared options `--ruleset`, `--year`, `--master-seed` and `--date`, a helper that rebuilds the season and replays it to the date, and exit codes 0/1/2/3.
+- [X] T012 Add the facade signatures from contracts/facade.md to `core/src/manager_core/api.py` (they raise `NotImplementedError` until implemented), and add a `season` command group skeleton to `core/src/manager_core/cli.py`. The skeleton has the shared options `--ruleset`, `--year`, `--master-seed` and `--date`, a helper that rebuilds the season and replays it to the date, and exit codes 0/1/2/3.
 
 **Checkpoint**: seeds, rulesets, results and the skeletons pass their tests.
 
@@ -83,18 +83,18 @@ description: "Task list for 002 Competitions and Calendar"
 
 ### Tests (first)
 
-- [ ] T013 [P] [US1] Unit tests `core/tests/unit/test_draw.py`:
+- [X] T013 [P] [US1] Unit tests `core/tests/unit/test_draw.py`:
   - `pots_by_reputation`: pot 1 = the 3 highest reputations (ties broken by id), one per group;
   - every pot is dealt one club per group;
   - the result is deterministic per seed, and different seeds give different draws in at least 1 of 20;
   - `fixed` reads groups from the ruleset.
-- [ ] T014 [P] [US1] Unit tests `core/tests/unit/test_fixtures.py` for `other_groups` on 200 seeds:
+- [X] T014 [P] [US1] Unit tests `core/tests/unit/test_fixtures.py` for `other_groups` on 200 seeds:
   - each club plays 8 matches, against exactly the 8 clubs of the other groups, never its own group;
   - every club appears exactly once per matchday (8 matchdays × 6 matches);
   - home/away is 4–4 for every club.
 
   Also: `all` with double round is a double round-robin, with `n−1` rounds per leg, each pair meeting once home and once away; `own_group` is a round-robin inside each group.
-- [ ] T015 [P] [US1] Unit tests `core/tests/unit/test_scheduler.py` on 200 seeds:
+- [X] T015 [P] [US1] Unit tests `core/tests/unit/test_scheduler.py` on 200 seeds:
   - all first-phase dates are inside the window, and the window starts on the first weekend on or after 01-08;
   - weekend slots are used before any midweek slot;
   - no date falls in a window with `blocks = ["state"]`;
@@ -104,34 +104,34 @@ description: "Task list for 002 Competitions and Calendar"
   - **rest boundary** (review item 5): Wednesday 21:30 → Saturday 16:00 is accepted (66.5 h), and the same with a 22:00 kick-off is rejected; a Thursday club is never placed on Saturday;
   - **Carnival**: Easter dates are correct for 2026–2030 (known values), and no state match falls on Carnival Monday or Tuesday for any year 2026–2030 on 200 seeds;
   - **window**: every round stays inside the window except stages with `may_exceed_window` (only the Inconfidência final legs), on 200 seeds × years 2026–2030.
-- [ ] T016 [P] [US1] Integration test `core/tests/integration/test_season_start.py`:
+- [X] T016 [P] [US1] Integration test `core/tests/integration/test_season_start.py`:
   - `start_season(sample, "mg-modulo-i-2026", 2027, 20261002)` gives 3 groups headed by `vale-do-ouro`, `serra-negra` and `alvorada`;
   - 48 first-phase matches with stable ids and venues equal to the home club's stadium;
   - two starts are field-by-field equal (SC-002 for the start);
   - starting with the wrong number of participants is refused with a clear message (S002);
   - starting in a year before `valid_from` (e.g. 2025) is refused (S001).
-- [ ] T017 [P] [US1] Contract test `core/tests/contract/test_cli_season_start.py`: `season groups` and `season fixtures [--round N | --club ID]` exit 0 and print the documented columns; an unknown club exits 3.
+- [X] T017 [P] [US1] Contract test `core/tests/contract/test_cli_season_start.py`: `season groups` and `season fixtures [--round N | --club ID]` exit 0 and print the documented columns; an unknown club exits 3.
 
 ### Implementation
 
-- [ ] T018 [P] [US1] Implement `core/src/manager_core/competition/draw.py`: `draw_groups(clubs, rule, seed) -> list[Group]` with `pots_by_reputation` and `fixed` (research R5).
-- [ ] T019 [P] [US1] Implement `core/src/manager_core/competition/fixtures.py`:
+- [X] T018 [P] [US1] Implement `core/src/manager_core/competition/draw.py`: `draw_groups(clubs, rule, seed) -> list[Group]` with `pots_by_reputation` and `fixed` (research R5).
+- [X] T019 [P] [US1] Implement `core/src/manager_core/competition/fixtures.py`:
   - `build_group_stage_fixtures(groups, matching, rounds, seed)` → matchdays of pairings;
   - `other_groups` uses an exact perfect-matching search per matchday (research R6);
   - `all` and `own_group` use the circle method;
   - a home/away balancing pass gives 4–4 for `other_groups` and alternation for round-robins.
-- [ ] T020 [US1] Implement `core/src/manager_core/competition/scheduler.py`:
+- [X] T020 [US1] Implement `core/src/manager_core/competition/scheduler.py`:
   - window resolution for a year;
   - slot generation (weekends, midweeks) minus blocked windows;
   - main-path slot selection (all weekends, then evenly spread midweeks);
   - day/kick-off assignment inside a slot so that a club that played midweek gets the later weekend day;
   - `validate_rest(matches, min_hours)`;
   - `SchedulingError` (research R7).
-- [ ] T021 [US1] Implement the start of the `Season` engine in `core/src/manager_core/competition/season.py`:
+- [X] T021 [US1] Implement the start of the `Season` engine in `core/src/manager_core/competition/season.py`:
   - `Season.start(dataset, ruleset, year, master_seed, participants, provider)`: validates the participants, draws, builds the fixtures, schedules the group stage, creates `Match` objects with stable ids and venues, and logs the `draw` event;
   - the views `groups()` and `fixtures(club_id, round)`.
-- [ ] T022 [US1] Facade: implement `start_season`, `season_groups` and `season_fixtures` in `core/src/manager_core/api.py`.
-- [ ] T023 [US1] CLI: implement `season groups` and `season fixtures` in `core/src/manager_core/cli.py`, with dates in pt-BR (e.g. "dom 10/01/2027 16:00").
+- [X] T022 [US1] Facade: implement `start_season`, `season_groups` and `season_fixtures` in `core/src/manager_core/api.py`.
+- [X] T023 [US1] CLI: implement `season groups` and `season fixtures` in `core/src/manager_core/cli.py`, with dates in pt-BR (e.g. "dom 10/01/2027 16:00").
 
 **Checkpoint**: a season can be started and inspected. MVP.
 
