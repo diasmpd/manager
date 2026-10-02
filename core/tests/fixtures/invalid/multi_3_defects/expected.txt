@@ -1,0 +1,3 @@
+E004;attributes.csv;p-a11;finishing
+E010;players.csv;p-a05;date_of_birth
+E004;clubs.csv;clube-b;stadium_capacity

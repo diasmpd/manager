@@ -169,7 +169,7 @@ MESSAGES: dict[str, str] = {
     "issue.W003": "Goleiro com finalização ou drible acima de 12.",
     "issue.W004": "Jogador com 34 anos ou mais e velocidade/aceleração 17 ou mais.",
     "issue.W005": "Todos os atributos ocultos iguais (provável valor padrão não intencional).",
-    "issue.W006": "Código de nacionalidade desconhecido: {code}.",
+    "issue.W006": "Código de nacionalidade desconhecido: {nation}.",
     "issue.W007": "Coluna desconhecida ignorada.",
     "issue.W010": "Habilidade potencial ({pa}) abaixo da habilidade atual ({ca}): ajustada para {ca}.",
 }

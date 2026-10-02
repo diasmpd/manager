@@ -18,10 +18,10 @@ from manager_core.domain.player import Player
 from manager_core.domain.positions import Position, PositionFamiliarity
 from manager_core.domain.squad import SquadMembership
 from manager_core.io.dialect import DialectError, Row, Table, read_table
+from manager_core.io.rules import check_rules
 from manager_core.io.schema import FILES
 from manager_core.io.validate import (
     ValidationReport,
-    check_rules,
     check_structure,
     parse_bool,
     parse_date,

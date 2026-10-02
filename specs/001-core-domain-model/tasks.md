@@ -251,28 +251,28 @@ sample world is identical.
 
 ### Tests for User Story 3 (write first, must fail)
 
-- [ ] T045 [P] [US3] Create `core/tests/fixtures/valid/minimal/`: a hand-written canonical dataset of 2 clubs × 12 players, with provenance, one free agent, one player with no hidden columns (expects `hidden_defaulted`) and one player with PA below his derived CA (expects `potential_raised` and W010).
-- [ ] T046 [P] [US3] Create one invalid fixture folder per active error code: `core/tests/fixtures/invalid/E001_missing_file/` … `E033_not_utf8/`. Each one is a copy of `valid/minimal` with exactly one defect, plus an `expected.txt` holding `code;file;record_id;field`. Cover all active codes in data-model.md: E001–E005, E010, E011, E013, E014, E016–E025, E030–E033 (E015 is retired) (SC-004: ≥ 15).
-- [ ] T047 [P] [US3] Contract test `core/tests/contract/test_validation_catalogue.py`:
+- [X] T045 [P] [US3] Create `core/tests/fixtures/valid/minimal/`: a hand-written canonical dataset of 2 clubs × 12 players, with provenance, one free agent, one player with no hidden columns (expects `hidden_defaulted`) and one player with PA below his derived CA (expects `potential_raised` and W010).
+- [X] T046 [P] [US3] Create one invalid fixture folder per active error code: `core/tests/fixtures/invalid/E001_missing_file/` … `E033_not_utf8/`. Each one is a copy of `valid/minimal` with exactly one defect, plus an `expected.txt` holding `code;file;record_id;field`. Cover all active codes in data-model.md: E001–E005, E010, E011, E013, E014, E016–E025, E030–E033 (E015 is retired) (SC-004: ≥ 15).
+- [X] T047 [P] [US3] Contract test `core/tests/contract/test_validation_catalogue.py`:
   - parametrised over `fixtures/invalid/*`;
   - load fails, nothing is constructed, and the report contains the issue from `expected.txt`;
   - a fixture with 3 independent defects reports all 3 in one pass;
   - issues are ordered by file, row, then field.
-- [ ] T048 [P] [US3] Integration test `core/tests/integration/test_warnings.py` covering W001–W007 and W010 on dedicated small fixtures: the dataset loads and the warnings are listed. For W010, the loaded PA equals CA and the `potential_raised` flag is present.
-- [ ] T049 [P] [US3] Integration test `core/tests/integration/test_format_version.py`: version 1.0 is accepted, `2.0` is refused with E031 and a clear pt-BR message, and a garbage version gives E030. (FR-022's "older supported version still imports" case can only be tested once v1.1 exists; spec 011 adds that test.)
-- [ ] T050 [P] [US3] Property test `core/tests/integration/test_roundtrip.py`:
+- [X] T048 [P] [US3] Integration test `core/tests/integration/test_warnings.py` covering W001–W007 and W010 on dedicated small fixtures: the dataset loads and the warnings are listed. For W010, the loaded PA equals CA and the `potential_raised` flag is present.
+- [X] T049 [P] [US3] Integration test `core/tests/integration/test_format_version.py`: version 1.0 is accepted, `2.0` is refused with E031 and a clear pt-BR message, and a garbage version gives E030. (FR-022's "older supported version still imports" case can only be tested once v1.1 exists; spec 011 adds that test.)
+- [X] T050 [P] [US3] Property test `core/tests/integration/test_roundtrip.py`:
   - hypothesis-generated small datasets, plus the sample world and `valid/minimal`: export → import → equal datasets, including provenance, external refs and record flags, which persist (SC-003);
   - exporting twice is byte-identical.
-- [ ] T051 [P] [US3] Performance test `core/tests/integration/test_performance.py`: loading and validating `data/sample/` takes < 2 s on the reference PC (SC-001). The limit comes from env var `MANAGER_PERF_LIMIT_S` (default 2.0), and CI sets it to 4.0 because shared runners are slower and noisier. Mark it `slow`, but run it in CI.
+- [X] T051 [P] [US3] Performance test `core/tests/integration/test_performance.py`: loading and validating `data/sample/` takes < 2 s on the reference PC (SC-001). The limit comes from env var `MANAGER_PERF_LIMIT_S` (default 2.0), and CI sets it to 4.0 because shared runners are slower and noisier. Mark it `slow`, but run it in CI.
 
 ### Implementation for User Story 3
 
-- [ ] T052 [US3] Complete `core/src/manager_core/io/validate.py` with every active rule in the data-model.md catalogue:
+- [X] T052 [US3] Complete `core/src/manager_core/io/validate.py` with every active rule in the data-model.md catalogue:
   - E005 text length, E010 date, E011 age 14–45 at the reference date, E013/W006 nation codes against `nations.csv`, E014 feet, E016 no position ≥ 15, E017 unknown reference, E018 duplicate membership, E019 duplicate shirt number, E020 abbreviation, E021 UF when country = BRA, E022 colour, E023 currency, E024 attributes/positions coverage, E030/E031 version, E032 no source;
   - warnings W001–W005 (W010 is raised by the reader, T027).
   - Collect all issues in one pass, with messages via `t()` in pt-BR.
   - Keep validation linear in record count (plan: practical for about 50k players).
-- [ ] T053 [US3] Facade and CLI: implement `validate_dataset` and `export_dataset` in `core/src/manager_core/api.py`, plus `data validate <dir>` (errors, then warnings, grouped by file with record and field, then a summary line, exit 1 on errors) and `data export <src> <dst>` (records written, record flags present) in `core/src/manager_core/cli.py`.
+- [X] T053 [US3] Facade and CLI: implement `validate_dataset` and `export_dataset` in `core/src/manager_core/api.py`, plus `data validate <dir>` (errors, then warnings, grouped by file with record and field, then a summary line, exit 1 on errors) and `data export <src> <dst>` (records written, record flags present) in `core/src/manager_core/cli.py`.
 
 **Checkpoint**: all three user stories work independently.
 

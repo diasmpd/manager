@@ -1,0 +1,1 @@
+E022;clubs.csv;clube-a;color_primary

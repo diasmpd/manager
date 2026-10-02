@@ -52,6 +52,7 @@ class ValidationReport:
         self,
         code: str,
         file: str,
+        /,
         *,
         row: Row | None = None,
         record_id: str | None = None,
@@ -199,43 +200,4 @@ def check_structure(tables: Mapping[str, Table | None]) -> ValidationReport:
                 if rid in seen:
                     report.add("E003", name, row=row, record_id=rid, field=id_column, value=rid)
                 seen.setdefault(rid, row.number)
-    return report
-
-
-def check_rules(tables: Mapping[str, Table | None]) -> ValidationReport:
-    """Cross-record rules (data-model catalogue). Runs only on structurally valid tables.
-
-    Foundational subset: the guards the reader relies on to build objects safely
-    (single dataset row, attributes/positions coverage, squad references). The full
-    catalogue is completed in US3 (T052).
-    """
-    report = ValidationReport()
-    meta = tables.get("dataset.csv")
-    if meta is not None and len(meta.rows) != 1:
-        report.add("E005", "dataset.csv", field="format_version", max_len="-")
-
-    players = tables.get("players.csv")
-    player_ids = {r.values["player_id"] for r in players.rows} if players else set()
-    for name in ("attributes.csv", "positions.csv"):
-        table = tables.get(name)
-        covered: set[str] = set()
-        for row in table.rows if table else []:
-            pid = row.values.get("player_id", "")
-            if pid not in player_ids or pid in covered:
-                report.add("E024", name, row=row, record_id=pid, field="player_id", value=pid, file=name)
-            covered.add(pid)
-        for pid in sorted(player_ids - covered):
-            report.add("E024", name, record_id=pid, field="player_id", value=pid, file=name)
-
-    clubs = tables.get("clubs.csv")
-    club_ids = {r.values["club_id"] for r in clubs.rows} if clubs else set()
-    squads = tables.get("squads.csv")
-    for row in squads.rows if squads else []:
-        v = row.values
-        if v["player_id"] not in player_ids:
-            report.add("E017", "squads.csv", row=row, record_id=v["player_id"], field="player_id",
-                       value=v["player_id"], kind=t("kind.player"), ref=v["player_id"])
-        if v["club_id"] not in club_ids:
-            report.add("E017", "squads.csv", row=row, record_id=v["player_id"], field="club_id",
-                       value=v["club_id"], kind=t("kind.club"), ref=v["club_id"])
     return report
