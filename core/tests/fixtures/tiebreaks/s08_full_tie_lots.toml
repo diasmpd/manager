@@ -1,0 +1,5 @@
+name = "empate em tudo, inclusive cartões: sorteio decide"
+clubs = ["a", "b", "w", "x", "y", "z"]
+matches = [["a","x",1,0,0,0,1,1], ["y","a",1,0,0,0,1,1], ["b","z",1,0,0,0,1,1], ["w","b",1,0,0,0,1,1],
+           ["y","x",2,0,0,0,1,1], ["w","z",2,0,0,0,1,1]]
+expect_decided_by_any = { a = "draw", b = "draw" }

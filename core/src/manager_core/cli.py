@@ -6,11 +6,12 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from manager_core import api
-from manager_core.competition.season import Season, SeasonError
+from manager_core.competition.results import PLACEHOLDER
+from manager_core.competition.season import Season, SeasonError, SeasonEvent
 from manager_core.domain.dataset import Dataset
 from manager_core.domain.positions import Position
 from manager_core.i18n import t
@@ -240,19 +241,29 @@ def _fmt_kickoff(when: datetime) -> str:
     return f"{t(f'weekday.{when.weekday()}')} {when:%d/%m/%Y %H:%M}"
 
 
-def _season(args: argparse.Namespace) -> Season | None:
-    """Rebuild the season deterministically (no saves until spec 004)."""
+def _season(args: argparse.Namespace, play: bool = False) -> Season | None:
+    """Rebuild the season deterministically (no saves until spec 004) and, for result views,
+    replay it up to --date (default: the end of the year)."""
     dataset = _load(args.data)
     if dataset is None:
         return None
-    return api.start_season(dataset, args.ruleset, args.year, args.master_seed)
+    season = api.start_season(dataset, args.ruleset, args.year, args.master_seed)
+    if play:
+        api.advance_to(season, args.date or date(args.year, 12, 31))
+    return season
 
 
 def _match_line(m: api.MatchView) -> str:
-    score = "x"
+    score, note = "x", ""
     if m.result is not None:
         score = f"{m.result.home_goals} x {m.result.away_goals}"
-    return f"  {_fmt_kickoff(m.kickoff)}  {m.home_name} {score} {m.away_name}  ({m.venue})"
+        if m.result.shootout is not None:
+            pens = m.result.shootout.score
+            score += f" ({t('season.pens')} {pens[m.home_id]}–{pens[m.away_id]})"
+        if m.result.source == PLACEHOLDER:
+            note = f" {t('season.provisional')}"
+    return (f"  {_fmt_kickoff(m.kickoff)}  {m.home_name} {score} {m.away_name}"
+            f"  ({m.venue}){note}")
 
 
 def _cmd_season_groups(args: argparse.Namespace) -> int:
@@ -282,10 +293,100 @@ def _cmd_season_fixtures(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _cmd_season_table(args: argparse.Namespace) -> int:
+    season = _season(args, play=True)
+    if season is None:
+        return EXIT_INVALID
+    rows = api.season_table(season, args.group)
+    title = t("season.group", label=args.group) if args.group else t("season.overall")
+    print(title)
+    _print_table(
+        [t(f"table.{k}") for k in ("pos", "club", "p", "w", "d", "l", "gf", "ga", "gd", "pts",
+                                   "zone", "decided_by")],
+        [[r.place, season.club_name(r.club_id), r.played, r.won, r.drawn, r.lost, r.goals_for,
+          r.goals_against, r.goal_difference, r.points,
+          t(f"zone.{r.zone.replace(':', '.')}") if r.zone else "",
+          # only show real tie-breaks (clubs level on points)
+          t(f"criterion.{r.decided_by}") if r.decided_by not in (None, "points") else ""]
+         for r in rows],
+    )
+    return EXIT_OK
+
+
+def _cmd_season_bracket(args: argparse.Namespace) -> int:
+    season = _season(args, play=True)
+    if season is None:
+        return EXIT_INVALID
+    current = None
+    for tie in api.season_bracket(season):
+        if tie.stage_id != current:
+            current = tie.stage_id
+            print(t(f"season.stage.{tie.stage_id}"))
+        winner = ""
+        if tie.winner_id:
+            name = tie.high_name if tie.winner_id == tie.high_id else tie.low_name
+            winner = f"  -> {name} ({t(f'tie.{tie.decided_by}')})"
+        print(f" {tie.high_name} x {tie.low_name}{winner}")
+        for leg in tie.legs:
+            print(f"  {_match_line(leg)}")
+    return EXIT_OK
+
+
+def _cmd_season_day(args: argparse.Namespace) -> int:
+    season = _season(args, play=True)
+    if season is None:
+        return EXIT_INVALID
+    view = api.season_day(season, args.date or season.current_date)
+    print(_fmt_date(view.day))
+    for m in view.matches:
+        print(_match_line(m))
+    for e in view.events:
+        print(f"  * {_event_text(season, e)}")
+    return EXIT_OK
+
+
+def _cmd_season_outcomes(args: argparse.Namespace) -> int:
+    season = _season(args, play=True)
+    if season is None:
+        return EXIT_INVALID
+    out = api.season_outcomes(season)
+    if out is None:
+        print(t("outcome.not_finished", date=_fmt_date(season.current_date)))
+        return EXIT_OK
+    name = season.club_name
+    print(f"{t('outcome.champion')}: {name(out.champion)}")
+    print(f"{t('outcome.runner_up')}: {name(out.runner_up)}")
+    print(f"{t('outcome.semifinalists')}: {', '.join(name(c) for c in out.semifinalists)}")
+    for track, winner in out.side_titles.items():
+        print(f"{t(f'outcome.{track}')}: {name(winner)}")
+    print(f"{t('outcome.relegated')}: {', '.join(name(c) for c in out.relegated)}")
+    print(f"{t('outcome.classification')}:")
+    for place, club in enumerate(out.final_classification, start=1):
+        print(f"  {place:>2}. {name(club)}")
+    print(t("season.provisional_note"))
+    return EXIT_OK
+
+
+def _fmt_date(day: date) -> str:
+    return f"{t(f'weekday.{day.weekday()}')} {day:%d/%m/%Y}"
+
+
+def _event_text(season: Season, e: SeasonEvent) -> str:
+    names = [season.club_name(c) if c in season.participants else c for c in e.payload]
+    return t(f"event.{e.kind}", detail=", ".join(names))
+
+
 def _add_season_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--ruleset", default="mg-modulo-i-2026")
     parser.add_argument("--year", type=int, default=2027)
     parser.add_argument("--master-seed", type=int, default=20261002)
+    parser.add_argument("--date", type=date.fromisoformat, default=None)
+
+
+def _sub_date(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    """--date also accepted after the subcommand, without overriding one given before it."""
+    parser.add_argument("--date", type=date.fromisoformat, default=argparse.SUPPRESS)
+    return parser
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -339,11 +440,18 @@ def _build_parser() -> argparse.ArgumentParser:
     season = groups.add_parser("season")
     _add_season_options(season)
     season_cmds = season.add_subparsers(dest="command", required=True)
-    season_cmds.add_parser("groups").set_defaults(func=_cmd_season_groups)
-    cmd = season_cmds.add_parser("fixtures")
+    _sub_date(season_cmds.add_parser("groups")).set_defaults(func=_cmd_season_groups)
+    cmd = _sub_date(season_cmds.add_parser("fixtures"))
     cmd.add_argument("--club")
     cmd.add_argument("--round", type=int)
     cmd.set_defaults(func=_cmd_season_fixtures)
+    cmd = _sub_date(season_cmds.add_parser("table"))
+    cmd.add_argument("--group")
+    cmd.add_argument("--overall", action="store_true")
+    cmd.set_defaults(func=_cmd_season_table)
+    _sub_date(season_cmds.add_parser("bracket")).set_defaults(func=_cmd_season_bracket)
+    _sub_date(season_cmds.add_parser("day")).set_defaults(func=_cmd_season_day)
+    _sub_date(season_cmds.add_parser("outcomes")).set_defaults(func=_cmd_season_outcomes)
     return parser
 
 

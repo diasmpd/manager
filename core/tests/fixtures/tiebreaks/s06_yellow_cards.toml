@@ -1,0 +1,6 @@
+name = "vermelhos iguais: menos amarelos decide"
+clubs = ["a", "b", "w", "x", "y", "z"]
+matches = [["a","x",1,0,0,0,0,1], ["y","a",1,0,0,0,1,1], ["b","z",1,0,0,0,2,1], ["w","b",1,0,0,0,1,1],
+           ["y","x",2,0,0,0,1,1], ["w","z",2,0,0,0,1,1]]
+expect_order = ["a", "b"]
+expect_decided_by = { a = "fewer_yellow_cards" }

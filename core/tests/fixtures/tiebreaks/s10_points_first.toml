@@ -1,0 +1,5 @@
+name = "pontos vêm antes do saldo"
+clubs = ["a", "b", "x", "y"]
+matches = [["a","x",1,0], ["a","y",1,0], ["b","x",5,0], ["y","b",1,0]]
+expect_order = ["a", "b"]
+expect_decided_by = { a = "points" }

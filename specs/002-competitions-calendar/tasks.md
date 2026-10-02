@@ -145,7 +145,7 @@ description: "Task list for 002 Competitions and Calendar"
 
 ### Tests (first)
 
-- [ ] T024 [P] [US2] Create at least 10 hand-built tiebreak scenarios in `core/tests/fixtures/tiebreaks/*.toml`, each with clubs, match results with optional cards, and the expected order. Cover:
+- [X] T024 [P] [US2] Create at least 10 hand-built tiebreak scenarios in `core/tests/fixtures/tiebreaks/*.toml`, each with clubs, match results with optional cards, and the expected order. Cover:
   - a two-way tie settled by wins, by goal difference and by goals scored;
   - head-to-head between two clubs that met;
   - head-to-head skipped (clubs never met);
@@ -154,12 +154,12 @@ description: "Task list for 002 Competitions and Calendar"
   - a cards-missing tie that falls through to lots;
   - a full tie settled by seeded lots;
   - best second-placed club compared across groups.
-- [ ] T025 [P] [US2] Unit tests `core/tests/unit/test_standings.py`:
+- [X] T025 [P] [US2] Unit tests `core/tests/unit/test_standings.py`:
   - parametrised over the tiebreak scenarios (SC-004): order and the `decided_by` trail;
   - points 3/1/0;
   - the table columns are consistent (P = W + D + L, GD = GF − GA);
   - the overall classification across groups.
-- [ ] T026 [P] [US2] Unit tests `core/tests/unit/test_knockout.py`:
+- [X] T026 [P] [US2] Unit tests `core/tests/unit/test_knockout.py`:
   - entrants: group winners + best 2nd; overall places 5–8 with `exclude_tracks`: a semifinalist placed 5th–8th is skipped and the next eligible place fills in (hand-built table where 2 semifinalists rank 6th and 7th → entrants are 5th, 8th, 9th, 10th);
   - pairing `campaign_1v4_2v3`;
   - the better campaign hosts the second leg;
@@ -167,11 +167,11 @@ description: "Task list for 002 Competitions and Calendar"
   - `points_then_campaign` resolves a level tie by points over the legs, then campaign, with no shootout;
   - the single final is at the neutral venue;
   - a shootout runs 5 kicks each plus sudden death, and its winner matches the kicks.
-- [ ] T027 [P] [US2] Unit tests `core/tests/unit/test_placeholder.py`:
+- [X] T027 [P] [US2] Unit tests `core/tests/unit/test_placeholder.py`:
   - results are deterministic per match id regardless of play order;
   - over 2,000 simulated matches the scorelines are plausible: mean goals in 2.0–3.0, home wins > away wins, and a stronger side wins more (sanity only, not calibration);
   - `source == "placeholder"`.
-- [ ] T028 [P] [US2] Integration test `core/tests/integration/test_season_play.py`:
+- [X] T028 [P] [US2] Integration test `core/tests/integration/test_season_play.py`:
   - 200 seeds played to the end; the 1,000-seed version is marked `slow` (SC-001);
   - exactly 1 champion, 2 finalists, 4 semifinalists, 4 Inconfidência entrants and 2 relegated clubs, consistent with the final tables;
   - the relegated clubs are 11th and 12th overall;
@@ -180,39 +180,39 @@ description: "Task list for 002 Competitions and Calendar"
   - knockout dates come after the first phase;
   - no rest violations across all matches, including knockouts;
   - outcomes are identical on replay (SC-002).
-- [ ] T029 [P] [US2] Integration test `core/tests/integration/test_season_advance.py`:
+- [X] T029 [P] [US2] Integration test `core/tests/integration/test_season_advance.py`:
   - `advance_to` on a day with no matches only moves the date;
   - advancing in daily steps equals advancing in one jump;
   - advancing past 31 December is refused;
   - events are emitted in date order (draw, qualified, paired, relegated, champion, side champion).
-- [ ] T030 [P] [US2] Contract test `core/tests/contract/test_cli_season_play.py`:
+- [X] T030 [P] [US2] Contract test `core/tests/contract/test_cli_season_play.py`:
   - `season table [--group A | --overall] [--date]`, `season bracket`, `season day --date` and `season outcomes` exit 0 with the documented columns;
   - placeholder results are marked "(provisório)";
   - an unknown group exits 3.
-- [ ] T031 [P] [US2] Performance test `core/tests/integration/test_season_performance.py` (`slow`, limit from `MANAGER_PERF_LIMIT_S`): starting and playing a full season takes < 2 s (SC-005).
+- [X] T031 [P] [US2] Performance test `core/tests/integration/test_season_performance.py` (`slow`, limit from `MANAGER_PERF_LIMIT_S`): starting and playing a full season takes < 2 s (SC-005).
 
 ### Implementation
 
-- [ ] T032 [US2] Implement `core/src/manager_core/competition/standings.py`:
+- [X] T032 [US2] Implement `core/src/manager_core/competition/standings.py`:
   - `build_table(club_ids, matches, scoring, tiebreakers, seed, label)`;
   - recursive per-criterion splitting with the `decided_by` trail (research R8);
   - head-to-head only for exactly two clubs that met;
   - card criteria neutral when cards are missing;
   - seeded lots via `sub_seed`;
   - `overall_classification` across groups.
-- [ ] T033 [US2] Implement `core/src/manager_core/competition/knockout.py`:
+- [X] T033 [US2] Implement `core/src/manager_core/competition/knockout.py`:
   - entrant resolution (`group_winners`, `best_of_place`, `overall_places`, `winners_of`);
   - pairing and leg hosting;
   - `KnockoutTie` resolution for `penalties` and `points_then_campaign`;
   - neutral venue for `venue = "neutral"`.
-- [ ] T034 [US2] Extend `Season` in `core/src/manager_core/competition/season.py`:
+- [X] T034 [US2] Extend `Season` in `core/src/manager_core/competition/season.py`:
   - `advance_to(date)` plays each day's matches in kick-off order through the provider and updates the tables;
   - when a stage completes, it decides qualification, records relegation outcomes and pairs the next knockout rounds (main and side tracks);
   - it schedules the new rounds through the scheduler, using the `dates_with` slots for side tracks;
   - it detects track completion and records the `Outcome`;
   - the views `table(group)`, `bracket()`, `day(date)` and `outcomes()`.
-- [ ] T035 [US2] Facade: implement `advance_to`, `season_table`, `season_bracket`, `season_day` and `season_outcomes` in `core/src/manager_core/api.py`.
-- [ ] T036 [US2] CLI: implement `season table`, `season bracket`, `season day` and `season outcomes` in `core/src/manager_core/cli.py`, with zone markers, the decided-by note, aggregates and shootouts, "(provisório)" on placeholder results, and pt-BR dates.
+- [X] T035 [US2] Facade: implement `advance_to`, `season_table`, `season_bracket`, `season_day` and `season_outcomes` in `core/src/manager_core/api.py`.
+- [X] T036 [US2] CLI: implement `season table`, `season bracket`, `season day` and `season outcomes` in `core/src/manager_core/cli.py`, with zone markers, the decided-by note, aggregates and shootouts, "(provisório)" on placeholder results, and pt-BR dates.
 
 **Checkpoint**: a full Mineiro season plays out with correct outcomes.
 

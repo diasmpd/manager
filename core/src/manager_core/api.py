@@ -6,6 +6,7 @@ Spec 004 (saves) and 010 (out-of-process API) will replace it with a session/han
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -15,7 +16,8 @@ from typing import Literal
 from manager_core.competition import rules
 from manager_core.competition.results import Result, ResultProvider
 from manager_core.competition.rules import Ruleset, RulesetReport, RulesetSummary
-from manager_core.competition.season import Match, Season
+from manager_core.competition.season import Match, Outcome, Season, SeasonEvent
+from manager_core.competition.standings import TableRow
 from manager_core.domain.attributes import (
     ATTRIBUTE_GROUPS,
     AttributeGroup,
@@ -375,3 +377,69 @@ def season_fixtures(season: Season, club_id: str | None = None,
         if (club_id is None or club_id in (m.home_id, m.away_id))
         and (round is None or (m.stage_id == season.ruleset.group_stage.id and m.round == round))
     ]
+
+
+@dataclass(frozen=True, slots=True)
+class TieView:
+    id: str
+    stage_id: str
+    track: str
+    high_id: str
+    high_name: str
+    low_id: str
+    low_name: str
+    legs: tuple[MatchView, ...]
+    winner_id: str | None
+    decided_by: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class DayView:
+    day: date
+    matches: tuple[MatchView, ...]
+    events: tuple[SeasonEvent, ...]
+
+
+def advance_to(season: Season, day: date) -> list[SeasonEvent]:
+    return season.advance_to(day)
+
+
+def season_table(season: Season, group: str | None = None) -> list[TableRow]:
+    """A group table, or the overall classification (group=None), with zones once decided."""
+    if group is not None and group not in {g.label for g in season.groups}:
+        raise NotFoundError("group", group)
+    rows = season.group_table(group) if group is not None else season.overall_table()
+    zones: dict[str, str] = {}
+    for stage in season.ruleset.knockout_stages:
+        first_of_track = next(s for s in season.ruleset.knockout_stages if s.track == stage.track)
+        if stage is first_of_track:
+            zone = "semifinal" if stage.track == "main" else f"side:{stage.track}"
+            for club in season.stage_entrants.get(stage.id, []):
+                zones.setdefault(club, zone)
+    for club in season.relegated:
+        zones[club] = "relegated"
+    return [dataclasses.replace(r, zone=zones.get(r.club_id)) for r in rows]
+
+
+def season_bracket(season: Season) -> list[TieView]:
+    views = []
+    for tie in sorted(season.ties.values(), key=lambda t: (
+            [s.id for s in season.ruleset.stages].index(t.stage_id), t.id)):
+        outcome = season.tie_outcomes.get(tie.id)
+        legs = tuple(_match_view(season, season.matches[m]) for m in season.tie_matches[tie.id])
+        views.append(TieView(tie.id, tie.stage_id, tie.track, tie.high_id,
+                             season.club_name(tie.high_id), tie.low_id,
+                             season.club_name(tie.low_id), legs,
+                             outcome.winner_id if outcome else None,
+                             outcome.decided_by if outcome else None))
+    return views
+
+
+def season_day(season: Season, day: date) -> DayView:
+    matches = tuple(_match_view(season, m) for m in season.sorted_matches()
+                    if m.kickoff.date() == day)
+    return DayView(day, matches, tuple(e for e in season.events if e.day == day))
+
+
+def season_outcomes(season: Season) -> Outcome | None:
+    return season.outcome()
