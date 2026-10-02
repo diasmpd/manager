@@ -30,7 +30,8 @@ def sample_dir_module() -> Path:
 def test_club_list(capsys: pytest.CaptureFixture[str], sample_dir_module: Path) -> None:
     code, out = _run(capsys, "--data", str(sample_dir_module), "club", "list")
     assert code == EXIT_OK
-    for key in ("cli.col.id", "cli.col.name", "cli.col.abbr", "cli.col.squad_size", "cli.col.avg_ca"):
+    keys = ("cli.col.id", "cli.col.name", "cli.col.abbr", "cli.col.squad_size", "cli.col.avg_ca")
+    for key in keys:
         assert t(key) in out
     assert len(out.strip().splitlines()) == 2 + 12
 
@@ -63,8 +64,9 @@ def test_player_show_hides_hidden_by_default(
 
 
 def test_unknown_ids_exit_3(capsys: pytest.CaptureFixture[str], sample_dir_module: Path) -> None:
-    assert main(["--data", str(sample_dir_module), "club", "squad", "no-such-club"]) == EXIT_NOT_FOUND
-    assert main(["--data", str(sample_dir_module), "player", "show", "p-999999"]) == EXIT_NOT_FOUND
+    data = ["--data", str(sample_dir_module)]
+    assert main([*data, "club", "squad", "no-such-club"]) == EXIT_NOT_FOUND
+    assert main([*data, "player", "show", "p-999999"]) == EXIT_NOT_FOUND
 
 
 def test_duplicate_display_names_are_disambiguated(

@@ -12,8 +12,8 @@ from manager_core.domain.dataset import Dataset
 
 pytest.importorskip("hypothesis")
 
-from hypothesis import HealthCheck, given, settings  # noqa: E402
-from hypothesis import strategies as st  # noqa: E402
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 

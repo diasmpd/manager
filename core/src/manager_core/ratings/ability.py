@@ -1,7 +1,7 @@
 """Derived Current Ability (research R8). CA is never stored, so it cannot contradict the
 attributes. It is a rough mapping onto FM's 1-200 scale, re-calibrated in spec 011.
 
-S = max over natural positions p of [0.85 * base(p) + 0.15 * mean(relevant visible attributes for p)]
+S = max over natural positions p of [0.85 * base(p) + 0.15 * mean(relevant visible attrs for p)]
 CA = round(1 + (S - 1) * 199 / 19), clamped to 1-200.
 
 Taking the max over per-position scores keeps CA monotonic: raising any attribute never lowers

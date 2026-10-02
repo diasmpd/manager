@@ -94,5 +94,7 @@ class Dataset:
 
     def flags_for(self, record_type: RecordType, record_id: str) -> tuple[RecordFlag, ...]:
         return tuple(
-            f for f in self.record_flags if f.record_type is record_type and f.record_id == record_id
+            f
+            for f in self.record_flags
+            if f.record_type is record_type and f.record_id == record_id
         )

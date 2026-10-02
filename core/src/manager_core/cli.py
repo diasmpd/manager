@@ -54,7 +54,8 @@ def _issue_line(issue: Issue) -> str:
         value = f" = {issue.value!r}" if issue.value not in (None, "") else ""
         parts.append(f"{issue.field}{value}")
     location = " · ".join(p for p in parts if p)
-    return f"    [{issue.code}] {location}: {issue.message}" if location else f"    [{issue.code}] {issue.message}"
+    prefix = f"    [{issue.code}]"
+    return f"{prefix} {location}: {issue.message}" if location else f"{prefix} {issue.message}"
 
 
 def _print_report(report: ValidationReport) -> None:

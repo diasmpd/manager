@@ -36,7 +36,7 @@ from manager_core.sample.names import (
     ClubIdentity,
 )
 
-GENERATOR_VERSION = "1.1.0"  # 1.1: traditional Brazilian shirt numbers by ability
+GENERATOR_VERSION = "1.1.1"  # 1.1: Brazilian shirt numbers by ability; 1.1.1: notes text
 TOOL = "manager_core.sample"
 REFERENCE_DATE = date(2027, 1, 1)
 GENERATED_ON = date(2026, 10, 2)
@@ -285,7 +285,7 @@ def generate(seed: int = 20261002) -> Dataset:
         tool=TOOL,
         tool_version=GENERATOR_VERSION,
         seed=seed,
-        notes="Mundo fictício no estilo do futebol mineiro: 12 clubes, sem clubes ou pessoas reais.",
+        notes="Mundo fictício no estilo do futebol mineiro: 12 clubes, sem clubes/pessoas reais.",
         sources=(Source(name=f"{TOOL} {GENERATOR_VERSION}", retrieved_on=GENERATED_ON),),
         clubs=clubs,
         players=players,

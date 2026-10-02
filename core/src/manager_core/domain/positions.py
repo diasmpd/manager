@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 from enum import StrEnum
+from itertools import pairwise
 
 MIN_FAMILIARITY = 1
 MAX_FAMILIARITY = 20
@@ -90,7 +91,7 @@ def band_for(value: int) -> FamiliarityBand:
 
 def familiarity_factor(value: int) -> float:
     _check(value)
-    for (lo, f_lo), (hi, f_hi) in zip(_FACTOR_ANCHORS, _FACTOR_ANCHORS[1:], strict=False):
+    for (lo, f_lo), (hi, f_hi) in pairwise(_FACTOR_ANCHORS):
         if lo <= value <= hi:
             return f_lo + (f_hi - f_lo) * (value - lo) / (hi - lo)
     raise AssertionError("unreachable")

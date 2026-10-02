@@ -63,7 +63,7 @@ def best_assignment(players: Iterable[Player], slots: Sequence[Position]) -> Lin
                 if mask & bit:
                     continue
                 new_mask = mask | bit
-                candidate = (total + row[slot], ids[:slot] + (player.id,) + ids[slot + 1 :])
+                candidate = (total + row[slot], (*ids[:slot], player.id, *ids[slot + 1 :]))
                 current = updates.get(new_mask) or dp.get(new_mask)
                 if current is None or _better(candidate, current):
                     updates[new_mask] = candidate

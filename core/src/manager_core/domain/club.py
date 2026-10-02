@@ -38,7 +38,7 @@ class Club:
         if not SLUG.match(self.id):
             raise ValueError(f"invalid club id {self.id!r}")
         if not ABBREVIATION.match(self.abbreviation):
-            raise ValueError(f"abbreviation must be exactly 3 uppercase letters: {self.abbreviation!r}")
+            raise ValueError(f"abbreviation must be 3 uppercase letters: {self.abbreviation!r}")
         for colour in (self.color_primary, self.color_secondary):
             if not COLOUR.match(colour):
                 raise ValueError(f"colour must be #RRGGBB: {colour!r}")

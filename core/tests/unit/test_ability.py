@@ -2,8 +2,8 @@ import pytest
 
 pytest.importorskip("hypothesis")  # dev dependency; skip cleanly in a bare interpreter
 
-from hypothesis import given, settings  # noqa: E402
-from hypothesis import strategies as st  # noqa: E402
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from manager_core.domain.attributes import (
     ALL_ATTRIBUTES,

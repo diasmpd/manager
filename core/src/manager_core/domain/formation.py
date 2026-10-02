@@ -47,7 +47,8 @@ class Formation:
 @cache
 def load_catalogue() -> dict[str, Formation]:
     """Bundled formations, in file order."""
-    text = resources.files("manager_core.reference").joinpath("formations.csv").read_text("utf-8-sig")
+    reference = resources.files("manager_core.reference")
+    text = reference.joinpath("formations.csv").read_text("utf-8-sig")
     grouped: dict[str, list[FormationSlot]] = {}
     for row in read_text_table(text).rows:
         v = row.values

@@ -63,7 +63,9 @@ def test_attributes_are_immutable() -> None:
 
 def test_display_groups_outfield() -> None:
     groups = visible_for(is_goalkeeper=False)
-    assert list(groups) == [AttributeGroup.TECHNICAL, AttributeGroup.MENTAL, AttributeGroup.PHYSICAL]
+    assert list(groups) == [
+        AttributeGroup.TECHNICAL, AttributeGroup.MENTAL, AttributeGroup.PHYSICAL,
+    ]
     assert groups[AttributeGroup.TECHNICAL] == FM_TECHNICAL
 
 

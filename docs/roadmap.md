@@ -15,8 +15,8 @@ working game.
 
 | # | Feature | Status |
 |---|---|---|
-| 001 | Core domain model: clubs, players with FM attributes (incl. hidden), positions, and the data **import format** (format only: no SoFIFA→FM conversion), plus a fictional sample dataset | ⏳ next |
-| 002 | Competitions and calendar: Campeonato Mineiro format, day-by-day calendar | — |
+| 001 | Core domain model: clubs, players with FM attributes (incl. hidden), positions, and the data **import format** (format only: no SoFIFA→FM conversion), plus a fictional sample dataset. [Spec](../specs/001-core-domain-model/spec.md) | ✅ done (PR) |
+| 002 | Competitions and calendar: Campeonato Mineiro format, day-by-day calendar | ⏳ next |
 | 003 | Quick sim (statistical), calibrated independently against real-data targets | — |
 | 004 | Career save (SQLite) and the day-by-day game loop | — |
 | 005 | **Playable Mineiro season from the terminal** (Python TUI): includes basic squad and lineup selection (and formation choice, if 001 models it), so the user makes real decisions before 006 | — |

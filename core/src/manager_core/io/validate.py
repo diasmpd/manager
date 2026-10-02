@@ -157,7 +157,9 @@ def _check_cell(report: ValidationReport, spec: FileSpec, col: ColumnSpec, row: 
     try:
         if col.kind is Kind.INT:
             value = parse_int(raw)
-            if (col.min is not None and value < col.min) or (col.max is not None and value > col.max):
+            too_low = col.min is not None and value < col.min
+            too_high = col.max is not None and value > col.max
+            if too_low or too_high:
                 raise ValueError(raw)
         elif col.kind is Kind.DATE:
             parse_date(raw)

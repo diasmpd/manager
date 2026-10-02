@@ -11,7 +11,12 @@ import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 
-from manager_core.domain.attributes import ALL_ATTRIBUTES, HIDDEN_ATTRIBUTES, HIDDEN_DEFAULTS, Attributes
+from manager_core.domain.attributes import (
+    ALL_ATTRIBUTES,
+    HIDDEN_ATTRIBUTES,
+    HIDDEN_DEFAULTS,
+    Attributes,
+)
 from manager_core.domain.club import Club, ExternalRef
 from manager_core.domain.dataset import Dataset, FlagKind, RecordFlag, RecordType, Source
 from manager_core.domain.player import Player

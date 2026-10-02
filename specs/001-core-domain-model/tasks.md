@@ -280,12 +280,12 @@ sample world is identical.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T054 [P] Add CI `.github/workflows/ci.yml`: on pull_request and push to main, a matrix of {windows-latest, ubuntu-latest} × {3.12, 3.14}, running `pip install -e "core[dev]"`, `ruff check core`, `mypy core/src` and `pytest core/tests` with `MANAGER_PERF_LIMIT_S=4.0` (research R15)
-- [ ] T055 [P] Update `README.md` with how to install and run the CLI (link to quickstart), and update the status line
-- [ ] T056 [P] Update `docs/roadmap.md`: mark 001 as done, with a link to the spec
-- [ ] T057 Make `ruff check core` and `mypy core/src` (strict) pass with no ignores beyond those justified in a comment
-- [ ] T058 Run every step of [quickstart.md](quickstart.md) on Windows, and note any deviations in the PR description
-- [ ] T059 Open the PR `001-core-domain-model` → `main` with a summary, test results and a quickstart check (description based on `specs/001-core-domain-model/quickstart.md`). No calibration report is needed (no simulation system touched).
+- [X] T054 [P] Add CI `.github/workflows/ci.yml`: on pull_request and push to main, a matrix of {windows-latest, ubuntu-latest} × {3.12, 3.14}, running `pip install -e "core[dev]"`, `ruff check core`, `mypy core/src` and `pytest core/tests` with `MANAGER_PERF_LIMIT_S=4.0` (research R15)
+- [X] T055 [P] Update `README.md` with how to install and run the CLI (link to quickstart), and update the status line
+- [X] T056 [P] Update `docs/roadmap.md`: mark 001 as done, with a link to the spec
+- [X] T057 Make `ruff check core` and `mypy core/src` (strict) pass with no ignores beyond those justified in a comment
+- [X] T058 Run every step of [quickstart.md](quickstart.md) on Windows, and note any deviations in the PR description
+- [X] T059 Open the PR `001-core-domain-model` → `main` with a summary, test results and a quickstart check (description based on `specs/001-core-domain-model/quickstart.md`). No calibration report is needed (no simulation system touched).
 
 ---
 

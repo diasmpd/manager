@@ -35,7 +35,7 @@ def test_format_values() -> None:
 @pytest.mark.parametrize("newline", [b"\n", b"\r\n"])
 def test_canonical_read(tmp_path: Path, bom: bytes, newline: bytes) -> None:
     path = tmp_path / "t.csv"
-    content = newline.join(["id;city".encode(), " a ; São João ".encode("utf-8"), b""])
+    content = newline.join([b"id;city", " a ; São João ".encode(), b""])
     path.write_bytes(bom + content)
     table = read_table(path)
     assert table.columns == ("id", "city")

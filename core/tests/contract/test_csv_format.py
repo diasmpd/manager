@@ -41,7 +41,8 @@ def test_version() -> None:
 
 
 def test_files_and_column_order() -> None:
-    assert {name: [c.name for c in spec.columns] for name, spec in FILES.items()} == EXPECTED_COLUMNS
+    actual = {name: [c.name for c in spec.columns] for name, spec in FILES.items()}
+    assert actual == EXPECTED_COLUMNS
 
 
 def test_required_files() -> None:

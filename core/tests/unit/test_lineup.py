@@ -69,9 +69,12 @@ def _tied_squad() -> list[Player]:
     """Identical players: every lineup using them has exactly the same integer total."""
     same = attrs(12)
     players = [player(f"p-gk{i}", positions={Position.GK: 20}, attributes=same) for i in (2, 1)]
-    players += [player(f"p-x{i:02d}", positions={Position.MC: 20, Position.DC: 20,
-                Position.ST: 20, Position.ML: 20, Position.MR: 20, Position.DL: 20,
-                Position.DR: 20}, attributes=same) for i in (13, 4, 11, 1, 7, 2, 9, 12, 5, 3, 8, 10, 6)]
+    everywhere = dict.fromkeys(
+        (Position.MC, Position.DC, Position.ST, Position.ML, Position.MR, Position.DL, Position.DR),
+        20,
+    )
+    shuffled_ids = (13, 4, 11, 1, 7, 2, 9, 12, 5, 3, 8, 10, 6)
+    players += [player(f"p-x{i:02d}", positions=everywhere, attributes=same) for i in shuffled_ids]
     return players
 
 
