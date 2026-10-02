@@ -20,7 +20,7 @@ working game.
 | 003 | Quick sim (statistical), calibrated independently against real-data targets | — |
 | 004 | Career save (SQLite) and the day-by-day game loop | — |
 | 005 | **Playable Mineiro season from the terminal** (Python TUI): includes basic squad and lineup selection (and formation choice, if 001 models it), so the user makes real decisions before 006 | — |
-| 006 | Tactics model: formations, roles and duties, team and individual instructions, set pieces | — |
+| 006 | Tactics model: roles and duties, team and individual instructions, set pieces; custom formations with separate attacking/defending shapes and free player placement (owner request) | — |
 | 007 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003 | — |
 | 008 | Match report: stats, xG, FM-style player ratings, PT-BR commentary | — |
 | 009 | Assistant: suggestions and optional auto-subs | — |
