@@ -38,7 +38,7 @@ CSV representation is in [contracts/csv-format.md](contracts/csv-format.md).
 | left_foot, right_foot | int | 1–20 (E004); max(left, right) ≥ 15 (E014) |
 | attributes | Attributes | see below |
 | positions | PositionFamiliarity | see below |
-| potential_ability | int | 1–200 (E004); ≥ derived CA (E015) |
+| potential_ability | int | 1–200 (E004); if below derived CA it is raised to CA, with the `potential_raised` flag (W010) |
 | external_refs | tuple[ExternalRef, …] | optional |
 
 **Derived (never stored)**:
@@ -123,14 +123,16 @@ frame (x = own goal line → opponent's, y = left touchline).
 `Source`: name, url (optional), retrieved_on (date), licence_notes (optional).
 `ExternalRef`: source (str), source_id (str). The pair is unique per record type.
 `RecordFlag`: record_type (club/player), record_id, flag ∈ {hidden_defaulted,
-potential_defaulted, manually_edited, added_manually}, detail.
+potential_defaulted, potential_raised}, detail. Flags persist across exports.
+(`manually_edited` / `added_manually` are added by spec 011.)
 
 **Queries** (pure functions over a Dataset):
 - `squad(club_id)`
 - `free_agents()`
 - `rank_for_position(club_id, position)`
 - `best_xi(club_id, formation)`: returns a `Lineup` (11 assignments plus flags such as
-  `outfield_in_goal`).
+  `outfield_in_goal`). It is computed on integer scores `round(suitability × 1000)` with an exact
+  tie-break (research R9).
 
 ### ValidationReport
 
@@ -141,6 +143,9 @@ file, then row, then field (deterministic).
 ## Validation catalogue
 
 ### Errors (block the import)
+
+Codes are stable once published. Gaps (E006–E009, E012, E026–E029) are reserved for future rules,
+and retired codes are never reused.
 
 | Code | Rule |
 |---|---|
@@ -153,7 +158,7 @@ file, then row, then field (deterministic).
 | E011 | Age at reference date outside 14–45 |
 | E013 | Malformed nation code |
 | E014 | Neither foot ≥ 15 |
-| E015 | Potential ability below derived current ability |
+| E015 | *(retired: PA below CA is now W010, see below)* |
 | E016 | No position with familiarity ≥ 15 |
 | E017 | Reference to an unknown club or player |
 | E018 | Player has more than one squad membership |
@@ -167,7 +172,7 @@ file, then row, then field (deterministic).
 | E030 | Unsupported format version |
 | E031 | Format version newer than this build supports |
 | E032 | No provenance source |
-| E033 | File is not decodable as UTF-8 or Windows-1252 |
+| E033 | File is not valid UTF-8 (tolerant decoding is spec 011) |
 
 ### Warnings (load, but listed for review)
 
@@ -180,8 +185,9 @@ file, then row, then field (deterministic).
 | W005 | All hidden attributes identical (probable unintentional default) |
 | W006 | Unknown (well-formed) nation code |
 | W007 | Unknown column ignored |
-| W008 | File decoded as Windows-1252 (recommend saving as "CSV UTF-8") |
-| W009 | Date read in DD/MM/YYYY form (normalised on export) |
+| W010 | Potential ability below derived current ability: raised to CA (`potential_raised` flag) |
+
+W008 (Windows-1252 fallback) and W009 (DD/MM/YYYY dates) are reserved for spec 011.
 
 ## State
 

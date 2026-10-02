@@ -11,7 +11,7 @@ Exit codes: `0` success; `1` validation errors (report printed); `2` usage error
 | Command | Purpose | Output |
 |---|---|---|
 | `data validate <dir>` | Validate a dataset without loading it | Report: errors and warnings grouped by file, plus a summary line. Exit 1 if there are errors |
-| `data export <src_dir> <dst_dir>` | Load (must validate) and export canonically | Summary of records written, plus flags raised (e.g. manually_edited) |
+| `data export <src_dir> <dst_dir>` | Load (must validate) and export canonically | Summary of records written, plus record flags present |
 | `sample generate [--seed N] [--out DIR]` | Regenerate the fictional world | Summary. Defaults: seed 20261002, out `data/sample/` |
 | `club list` | All clubs | Table: id, name, abbreviation, city/UF, reputation, squad size, average CA |
 | `club squad <club_id> [--sort position\|ca\|age\|number]` | A club's squad | Table: number, display name, age, best position, familiarity band, suitability, CA |

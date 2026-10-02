@@ -4,11 +4,16 @@
 
 **Created**: 2026-10-02
 
-**Status**: Draft
+**Status**: Draft (revised 2026-10-02 after review: scope trimmed to the path to spec 005)
 
 **Input**: User description: "Core domain model (Milestone 0, roadmap 001): clubs, players with Football Manager's full attribute set (technical, mental, physical, goalkeeping, hidden) on a 1-20 scale, position familiarity per FM position code, basic squad membership, the data import format (format only; no SoFIFA/Transfermarkt conversion) with provenance, and a fictional sample dataset sufficient to run tests and a Campeonato Mineiro prototype. Formation choice only if needed by spec 005 lineup selection."
 
 **Milestone**: 0 (Prototype: Campeonato Mineiro). **Benchmark**: Football Manager's player and club model.
+
+**Deferred to spec 011** (real-data import, where hand curation happens):
+- tolerance for files re-saved by pt-BR Excel (comma/semicolon sniffing, Windows-1252, `DD/MM/YYYY`
+  dates, `15.000.000` numbers, `sim/não`);
+- the manual-edit audit trail (integrity hashes, `manually_edited` / `added_manually` flags).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -45,19 +50,49 @@ than centre-backs on average, goalkeepers have real goalkeeping attributes).
 
 ---
 
-### User Story 2 - Import a curated dataset safely (Priority: P2)
+### User Story 2 - Find who can play where (Priority: P2)
 
-The owner prepares a dataset (e.g. real Mineiro clubs, later produced by spec 011) in the
-documented import format, with a provenance record saying where it came from. The owner imports
-it. Valid data loads. Invalid data is rejected with a precise report listing each problem by
-file, record and field, so it can be fixed and re-imported.
+When looking at a squad, the owner asks which players can play a given position (e.g. "who can
+play DC?") and gets them ranked by suitability for that position. Suitability combines the
+attributes that matter for the position with the player's familiarity with it, as in FM, where an
+unfamiliar player is noticeably weaker. The owner can also ask for an automatically suggested
+best XI for any formation in the catalogue.
+
+**Why this priority**: spec 005 (playable season) needs lineup selection and a sensible default
+XI. The ranking is also the first visible sign that attributes mean something.
+
+**Independent Test**: on the sample world, ask for the ranking at each position and for the
+suggested XI, and check them against expected outcomes on hand-built fixtures.
+
+**Acceptance Scenarios**:
+
+1. **Given** a squad, **When** the owner asks for the ranking at a position, **Then** players are
+   ordered by suitability, and a natural player at that position outranks an equally-attributed
+   player who is unfamiliar with it.
+2. **Given** a squad and a formation, **When** the owner asks for the best XI, **Then** each
+   player is used at most once, exactly one player fills the GK slot, and the total suitability
+   is the best possible. A greedy pick that leaves a weak player in a key slot is not acceptable.
+3. **Given** two lineups with exactly equal total suitability, **When** the best XI is requested
+   on any machine, **Then** the same lineup is always returned (Constitution II).
+4. **Given** a squad with no fit goalkeeper, **When** the best XI is requested, **Then** the
+   system still returns a lineup (the most suitable outfield player in goal) and flags it.
+
+---
+
+### User Story 3 - Import a dataset safely (Priority: P3)
+
+The owner (or spec 011's pipeline) prepares a dataset in the documented import format, with a
+provenance record saying where it came from. The owner imports it. Valid data loads. Invalid data
+is rejected with a precise report listing each problem by file, record and field, so it can be
+fixed and re-imported. Any loaded dataset can be exported back to the format losslessly.
 
 **Why this priority**: the real-data pipeline (spec 011) and the private `manager-data` repo depend
 on a stable, validated, auditable format. Rejecting bad data up front protects every simulation
 downstream.
 
 **Independent Test**: import a known-good dataset (accepted) and a set of deliberately broken
-datasets (each rejected with the expected error), using only fictional test fixtures.
+datasets (each rejected with the expected error), using only fictional test fixtures. Export and
+re-import the sample world and get identical data back.
 
 **Acceptance Scenarios**:
 
@@ -73,55 +108,11 @@ datasets (each rejected with the expected error), using only fictional test fixt
    **Then** it loads, and a warnings section lists each implausibility for human review.
 5. **Given** a dataset with no provenance record, **When** the owner imports it, **Then** the
    import is rejected (Constitution VI).
-
----
-
-### User Story 3 - Find who can play where (Priority: P3)
-
-When looking at a squad, the owner asks which players can play a given position (e.g. "who can
-play DC?") and gets them ranked by suitability for that position. Suitability combines the
-attributes that matter for the position with the player's familiarity with it, as in FM, where an
-unfamiliar player is noticeably weaker. The owner can also ask for an automatically suggested
-best XI for a given set of positions.
-
-**Why this priority**: spec 005 (playable season) needs lineup selection and a sensible default
-XI. The ranking is also the first visible sign that attributes mean something.
-
-**Independent Test**: on the sample world, ask for the ranking at each position and for the
-suggested XI, and check them against expected outcomes on hand-built fixtures.
-
-**Acceptance Scenarios**:
-
-1. **Given** a squad, **When** the owner asks for the ranking at a position, **Then** players are
-   ordered by suitability, and a natural player at that position outranks an equally-attributed
-   player who is unfamiliar with it.
-2. **Given** a squad and a set of 11 positions, **When** the owner asks for the best XI, **Then**
-   each player is used at most once, exactly one goalkeeper fills the GK slot, and the total
-   suitability is the best possible. A greedy pick that leaves a weak player in a key slot is not
-   acceptable.
-3. **Given** a squad with no fit goalkeeper, **When** the best XI is requested, **Then** the
-   system still returns a lineup (the most suitable outfield player in goal) and flags it.
-
----
-
-### User Story 4 - Edit and round-trip data (Priority: P4)
-
-The owner exports any loaded dataset back to the import format, edits it by hand (e.g. fixes a
-player's foot or adds a position) and re-imports it. Nothing is lost or altered except the edits.
-
-**Why this priority**: the owner is used to curating data in spreadsheets. Round-tripping makes
-the data maintainable without special tools and keeps `manager-data` diffs readable.
-
-**Independent Test**: export the sample world, re-import it, and compare: the two must be
-identical. Then change one field and check that only that field differs.
-
-**Acceptance Scenarios**:
-
-1. **Given** a loaded dataset, **When** it is exported and re-imported unchanged, **Then** the
-   result is identical to the original, including provenance and external references.
-2. **Given** an exported dataset, **When** the owner edits a single attribute and re-imports it,
-   **Then** only that attribute differs, and the provenance records that the data was manually
-   edited.
+6. **Given** a player whose stated potential is below his current ability (derived from his
+   attributes), **When** the dataset is imported, **Then** it still loads, the potential is
+   raised to the current ability, and the change is flagged and listed as a warning.
+7. **Given** a loaded dataset, **When** it is exported and re-imported, **Then** the result is
+   identical to the original, including provenance and external references.
 
 ### Edge Cases
 
@@ -138,10 +129,15 @@ identical. Then change one field and check that only that field differs.
 - Date of birth that gives an age outside 14–45 at the dataset's reference date: rejected.
 - Hidden attributes missing (public sources never provide them): allowed. Documented neutral
   defaults are used and the record is marked "hidden attributes defaulted" in its provenance.
+- Potential below derived current ability: allowed. It is raised to current ability and flagged,
+  so a future re-calibration of the ability formula never makes old datasets unimportable.
 - Text with accents and special characters (São João del-Rei, Uberlândia, Ipatinga): preserved
   exactly through import, export and display.
 - Unknown extra fields in an import: ignored with a warning (forward compatibility), never a
   silent failure.
+- A file that is not in the canonical format (e.g. re-saved by Excel with another encoding or
+  date style): rejected with a clear error naming the file. Tolerating those variations is
+  spec 011.
 
 ## Requirements *(mandatory)*
 
@@ -183,11 +179,15 @@ identical. Then change one field and check that only that field differs.
   proneness, loyalty, pressure, professionalism, sportsmanship, temperament, versatility.
   When the source lacks them, documented neutral defaults apply (see Edge Cases).
 - **FR-009**: Every player MUST store a hidden Potential Ability (PA, 1–200, FM scale), so the
-  data format does not change when player development arrives in v1. PA MUST be at least the
-  player's Current Ability. Current Ability (CA, 1–200) is never stored. It is derived from the
-  player's attributes at his best position, so it can never contradict them. The derivation MUST
-  be documented and monotonic (raising a key attribute never lowers CA). If a source provides no
-  PA, it defaults to the derived CA and the record is marked "potential defaulted" in provenance.
+  data format does not change when player development arrives in v1. Current Ability (CA, 1–200)
+  is never stored. It is derived from the player's attributes at his best position, so it can
+  never contradict them. The derivation MUST be documented and monotonic (raising a key attribute
+  never lowers CA).
+  - If a source provides no PA, it defaults to the derived CA and the record is flagged
+    "potential defaulted".
+  - If a stated PA is below the derived CA, PA is raised to CA, the record is flagged
+    "potential raised", and a warning is reported. It is never a blocking error, because the CA
+    formula will be re-calibrated.
 
 **Positions**
 
@@ -201,8 +201,9 @@ identical. Then change one field and check that only that field differs.
   familiarity, and lower familiarity reduces it. The attribute weights per position MUST be
   documented and testable.
 - **FR-013**: The system MUST rank a squad by suitability for a given position, and suggest the
-  best XI for a given list of 11 positions as an optimal assignment (each player used at most
-  once, maximum total suitability).
+  best XI for a formation as an optimal assignment (each player used at most once, maximum total
+  suitability). The result MUST be identical on every machine, including when several lineups
+  tie.
 - **FR-014**: The system MUST provide a basic catalogue of 5 standard formations (4-4-2, 4-3-3,
   4-2-3-1, 3-5-2, 5-3-2), each a named list of 11 slots (exactly one GK), so spec 005 can offer
   formation choice and FR-013 can suggest a best XI for it. A formation is data, not hard-coded
@@ -220,25 +221,29 @@ identical. Then change one field and check that only that field differs.
 **Data import format and provenance**
 
 - **FR-017**: The system MUST define a documented, versioned, human-editable data format for
-  clubs, players (identity, attributes, positions) and squad membership. The format MUST be
-  editable by the owner without programming tools. It is a set of spreadsheet-compatible
-  plain-text tables, one table per file (clubs, players, attributes, positions, memberships,
-  provenance). They open directly in Excel, and version control shows readable line-level diffs.
-  UTF-8 with accents preserved, and a file must survive a save from Excel without breaking.
+  clubs, players (identity, attributes, positions) and squad membership. It is a set of
+  spreadsheet-compatible plain-text tables, one table per file (clubs, players, attributes,
+  positions, memberships, provenance), written in a canonical form that opens directly in pt-BR
+  Excel and shows readable line-level diffs in version control. UTF-8, accents preserved.
 - **FR-018**: Every dataset MUST include a provenance record: source name(s), retrieval date,
   transformation/tool version, the reference date of the data, a free-text notes field and
-  whether the data is fictional or real. Import MUST refuse datasets without provenance.
+  whether the data is fictional or real. Import MUST refuse datasets without provenance. Per-record
+  provenance flags (hidden defaulted, potential defaulted, potential raised) travel with the
+  dataset.
 - **FR-019**: Import MUST validate everything before loading anything (all-or-nothing). It
   MUST report all errors in one pass, each with file, record identifier, field, the offending
   value and the rule broken.
 - **FR-020**: Import MUST distinguish errors (block the import) from warnings (implausible but
-  allowed values, unknown fields, unplayable clubs). Warnings are listed for human review.
+  allowed values, unknown fields, unplayable clubs, raised potential). Warnings are listed for
+  human review.
 - **FR-021**: The system MUST export any loaded dataset to the same format so that export →
-  import is lossless (identical data, provenance included).
+  import is lossless (identical data, provenance and flags included).
 - **FR-022**: The format MUST carry a format version. Importing an older supported version MUST
-  work. Importing an unknown newer version MUST fail with a clear message.
+  work. Importing an unknown newer version MUST fail with a clear message. (1.0 is the only
+  version in this spec, so the "older version" case is first tested when 011 introduces v1.1.)
 - **FR-023**: This spec MUST NOT include any conversion from external sources (SoFIFA,
-  Transfermarkt). That is spec 011.
+  Transfermarkt), tolerance for non-canonical files, or the manual-edit audit trail. Those are
+  spec 011.
 
 **Fictional sample dataset**
 
@@ -247,7 +252,8 @@ identical. Then change one field and check that only that field differs.
   people), in tiers: 3 strong, 5 mid, 4 small.
 - **FR-025**: Every sample club MUST have a playable squad of 25–30 players, including at least
   3 goalkeepers and at least 2 natural players for each line (defence, midfield, attack). Ages
-  follow a realistic professional distribution (roughly 17–37).
+  at the reference date follow a realistic professional distribution: all within 16–38, and at
+  least 80% within 18–34.
 - **FR-026**: Sample players MUST be coherent with their positions: a player's key attributes
   for his natural position are, on average, higher than his other attributes. Hidden attributes
   vary realistically, not all at a single value.
@@ -265,11 +271,13 @@ identical. Then change one field and check that only that field differs.
   the full FM attribute set (visible and hidden), position familiarities and external references.
 - **Squad Membership**: links a player to a club, with an optional shirt number and optional
   commercial fields (market value, wage, contract expiry).
-- **Position**: one of FM's 14 codes. Used for familiarity, suitability and lineups.
+- **Position**: one of FM's 14 codes, each belonging to a line (goalkeeper, defence, midfield,
+  attack). Used for familiarity, suitability and lineups.
+- **Formation**: a named set of 11 slots, each with a position. Reference data, not code.
 - **Dataset**: a self-contained collection of clubs, players and memberships, with a format
   version and a reference date.
 - **Provenance Record**: where a dataset came from, when, through which tool version, whether it
-  is fictional, and which records had defaulted values or manual edits.
+  is fictional, and which records had defaulted or raised values.
 - **Validation Report**: the result of an import, with errors (blocking) and warnings (review),
   each located precisely.
 
@@ -278,36 +286,37 @@ identical. Then change one field and check that only that field differs.
 ### Measurable Outcomes
 
 - **SC-001**: The sample world (12 clubs, about 330 players) loads and validates in under
-  2 seconds on the reference PC.
+  2 seconds on the reference PC (the owner's Windows PC). Shared CI machines use a looser limit.
 - **SC-002**: Regenerating the sample world with the same generator version and seed produces
   an identical dataset 100% of the time.
 - **SC-003**: Export followed by re-import is lossless for 100% of records and fields in the
   sample world.
-- **SC-004**: For each of at least 15 distinct deliberately-broken fixtures (one per validation
+- **SC-004**: For each of at least 15 distinct deliberately-broken fixtures (one per error
   rule), the import is rejected and the report pinpoints the exact file, record and field.
 - **SC-005**: In the sample world, for every position, the average of that position's key
-  attributes among natural players exceeds the average among other outfield players by at least
-  2 points. Goalkeepers' average goalkeeping attributes exceed outfield players' by at least 8.
+  attributes among its natural players exceeds the average among natural players of the *other
+  lines* (e.g. DC vs midfielders and attackers) by at least 2 points. Goalkeepers' average
+  goalkeeping attributes exceed outfield players' by at least 8.
 - **SC-006**: On hand-built fixtures, the suggested best XI matches the known optimal assignment
-  in 100% of cases.
+  in 100% of cases, and fixtures with deliberately tied totals always return the same lineup.
 - **SC-007**: The owner can find who can play a given position and see the ranked list in one
   command, with no manual calculation.
-- **SC-008**: The owner can correct a data error by editing the exported files without
-  programming tools and re-import it in under 5 minutes.
 
 ## Assumptions
 
 - **Scope boundaries**: competitions, calendar and Mineiro participants (002), match simulation
-  (003/007), saves (004), roles, duties and instructions (006), and conversion from real sources
-  (011) are out of scope. Contracts, transfers, finances, morale, injuries status and player
-  development are v1 and out of scope, apart from the optional fields in FR-016.
+  (003/007), saves (004), roles, duties and instructions (006), and real-source conversion,
+  non-canonical file tolerance and manual-edit auditing (011) are out of scope. Contracts,
+  transfers, finances, morale, injuries status and player development are v1 and out of scope,
+  apart from the optional fields in FR-016.
 - **Sample clubs are fictional**: 12 clubs, consistent with the Campeonato Mineiro's recent
   12-team format. The actual competition format is defined in spec 002.
 - **Neutral defaults** for missing hidden attributes are 10, except dirtiness and injury
   proneness (8) and controversy (6), documented with the format.
 - **Attribute weights per position** for suitability follow FM's published "key attributes"
-  per position/role as closely as public information allows. Exact weights are tuned in later
-  specs; this spec only requires that they are documented and tested.
+  per position/role as closely as public information allows. The CA mapping is a rough first
+  mapping, re-calibrated against named sources in spec 011. This spec only requires that both
+  are documented and tested.
 - **Staff, referees and national teams** are separate entities in later specs.
 - **Formation evolution** (owner's direction): the catalogue in FR-014 is a starting point.
   Later specs (006 or after) will add custom formations, distinct attacking and defending shapes,

@@ -31,3 +31,6 @@ Errors: `NotFoundError(kind, id)` for an unknown club, player or formation. Vali
 never raise. They are returned in the `ValidationReport`.
 
 Determinism: every list is returned in a documented, stable order (sort key, then id).
+
+Session note: in 001, callers hold and pass the `Dataset` object (in-process, M0). Spec 004
+(saves) and spec 010 (out-of-process API) will introduce a session/handle in its place.

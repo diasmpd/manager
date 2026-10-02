@@ -12,9 +12,10 @@ This feature builds the immutable domain model that every later spec depends on:
 - FM position familiarity, data-driven position suitability and an exact best-XI assignment;
 - a basic formation catalogue.
 
-Data moves through a versioned, Excel-friendly CSV format (pt-BR Excel dialect tolerated) with
-mandatory provenance, all-or-nothing validation that reports every issue, lossless export and
-manual-edit detection. A deterministic generator produces a committed, fictional
+Data moves through a versioned CSV format, written canonically so it opens in pt-BR Excel. It
+has mandatory provenance, all-or-nothing validation that reports every issue, and lossless
+export. Tolerance for re-saved Excel files and the manual-edit audit trail are deferred to
+spec 011 (review decision). A deterministic generator produces a committed, fictional
 Mineiro-sized sample world. Everything is reached through a thin facade, with a pt-BR CLI on
 top. Details: [research.md](research.md).
 
@@ -38,9 +39,9 @@ fixture per error code.
 compute a best XI in under 0.5 s.
 
 **Constraints**:
-- Deterministic: sorted iteration, no set-order dependence, byte-stable export.
+- Deterministic: sorted iteration, no set-order dependence, byte-stable export, integer
+  scores for the lineup assignment.
 - pt-BR user-facing text through i18n.
-- Tolerant of files saved by pt-BR Excel.
 
 **Scale/Scope**: M0 datasets have about 12 clubs and 350 players. The design must stay
 practical for a v1 world of about 50k players (no quadratic validation).
@@ -51,8 +52,8 @@ practical for a v1 world of about 50k players (no quadratic validation).
 
 | Principle | Status | How |
 |---|---|---|
-| I. Realism measured | ✅ | No simulation in 001. Realism proxies are measurable: SC-005 (attribute coherence) and CA bands calibrated to FM ranges (R8). FM is the benchmark for attributes, bands and key attributes. No calibration harness is needed yet. |
-| II. Determinism | ✅ | Generator owns its RNG (R14). Sorted iteration, canonical byte-stable export (R4), deterministic tie-breaking in best XI (R9). Dataset records tool version and seed. Core/Python version recording applies to saves and calibration reports (specs 003/004), not to datasets. |
+| I. Realism measured | ✅ | No simulation in 001. Realism proxies are measurable: SC-005 (attribute coherence between lines). CA is a rough mapping, re-calibrated against named, dated sources in 011 (R8). FM is the benchmark for attributes, bands and key attributes. No calibration harness is needed yet. |
+| II. Determinism | ✅ | Generator owns its RNG (R14). Sorted iteration, canonical byte-stable export (R4), integer scores with an exact tie-break in best XI (R9). Dataset records tool version and seed. Core/Python version recording applies to saves and calibration reports (specs 003/004), not to datasets. |
 | III. Headless core, thin client | ✅ | Facade `manager_core.api` (contracts/facade.md). The CLI calls only the facade and holds no rules. |
 | IV. Test-first | ✅ | Tests precede implementation per task. Property tests for monotonicity and round-trip. One fixture per E-code. |
 | V. Smart automation | ✅ (n/a) | No match behaviour in 001. Hidden attributes (temperament etc.) are modelled so 007 can drive behaviour from them. |
@@ -107,12 +108,11 @@ core/
 │   │   ├── ability.py       # derived CA (R8)
 │   │   └── lineup.py        # bitmask-DP best XI (R9)
 │   ├── io/
-│   │   ├── dialect.py       # Excel-tolerant read, canonical write (R4)
+│   │   ├── dialect.py       # canonical read/write (R4; tolerant read is 011)
 │   │   ├── schema.py        # column specs per file (single source with ATTRIBUTE_GROUPS)
 │   │   ├── validate.py      # raw-row validation → ValidationReport
 │   │   ├── reader.py        # folder → Dataset (all-or-nothing)
-│   │   ├── writer.py        # Dataset → folder (+ integrity.csv)
-│   │   └── integrity.py     # canonical hashing, edit detection (R6)
+│   │   └── writer.py        # Dataset → folder
 │   ├── sample/
 │   │   ├── generator.py     # deterministic world generator (R14)
 │   │   └── names.py         # fictional clubs/towns/first/last names
@@ -123,11 +123,10 @@ core/
 └── tests/
     ├── unit/                # attributes, positions, suitability, ability, lineup, dialect
     ├── contract/            # CSV format v1.0, facade signatures, CLI exit codes
-    ├── integration/         # sample load/validate/export round-trip, determinism, Excel-dialect fixture
+    ├── integration/         # sample load/validate/export round-trip, determinism
     └── fixtures/
         ├── valid/minimal/   # 2 clubs, hand-built
-        ├── invalid/E0xx_*/  # one folder per error code
-        └── excel_ptbr/      # ; + BOM + CRLF + DD/MM/YYYY + 15.000.000
+        └── invalid/E0xx_*/  # one folder per error code
 data/
 └── sample/                  # committed fictional world (generated)
 .github/workflows/ci.yml

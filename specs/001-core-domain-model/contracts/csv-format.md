@@ -7,16 +7,17 @@ backward-compatible, major = breaking).
 ## General rules
 
 - **Folder**: one folder per dataset, with file names as below (lowercase).
-- **Encoding**: written as UTF-8 with BOM. Read: UTF-8 (BOM optional), with a Windows-1252
-  fallback that raises W008.
-- **Separator**: written as `;`. Read: `;` or `,`, sniffed from the header.
+- **Encoding**: UTF-8, written with a BOM. Read: BOM optional.
+- **Separator**: `;`.
 - **Lines**: written with LF. Read: LF or CRLF.
 - **Header row**: required. Column order doesn't matter on read, and unknown columns raise W007.
   Written in the order listed below.
 - **Empty cell** = absent value.
-- **Dates**: written as `YYYY-MM-DD`. Read: also `DD/MM/YYYY` (W009).
-- **Integers**: plain digits. Read: also pt-BR grouping such as `15.000.000`.
-- **Booleans**: `true` / `false` (read case-insensitive, and also `sim` / `não`).
+- **Dates**: `YYYY-MM-DD`.
+- **Integers**: plain digits.
+- **Booleans**: `true` / `false` (read case-insensitive).
+- **v1.1 (spec 011, planned, additive)**: tolerant reading of files re-saved by pt-BR Excel
+  (`,` sniffing, Windows-1252, `DD/MM/YYYY`, `15.000.000`, `sim`/`não`) and `integrity.csv`.
 - **List cells** (nationalities): `|`-separated, e.g. `BRA|ITA`.
 - **Row order on write**: sorted by primary key, so output is byte-stable.
 
@@ -55,12 +56,8 @@ Players without a row are free agents.
 `record_type; record_id; source; source_id` (record_type ∈ `club`, `player`)
 
 ### record_flags.csv (optional; written by the core)
-`record_type; record_id; flag; detail`
-
-### integrity.csv (optional; written on export)
-`record_type; record_id; sha256`. The hash is over the record's canonical values (not bytes),
-so Excel re-formatting alone doesn't count as an edit. Records whose hash changed get
-`manually_edited`, and unknown records get `added_manually` (research R6).
+`record_type; record_id; flag; detail`. Flags in v1.0: `hidden_defaulted`,
+`potential_defaulted`, `potential_raised`. Flags persist across exports.
 
 ## Reference data bundled with the core (not part of a dataset)
 

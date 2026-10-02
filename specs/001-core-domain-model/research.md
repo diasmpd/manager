@@ -45,10 +45,16 @@ The owner edits in Excel with a pt-BR locale. Out of the box it:
 - may rewrite ISO dates (`2001-05-14`) as `14/05/2001`;
 - may add thousands separators (`15.000.000`) if the cell is formatted that way.
 
-- **Decision**:
+- **Decision (001)**:
   - **Write**: UTF-8 **with BOM**, `;` separator, LF line endings, ISO dates, plain integers,
     rows sorted by id. The output is canonical, so it is byte-stable for determinism and diffs.
-  - **Read** (tolerant):
+    It opens correctly in pt-BR Excel with a double-click.
+  - **Read in 001 (canonical only)**: UTF-8 with or without BOM, `;` separator, LF or CRLF,
+    trimmed cells, unknown columns raise W007. Anything else is reported as an ordinary error:
+    E033 for an undecodable file, or E010 / E004 / E025 on the field.
+- **DEFERRED to spec 011** (review decision, 2026-10-02): the tolerant read side below, needed
+  only once the owner hand-curates real data.
+  - **Read** (tolerant, 011):
     - separator sniffed (`;` or `,`) from the header line;
     - UTF-8 with or without BOM, falling back to Windows-1252 *with a warning* that recommends
       saving as "CSV UTF-8";
@@ -60,7 +66,8 @@ The owner edits in Excel with a pt-BR locale. Out of the box it:
 - **Rationale**: SC-008 (fix data in Excel in under 5 minutes) fails if a round-trip through
   Excel breaks the file.
 - **Alternatives**: commas with US locale assumed (breaks for the owner). An `.xlsx` workbook
-  (rejected by the owner: no git diffs).
+  (rejected by the owner: no git diffs). Tolerant reading in 001 (deferred: no hand curation
+  happens before 011).
 
 ## R5. File layout of a dataset
 
@@ -78,17 +85,24 @@ The owner edits in Excel with a pt-BR locale. Out of the box it:
   | `positions.csv` | players | `player_id` + 14 position columns (blank = 1) |
   | `squads.csv` | memberships | player → club, shirt number, value/wage/contract (+ currency) |
   | `external_refs.csv` | 0..n | (record_type, record_id, source, source_id) |
-  | `record_flags.csv` | 0..n | per-record provenance flags (hidden_defaulted, potential_defaulted, manually_edited, added_manually) |
-  | `integrity.csv` | records | written on export: canonical SHA-256 per record, used to detect manual edits |
+  | `record_flags.csv` | 0..n | per-record provenance flags (hidden_defaulted, potential_defaulted, potential_raised). Flags persist across exports. |
+
+  (`integrity.csv` for manual-edit detection is deferred to 011, as format v1.1.)
 
 - **Rationale**: one concern per file keeps each table narrow enough to edit (attributes are the
   only very wide one, by design). Free agents are simply players with no `squads.csv` row.
 - **Alternatives**: one giant players table with ~95 columns is error-prone in Excel. JSON was
   rejected by the owner.
 
-## R6. Detecting manual edits (FR-018, User Story 4)
+## R6. Detecting manual edits: DEFERRED to spec 011
 
-- **Decision**: on export, write `integrity.csv` with a SHA-256 of each record's canonical
+Moved to 011 by the review decision (2026-10-02), together with the tolerant Excel read side.
+Kept here as 011's starting design. Open points for 011:
+- A per-record hash shows *that* a record was edited, not *which field*. 011 must decide whether
+  to store previous canonical values so the field-level diff is auditable.
+- `record_flags.csv` flags persist across exports. Only `integrity.csv` is rewritten.
+
+- **Original design**: on export, write `integrity.csv` with a SHA-256 of each record's canonical
   serialisation, covering the record's rows across all files. On import, a record whose hash
   differs gets a `manually_edited` flag, and a record missing from `integrity.csv` gets
   `added_manually`. If `integrity.csv` is absent (hand-built datasets), no edit flags are
@@ -127,21 +141,30 @@ The owner edits in Excel with a pt-BR locale. Out of the box it:
 - **Properties**:
   - **Monotonic**: all weights are positive, max and mean are non-decreasing, and the clamp is
     monotonic. A property test (hypothesis) checks this.
-  - **Rough FM calibration**: key attributes around 15 → CA ≈ 150 (top Brazilian Série A);
-    around 9 → CA ≈ 85 (Série D / small Mineiro club). To be re-calibrated against FM ranges
-    when real data arrives (011).
+  - **Rough mapping (not a calibration target)**: key attributes around 15 → CA ≈ 150 (top
+    Brazilian Série A); around 9 → CA ≈ 85 (Série D / small Mineiro club). It will be
+    re-calibrated in 011 against named, dated sources (Constitution I v1.1).
 - **Rationale**: CA is derived, never stored, so it cannot contradict the attributes (owner's
   choice Q1). Including a small share of general attributes mirrors FM, where every attribute
   costs CA.
-- **PA validation**: `PA ≥ CA` is an error. `PA` absent → `PA = CA` + `potential_defaulted` flag.
+- **PA handling**:
+  - `PA` absent → `PA = CA` with the `potential_defaulted` flag.
+  - `PA < CA` → PA is raised to CA, with the `potential_raised` flag and warning **W010**.
+  - This is never a blocking error: the CA formula is a rough mapping that will be re-calibrated
+    (011), and a re-tune that raises CA must not make old datasets fail to import.
 
 ## R9. Best-XI assignment (FR-013, SC-006)
 
 - **Decision**: exact **bitmask dynamic programming** over the 11 formation slots:
-  `dp[mask]` holds the best total suitability with the slots in `mask` filled, iterating over
-  players in id order. Cost is about 25 × 2,048 × 11 ≈ 560k steps (well under 0.5 s in CPython).
-  Ties are broken deterministically: higher total, then lexicographically smaller tuple of player
-  ids. A GK-slot filled by a non-goalkeeper raises a flag (User Story 3, scenario 3).
+  `dp[mask]` holds the best total with the slots in `mask` filled, iterating over players in id
+  order. Cost is about 25 × 2,048 × 11 ≈ 560k steps. A reviewer benchmark measured 0.09 s for 27
+  players on Python 3.14 on the reference PC.
+  - **Integer scores**: the assignment uses `round(suitability × 1000)` (integer milli-points),
+    never float sums. Float totals that are mathematically equal can differ in the last bit
+    depending on summation order, which would make tie-breaks machine-dependent
+    (Constitution II).
+  - **Ties**: broken exactly: higher integer total, then the lexicographically smaller tuple of
+    player ids in slot order. A dedicated test builds lineups with deliberately equal totals. A GK-slot filled by a non-goalkeeper raises a flag (User Story 3, scenario 3).
 - **Rationale**: exact optimum (SC-006), standard library only, deterministic.
 - **Alternatives**: scipy `linear_sum_assignment` (Hungarian) is exact but brings a heavy
   dependency into a stdlib-only core, and its tie-breaking is not under our control. A greedy
@@ -185,6 +208,8 @@ The owner edits in Excel with a pt-BR locale. Out of the box it:
   [contracts/cli.md](contracts/cli.md).
 - **Rationale**: the M0 terminal UI (005) and the later Godot API (010) build on the same facade.
   No game rules live in UI code.
+- **Note**: in 001, callers hold and pass a `Dataset` object, which is fine in-process for M0.
+  Spec 004 (saves) and spec 010 (out-of-process API) will replace it with a session/handle.
 
 ## R14. Sample world generator (FR-024..028)
 
