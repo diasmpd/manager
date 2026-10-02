@@ -1,0 +1,1 @@
+E023;squads.csv;p-a03;currency

@@ -1,0 +1,1 @@
+E002;clubs.csv;Clube B;club_id

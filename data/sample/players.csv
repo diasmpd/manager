@@ -1,0 +1,325 @@
+﻿player_id;full_name;display_name;date_of_birth;nationalities;height_cm;weight_kg;left_foot;right_foot;potential_ability
+p-000001;Bruno Fonseca Campos;Campos;1999-03-01;BRA;191;83;20;8;158
+p-000002;Léo Pinto;Pinto;1997-09-14;BRA;187;80;10;20;142
+p-000003;Alex Ribeiro Mendes;Mendes;2000-02-16;BRA;186;84;9;20;141
+p-000004;Marcos Carvalho;Marcos;2001-05-27;BRA;180;80;11;20;160
+p-000005;Emerson Borges;Toninho;1997-03-24;BRA;189;84;8;20;145
+p-000006;Yago Lima;Yago;2002-08-13;BRA;188;74;4;20;171
+p-000007;Everton Queiroz Almeida;Everton;1997-05-02;BRA;194;89;8;20;139
+p-000008;Alex Fonseca;Alex Fonseca;1997-06-02;BRA;174;74;6;20;163
+p-000009;Jonas Vieira;Juninho;2004-07-08;BRA;179;70;20;8;146
+p-000010;Yago Vieira Cardoso;Gui;1994-08-11;BRA;171;62;6;20;142
+p-000011;Raul Teixeira;Raul;2001-03-20;BRA;175;76;4;20;137
+p-000012;Wallace Martins;Wallace;2001-11-28;BRA;183;81;7;20;147
+p-000013;Pedro Rocha Carvalho;Pedro Carvalho;2006-08-01;BRA;183;86;5;20;178
+p-000014;Diego Monteiro Farias;Lelê;2007-09-21;BRA;174;71;20;10;153
+p-000015;Danilo Farias;Farias;1999-10-23;BRA;181;72;7;20;150
+p-000016;Fábio Ramos;Ramos;1996-09-21;BRA;188;91;6;20;128
+p-000017;Léo Lima Correia;Cacá;2003-10-25;BRA;173;71;20;10;142
+p-000018;Rodrigo Moura;Rodrigo;2007-07-20;BRA;177;75;9;20;156
+p-000019;Bruno Almeida Martins;Bruno;1996-07-31;BRA;174;73;6;20;125
+p-000020;Ramon Campos;Ramon;1995-10-14;BRA;179;80;10;20;129
+p-000021;Arthur Lopes;Arthur;2000-07-20;BRA;168;63;12;20;153
+p-000022;Otávio Cardoso;Cardoso;2000-08-20;BRA;176;75;20;9;131
+p-000023;Jefferson Rocha;Jefferson;2001-03-03;BRA;178;82;20;7;145
+p-000024;Eduardo Monteiro;Eduardo;1995-03-19;BRA;170;70;5;20;127
+p-000025;Eduardo Oliveira;Eduardo;1998-04-04;BRA;177;76;5;20;135
+p-000026;Thiago Moreira;Gaúcho;1999-10-06;BRA;187;85;10;20;142
+p-000027;Bruno Santos Correia;Bruno;1995-08-01;BRA;188;84;20;10;142
+p-000028;Yago Pinto Gomes;Gomes;2003-04-04;BRA;196;93;5;20;177
+p-000029;Wallace Pinto Freitas;Bolinha;1996-09-12;BRA;195;85;18;20;147
+p-000030;Luan Lima Campos;Luan;1997-06-18;BRA;185;78;8;20;127
+p-000031;Rafael Fonseca Rocha;Rafael;1999-06-20;BRA;188;87;4;20;148
+p-000032;Rafael Teixeira Pinto;Rafael;2001-10-07;BRA;188;84;10;20;147
+p-000033;Emerson Correia;Emerson Correia;1992-08-12;BRA;191;86;12;20;155
+p-000034;Jonas Lopes;Jonas Lopes;2007-07-26;BRA;181;76;20;8;158
+p-000035;Murilo Cardoso;Murilo Cardoso;2006-04-07;BRA|ITA;172;69;20;5;157
+p-000036;Pedro Oliveira;Dudu;1996-11-15;BRA;181;81;16;20;138
+p-000037;Gabriel Ramos;Gabriel;1999-04-23;BRA;182;75;5;20;149
+p-000038;Igor Farias;Farias;1995-06-09;BRA;175;69;12;20;127
+p-000039;Wellington Pereira;Pereira;2001-04-25;BRA;175;69;11;20;162
+p-000040;Felipe Carvalho;Gaúcho;1999-05-30;BRA;180;70;8;20;145
+p-000041;Felipe Campos;Felipe;1993-07-28;BRA;180;73;11;20;135
+p-000042;Lucas Silva;Lucas;2003-11-15;BRA;168;63;12;20;130
+p-000043;Ramon Carvalho;Ramon Carvalho;2002-08-20;BRA;177;71;4;20;185
+p-000044;Anderson Correia;Correia;2001-06-30;BRA;182;76;6;20;146
+p-000045;André Araújo;André Araújo;2002-06-30;BRA;170;63;20;8;145
+p-000046;Lucas Nunes Souza;Lucas;2005-09-27;BRA;173;75;7;20;157
+p-000047;Arthur Carvalho Farias;Dudu;2003-07-26;BRA;180;76;20;6;123
+p-000048;Otávio Moura Gomes;Otávio;1998-06-07;BRA;179;76;20;10;117
+p-000049;Matheus Rodrigues;Rodrigues;2001-06-28;BRA;179;73;20;7;156
+p-000050;Diego Correia;Diego Correia;2000-08-07;BRA;169;75;5;20;145
+p-000051;Caio Oliveira;Caio;2002-02-15;BRA;189;82;10;20;144
+p-000052;Murilo Andrade;Andrade;1999-07-12;BRA;173;72;11;20;146
+p-000053;Samuel Lopes Correia;Lelê;1997-10-02;BOL;173;69;20;7;136
+p-000054;Raul Moreira;Didi;2001-12-02;BRA;184;72;18;17;150
+p-000055;Luan Santos Martins;Luan;1999-09-30;BRA;192;85;8;20;134
+p-000056;Léo Santos Andrade;Andrade;2008-04-18;BRA;187;83;7;20;130
+p-000057;Luan Araújo;Araújo;2003-03-28;BRA;185;85;10;20;132
+p-000058;Jonas Oliveira;Jonas;1997-04-27;BRA;190;90;20;6;125
+p-000059;Douglas Ramos Teixeira;Teixeira;1999-10-29;BRA;183;76;10;20;157
+p-000060;Davi Almeida Moreira;Davi;1997-10-03;BRA;189;84;4;20;148
+p-000061;Davi Moura Andrade;Davi Andrade;2004-09-05;BRA;185;84;12;20;162
+p-000062;Gabriel Mendes Teixeira;Gabriel;1994-02-12;URU;172;65;20;8;129
+p-000063;Igor Freitas Lopes;Igor;2008-06-28;BRA;175;65;20;8;133
+p-000064;Emerson Queiroz;Emerson;2005-07-20;BRA;173;77;7;20;157
+p-000065;Fábio Campos Barbosa;Neguinho;2006-09-22;BRA;175;72;20;5;145
+p-000066;Rafael Pinto Moura;Moura;1999-11-13;BRA;175;69;8;20;159
+p-000067;Otávio Mendes Nascimento;Biel;1997-05-18;BRA;177;74;11;20;167
+p-000068;Igor Almeida Borges;Igor;1996-05-18;BRA;171;63;8;20;147
+p-000069;Kaio Batista Correia;Kaio;2001-05-14;BRA;175;73;10;20;126
+p-000070;Igor Souza Mendes;Tiquinho;1999-11-12;BRA|ITA;170;69;20;4;154
+p-000071;André Machado;Lelê;1993-11-05;BRA;177;74;8;20;146
+p-000072;Emerson Freitas;Emerson;2004-02-12;BRA;176;71;11;20;170
+p-000073;Danilo Gomes Martins;Danilo;2000-04-18;BRA;177;69;11;20;136
+p-000074;Gustavo Pereira;Pereira;2002-06-20;BRA;175;75;17;19;157
+p-000075;Fábio Mendes Andrade;Fábio;2002-11-22;BRA;169;62;7;20;152
+p-000076;André Batista;Batista;2009-06-11;BRA;184;79;10;20;153
+p-000077;Henrique Cardoso Cardoso;Henrique;2006-10-04;BRA;184;80;6;20;176
+p-000078;Yago Borges Moura;Moura;1998-09-14;ECU;186;87;4;20;134
+p-000079;Wallace Lima Teixeira;Wallace;2001-07-19;BRA;192;88;11;20;156
+p-000080;Wesley Correia Araújo;Wesley;2002-04-28;BRA;180;83;12;20;175
+p-000081;Caio Cardoso;Gui;2000-09-10;BRA;178;78;20;4;160
+p-000082;Gabriel Nunes;Gabriel;1997-06-08;BRA;194;93;20;7;116
+p-000083;Patrick Ribeiro Barbosa;Patrick;2000-07-16;BRA;189;85;9;20;104
+p-000084;Bruno Oliveira Gomes;Gomes;2000-09-18;BRA;197;90;4;20;106
+p-000085;Otávio Teixeira Gomes;Otávio Gomes;2008-04-28;BRA;184;80;20;8;129
+p-000086;Igor Farias;Toninho;2005-11-06;BRA;185;87;6;20;142
+p-000087;Léo Mendes;Juninho;2007-03-08;BOL;183;77;9;20;151
+p-000088;Léo Moreira Mendes;Léo;2004-05-10;BRA;191;80;20;6;140
+p-000089;Ítalo Queiroz;Ítalo;2003-03-20;BRA;173;72;20;6;120
+p-000090;André Martins;Martins;2004-02-20;BRA;175;71;20;12;136
+p-000091;Rodrigo Nunes Rodrigues;Rodrigues;1997-11-04;BRA;181;81;8;20;125
+p-000092;Ítalo Teixeira;Ítalo;2001-05-18;BRA;183;79;12;20;84
+p-000093;Felipe Pinto Lopes;Felipe;1996-10-27;BRA;184;70;11;20;129
+p-000094;Matheus Batista Rodrigues;Tico;2002-07-08;BRA;186;84;11;20;132
+p-000095;Bruno Ribeiro Nunes;Mineiro;1999-03-07;BRA;175;67;20;11;109
+p-000096;Diego Lima Ribeiro;Ribeiro;2004-11-03;BRA;176;74;4;20;110
+p-000097;Rodrigo Rocha;Rocha;2004-07-20;BRA|POR;166;55;12;20;108
+p-000098;Felipe Pinto Rodrigues;Rodrigues;1996-06-23;BRA;180;68;20;9;87
+p-000099;Felipe Silva Rocha;Felipe;1998-05-13;BRA;170;69;10;20;95
+p-000100;Léo Lima Siqueira;Léo Siqueira;1992-03-30;BRA;170;59;7;20;93
+p-000101;Thiago Batista;Thiago;1996-08-16;BRA;183;86;18;20;119
+p-000102;Yago Carvalho Souza;Souza;2000-10-29;BRA;176;73;11;20;103
+p-000103;Everton Gomes Almeida;Everton;2001-07-24;BRA;175;76;17;19;124
+p-000104;Marcos Batista;Batista;2001-11-26;BRA;172;65;9;20;98
+p-000105;Marcos Ramos Vieira;Careca;1992-05-01;BRA;178;75;5;20;78
+p-000106;Yago Lopes Correia;Correia;2005-11-01;BRA;189;82;9;20;151
+p-000107;Caio Gomes;Caio;2001-11-29;BRA;174;63;7;20;82
+p-000108;Luan Fonseca Teixeira;Nenê;2000-11-24;BRA;177;70;11;20;123
+p-000109;Danilo Almeida Fonseca;Fonseca;2000-04-07;BRA;184;73;9;20;101
+p-000110;Rafael Freitas Machado;Kiko;2001-11-15;BRA;194;98;11;20;99
+p-000111;Wellington Pereira;Mineiro;2003-06-29;BRA;184;84;4;20;111
+p-000112;Kaio Batista;Bolinha;2008-07-28;BRA;189;77;11;20;131
+p-000113;Eduardo Ramos Nunes;Nunes;2005-09-24;BRA;187;82;6;20;106
+p-000114;Emerson Mendes;Emerson;2006-04-20;BRA;188;88;4;20;109
+p-000115;Marcos Mendes;Toninho;1998-10-07;BRA;191;94;6;20;130
+p-000116;Emerson Moura;Emerson;1997-11-22;BRA;182;77;5;20;98
+p-000117;Davi Dias;Toninho;2008-09-24;BRA;170;69;20;4;141
+p-000118;Rodrigo Vieira Queiroz;Rodrigo;1998-12-02;BRA;173;71;10;20;119
+p-000119;Raul Lopes;Raul;2003-08-14;BRA;177;76;4;20;111
+p-000120;Nathan Vieira;Nathan;2002-07-08;BRA;182;86;7;20;118
+p-000121;Ítalo Pereira;Pereira;2002-03-31;BRA;178;83;8;20;102
+p-000122;Everton Queiroz Carvalho;Carvalho;1997-07-23;BRA;182;75;12;20;100
+p-000123;Alex Pereira;Pereira;1995-08-07;BRA;184;80;9;20;107
+p-000124;Rafael Rocha;Rocha;2003-06-11;BRA;170;66;9;20;126
+p-000125;Everton Teixeira Lopes;Everton;2002-06-25;BRA;175;68;6;20;111
+p-000126;Henrique Moreira Lima;Lima;2001-09-30;BRA;175;73;12;20;109
+p-000127;Diego Oliveira;Gaúcho;1999-06-01;BRA;177;75;9;20;104
+p-000128;Anderson Costa;Anderson Costa;2000-04-27;BRA;168;68;20;7;110
+p-000129;Samuel Rocha;Samuel;1994-09-07;BRA;180;84;10;20;90
+p-000130;Jonas Carvalho Correia;Nenê;2000-03-23;BRA;180;81;12;20;98
+p-000131;Ramon Ramos Teixeira;Teixeira;1997-05-28;BRA;169;58;10;20;90
+p-000132;Anderson Lima Souza;Souza;1999-03-19;BRA;185;76;7;20;117
+p-000133;Bruno Silva Moreira;Bruno;2001-10-02;BRA;185;85;12;20;104
+p-000134;Gustavo Dias;Netinho;2007-06-24;BRA;180;75;6;20;123
+p-000135;Ítalo Nascimento Almeida;Ítalo;1995-02-22;BRA;185;85;9;20;87
+p-000136;Renan Moura Farias;Renan;2000-03-24;BRA;188;86;6;20;109
+p-000137;Anderson Pinto;Careca;1996-06-06;BRA;188;82;11;20;112
+p-000138;Lucas Pereira;Lucas Pereira;1996-02-13;BRA;192;85;10;20;108
+p-000139;Alex Nascimento Pereira;Alex;1999-09-18;BRA;191;83;9;20;120
+p-000140;Fábio Ribeiro Rocha;Rocha;2001-06-07;BRA;181;83;6;20;111
+p-000141;Jefferson Carvalho Ribeiro;Ribeiro;1999-07-02;BRA;183;81;6;20;131
+p-000142;Bruno Machado Cardoso;Cardoso;2005-11-05;BRA;182;82;8;20;118
+p-000143;Alex Borges;Borges;1993-06-13;BRA;174;64;20;8;92
+p-000144;Pedro Lopes;Pedro;2001-06-05;BRA;174;60;9;20;108
+p-000145;Fábio Cardoso Pinto;Pinto;1999-09-19;BRA;176;73;7;20;117
+p-000146;Danilo Souza;Danilo;2002-08-26;BRA;176;72;6;20;125
+p-000147;Arthur Moreira;Arthur;1998-03-21;BRA;183;84;7;20;112
+p-000148;Ítalo Costa Barbosa;Ítalo;2001-08-24;BRA;191;90;8;20;109
+p-000149;Samuel Machado;Samuel;1997-08-17;BRA;184;77;10;20;97
+p-000150;Yago Monteiro;Yago Monteiro;2000-07-01;BRA;185;83;20;8;83
+p-000151;Marcos Nascimento Fonseca;Tico;2003-11-06;BRA;181;77;5;20;121
+p-000152;Nathan Ribeiro Teixeira;Nathan;2000-02-25;BRA;172;66;4;20;126
+p-000153;Lucas Campos Lopes;Lucas;2000-10-22;BRA;175;73;20;12;110
+p-000154;Hugo Lopes;Hugo;2004-05-06;BRA;170;57;6;20;131
+p-000155;Danilo Farias Lima;Danilo Lima;2003-04-26;BRA;175;74;20;8;103
+p-000156;Kaio Ribeiro Nunes;Kaio;1996-10-30;BRA;172;67;12;20;113
+p-000157;Rafael Almeida;Rafael;1999-02-19;BRA;168;60;12;20;119
+p-000158;Ítalo Andrade Ramos;Ítalo Ramos;2000-06-19;BRA;176;66;12;20;94
+p-000159;Douglas Fonseca Nunes;Tico;2002-06-14;BRA|POR;177;72;9;20;117
+p-000160;Eduardo Freitas;Freitas;1999-09-29;BRA|POR;184;78;10;20;111
+p-000161;Emerson Almeida;Emerson Almeida;1999-09-17;BRA;169;71;12;20;102
+p-000162;Raul Araújo;Raul;1992-05-28;BRA;174;69;5;20;104
+p-000163;Hugo Rocha;Rocha;1998-08-03;BRA;188;84;9;20;126
+p-000164;André Pereira;André Pereira;2002-05-30;BRA;190;87;5;20;138
+p-000165;Wesley Martins Moreira;Mineiro;1995-11-21;BRA;184;86;6;20;140
+p-000166;Bruno Silva;Bruno;2004-02-10;BRA;187;84;20;6;115
+p-000167;Anderson Ramos;Anderson Ramos;2002-07-01;BRA;182;80;6;20;125
+p-000168;Kaio Rodrigues;Kaio;2000-06-13;BRA;179;74;7;20;94
+p-000169;Rafael Souza Fonseca;Rafael;1998-05-09;BRA;182;81;7;20;102
+p-000170;Alex Rodrigues;Alex;1996-05-03;BRA;183;79;20;8;91
+p-000171;Otávio Vieira;Otávio;2000-04-16;BRA;173;70;17;16;131
+p-000172;Renan Moura;Moura;1996-04-25;BRA;182;81;12;20;112
+p-000173;Nathan Siqueira Ribeiro;Ribeiro;1995-02-13;BRA;179;79;4;20;103
+p-000174;Anderson Borges;Anderson;2001-06-05;BRA;174;73;4;20;113
+p-000175;Jonas Lopes Monteiro;Jonas;1999-06-23;BRA;176;65;11;20;94
+p-000176;Vinícius Martins Siqueira;Vinícius;2005-07-12;ARG;175;67;10;20;120
+p-000177;Arthur Andrade Teixeira;Baiano;1999-05-07;BRA;184;81;4;20;116
+p-000178;Ítalo Monteiro;Monteiro;2006-07-29;BRA;176;61;11;20;94
+p-000179;Wallace Carvalho Silva;Nenê;1999-03-16;BRA;178;81;19;16;105
+p-000180;Rafael Monteiro;Rafael Monteiro;1998-09-04;BRA;178;73;9;20;109
+p-000181;Yago Lima;Kiko;1996-07-01;BRA;169;67;11;20;122
+p-000182;Kaio Gomes;Gomes;2009-11-19;BRA;171;67;4;20;106
+p-000183;Matheus Mendes;Matheus;2002-10-28;BRA;173;72;4;20;156
+p-000184;Wellington Fonseca;Fonseca;2002-07-13;BRA;168;73;20;7;132
+p-000185;Hugo Andrade;Lelê;2002-03-17;BRA;178;83;8;20;138
+p-000186;Everton Lima;Everton;2003-05-31;BRA;189;82;11;20;127
+p-000187;Danilo Araújo;Araújo;2005-10-10;BRA;188;82;9;20;157
+p-000188;Marcos Silva Pereira;Kiko;1994-11-13;BRA;181;77;9;20;101
+p-000189;Eduardo Lima;Eduardo;2007-05-23;BRA;183;73;4;20;143
+p-000190;Luan Ramos;Ramos;1992-09-19;BRA;188;84;20;5;117
+p-000191;Emerson Almeida;Tiquinho;2003-02-25;BRA;192;86;20;10;127
+p-000192;Diego Fonseca Costa;Diego;1997-06-10;BRA;186;83;4;20;108
+p-000193;Matheus Queiroz;Juninho;2007-08-11;BRA;187;78;6;20;129
+p-000194;Alex Borges;Zé Rafael;2005-03-03;BRA;185;77;7;20;138
+p-000195;Samuel Campos;Samuel;1995-09-18;BRA;188;81;7;20;108
+p-000196;Davi Teixeira Ramos;Ramos;1991-08-09;BRA;185;78;20;9;114
+p-000197;Anderson Freitas;Freitas;1994-08-23;BRA;177;73;20;8;105
+p-000198;Rodrigo Barbosa Nunes;Rodrigo;2002-08-15;BRA;179;79;20;10;104
+p-000199;Danilo Oliveira;Danilo Oliveira;2000-07-17;BRA;183;81;16;17;125
+p-000200;Murilo Borges;Borges;2005-08-09;BRA;177;75;4;20;125
+p-000201;Eduardo Oliveira Dias;Eduardo Dias;1999-09-03;BRA;188;87;8;20;118
+p-000202;Marcos Campos;Marcos;2004-06-07;BRA;176;69;6;20;127
+p-000203;Ítalo Araújo Martins;Martins;2007-11-02;BRA;171;69;8;20;126
+p-000204;Marcos Farias;Marcos Farias;2004-08-12;BRA;174;67;10;20;113
+p-000205;Anderson Ribeiro;Anderson Ribeiro;1996-08-28;BRA;182;78;20;5;119
+p-000206;Douglas Queiroz;Douglas;2003-03-06;BRA;184;76;10;20;114
+p-000207;João Nascimento Fonseca;João;2005-09-29;BRA;177;79;20;9;117
+p-000208;Diego Teixeira Carvalho;Diego;2005-03-18;BRA;179;76;4;20;153
+p-000209;Fábio Campos;Fábio;1999-09-14;BRA;182;78;20;6;96
+p-000210;Henrique Batista;Henrique Batista;1993-11-29;BRA;177;71;20;6;90
+p-000211;Yago Queiroz Nascimento;Yago;2000-10-01;BRA|ESP;179;78;6;20;116
+p-000212;Nathan Costa;Nathan;2002-07-21;BRA;175;70;10;20;117
+p-000213;Kaio Martins;Kaio;2002-09-15;BRA;178;75;10;20;133
+p-000214;Nathan Teixeira Correia;Nathan;1994-05-24;BRA|POR;170;65;8;20;104
+p-000215;Marcos Lima;Marcos;1996-08-25;BRA;176;76;6;20;90
+p-000216;Hugo Machado;Hugo Machado;2001-09-09;BOL;184;79;11;20;112
+p-000217;Raul Freitas Costa;Raul;2000-08-14;BRA;191;87;9;20;76
+p-000218;Rodrigo Rodrigues;Rodrigo;1999-11-28;BRA;190;85;20;12;79
+p-000219;Pedro Pinto Campos;Pedro Campos;1998-07-06;BRA;187;81;11;20;112
+p-000220;Léo Rocha;Léo;1999-07-10;BRA;178;71;20;7;70
+p-000221;Henrique Rodrigues;Henrique;1997-10-07;BRA;188;87;20;5;86
+p-000222;Patrick Batista;Batista;2001-02-20;BRA;179;72;9;20;84
+p-000223;Rodrigo Mendes;Gaúcho;2006-10-19;BRA;177;72;4;20;123
+p-000224;Eduardo Ribeiro Machado;Machado;1998-08-10;BRA;180;81;4;20;90
+p-000225;Ítalo Oliveira Carvalho;Ítalo Carvalho;2005-06-04;BRA;175;65;20;7;131
+p-000226;Caio Costa Almeida;Tico;2004-09-02;BRA;174;66;7;20;88
+p-000227;Diego Santos;Diego;2002-11-02;BRA;177;71;6;20;84
+p-000228;Léo Lima Lopes;Léo Lopes;1997-05-21;BRA;176;70;8;20;78
+p-000229;Patrick Campos;Patrick;2002-07-01;BRA;176;75;8;20;94
+p-000230;Danilo Nascimento Costa;Danilo;2000-04-25;BRA;173;71;11;20;99
+p-000231;Jefferson Borges Ramos;Jefferson;2003-11-08;BRA;176;70;20;7;89
+p-000232;Nathan Mendes Moreira;Moreira;1997-02-22;BRA;177;76;7;20;91
+p-000233;Nathan Batista Gomes;Gomes;2003-07-09;BRA;184;85;18;16;97
+p-000234;Samuel Carvalho Nascimento;Paulista;2009-10-31;BRA;179;76;20;8;103
+p-000235;Vinícius Monteiro;Vinícius;2000-08-03;BRA;169;67;20;6;86
+p-000236;Jefferson Rocha Ramos;Zé Rafael;1997-12-01;BRA;177;74;6;20;67
+p-000237;Renan Araújo Cardoso;Cardoso;1999-04-24;BRA;174;69;4;20;84
+p-000238;Thiago Carvalho;Netinho;2007-08-16;BRA;176;72;10;20;111
+p-000239;Caio Pinto Teixeira;Teixeira;1997-05-11;BRA;178;71;10;20;83
+p-000240;Diego Vieira;Vieira;1998-11-12;BRA;178;71;4;20;82
+p-000241;Patrick Cardoso;Patrick;1990-03-31;BRA;188;78;10;20;79
+p-000242;Marcos Ramos;Pelezinho;1995-05-20;BRA;193;95;5;20;68
+p-000243;Thiago Mendes;Thiago;1991-08-11;BRA;171;68;4;20;91
+p-000244;Patrick Silva Carvalho;Carvalho;2005-06-01;BRA;196;100;20;7;118
+p-000245;Patrick Dias Machado;Machado;1999-10-18;BRA;190;85;11;20;84
+p-000246;Gabriel Farias;Gabriel;2004-02-16;BRA;188;85;8;20;101
+p-000247;Samuel Lima;Samuel;1995-06-30;BRA;187;86;9;20;77
+p-000248;André Souza;André;1997-07-18;BRA;184;83;18;20;120
+p-000249;Davi Freitas;Davi;1995-08-19;BRA;187;83;11;20;80
+p-000250;Thiago Farias Barbosa;Thiago;2005-06-07;BRA;193;85;20;7;111
+p-000251;Lucas Freitas Lima;Cacá;2002-08-03;BRA;184;82;20;6;106
+p-000252;Arthur Barbosa;Arthur;2002-06-18;ECU;173;73;20;6;106
+p-000253;Bruno Araújo;Araújo;2003-11-28;BRA;171;63;7;20;99
+p-000254;Arthur Oliveira;Arthur Oliveira;1997-05-18;BRA;170;60;18;16;75
+p-000255;Ramon Campos;Campos;1998-11-24;BRA;177;75;20;7;81
+p-000256;Bruno Teixeira Araújo;Araújo;1998-05-06;BRA;175;70;5;20;103
+p-000257;Thiago Borges;Thiago;1998-04-17;BRA;174;65;20;4;89
+p-000258;Jefferson Moura;Moura;1998-11-01;BRA;180;75;8;20;87
+p-000259;Eduardo Ribeiro;Fumaça;1999-06-18;BRA;172;72;18;18;78
+p-000260;Thiago Andrade;Gui;1999-02-26;BRA;171;68;20;8;102
+p-000261;Thiago Ribeiro;Thiago;1995-11-08;BRA;170;60;20;11;87
+p-000262;Everton Dias;Everton;1993-05-22;ARG;174;62;4;20;91
+p-000263;Caio Santos Monteiro;Monteiro;1999-02-08;BRA;173;69;7;20;101
+p-000264;Wallace Cardoso;Wallace;1993-02-19;BRA;171;66;5;20;82
+p-000265;André Rodrigues Lopes;Lopes;2003-09-21;BRA;175;71;5;20;104
+p-000266;Anderson Gomes;Anderson;1997-09-27;BRA;172;71;11;20;81
+p-000267;Gabriel Mendes;Mendes;1999-10-28;BRA;180;72;4;20;84
+p-000268;Marcos Silva;Marcos;2001-09-17;BRA;190;85;5;20;84
+p-000269;Wesley Costa Martins;Kiko;2001-06-12;URU;185;78;10;20;91
+p-000270;Murilo Souza;Murilo Souza;2005-05-20;BRA;205;99;11;20;142
+p-000271;Kaio Nunes Silva;Kaio;2003-06-23;BRA;184;82;9;20;88
+p-000272;Wellington Dias;Dias;1998-06-22;BRA;188;79;4;20;92
+p-000273;Jonas Machado Monteiro;Monteiro;2008-12-01;BRA;192;90;6;20;85
+p-000274;Jefferson Lima Batista;Batista;2001-03-02;BRA;186;77;11;20;65
+p-000275;Wallace Machado Santos;Kiko;1993-04-01;BRA;185;80;10;20;70
+p-000276;Everton Ramos Araújo;Araújo;2002-04-08;BRA;188;82;10;20;119
+p-000277;Yago Andrade Oliveira;Biel;1997-04-13;BRA;189;87;6;20;82
+p-000278;Léo Mendes;Léo;2006-08-02;BRA;174;80;20;8;82
+p-000279;Danilo Queiroz Moura;Biel;2003-09-10;BRA;173;73;20;17;106
+p-000280;Raul Campos Andrade;Raul Andrade;1996-05-18;BRA;174;66;8;20;65
+p-000281;Igor Machado Machado;Cacá;1999-09-25;BRA;178;69;9;20;92
+p-000282;Diego Mendes Santos;Diego Santos;2004-03-13;BRA;194;91;7;20;110
+p-000283;Marcos Andrade Campos;Campos;2002-09-09;BRA;177;78;10;20;95
+p-000284;Hugo Correia Araújo;Hugo;2009-04-14;BRA;174;74;9;20;100
+p-000285;Henrique Borges Mendes;Henrique;2000-03-31;BRA;187;81;11;20;90
+p-000286;Felipe Souza Santos;Felipe;2001-06-14;BRA;180;76;5;20;78
+p-000287;Rafael Costa;Rafael Costa;1999-04-28;BRA;175;63;5;20;75
+p-000288;Wesley Ribeiro;Wesley;2003-09-28;BRA;181;74;11;20;84
+p-000289;Igor Correia Pinto;Igor;2003-03-14;BRA|ITA;177;75;7;20;85
+p-000290;Wellington Freitas Ribeiro;Wellington Ribeiro;2001-07-14;BRA;170;68;4;20;79
+p-000291;Caio Machado Gomes;Mineiro;1997-03-10;BRA;173;66;20;4;84
+p-000292;Renan Araújo;Renan;2000-04-25;BRA;175;69;7;20;86
+p-000293;Gabriel Nascimento Almeida;Tico;2003-10-12;BRA;168;64;7;20;110
+p-000294;Caio Rodrigues;Rodrigues;1994-05-22;BRA;176;77;8;20;90
+p-000295;Léo Mendes;Mendes;2005-10-29;BRA;179;74;17;19;110
+p-000296;Jefferson Carvalho;Carvalho;2009-09-30;BRA;181;77;20;8;95
+p-000297;Gabriel Carvalho Moura;Gabriel;2003-05-05;BRA;176;69;11;20;90
+p-000298;Pedro Rocha Oliveira;Pedro;2001-05-09;BRA;187;83;8;20;97
+p-000299;Pedro Lima;Pedro;1997-05-08;BRA;193;87;12;20;69
+p-000300;Otávio Ribeiro Moreira;Moreira;1994-09-20;BRA;180;76;7;20;79
+p-000301;Otávio Martins Nascimento;Otávio;2002-05-26;BRA;181;78;4;20;119
+p-000302;Marcos Carvalho Barbosa;Kiko;1999-07-28;BRA;188;89;11;20;98
+p-000303;Anderson Gomes;Anderson;2007-09-22;BRA;184;75;9;20;84
+p-000304;João Barbosa;João;1994-02-16;BRA;184;79;7;20;68
+p-000305;Anderson Dias Cardoso;Cardoso;2006-09-15;BRA;170;61;11;20;114
+p-000306;Wallace Siqueira Ramos;Wallace Ramos;1998-03-03;BRA;173;67;20;4;78
+p-000307;Wallace Pinto Lima;Wallace Lima;2004-09-13;BRA;178;75;20;5;117
+p-000308;Wesley Campos;Wesley;1994-08-03;BRA;170;64;8;20;84
+p-000309;Jefferson Nascimento Martins;Jefferson Martins;1997-11-04;BRA;186;84;12;20;80
+p-000310;Samuel Lima;Samuel;2002-03-20;BRA;170;63;12;20;85
+p-000311;Vinícius Santos;Vinícius;1993-04-16;BRA;176;73;9;20;65
+p-000312;André Ribeiro;André Ribeiro;1996-03-03;BRA;183;75;9;20;62
+p-000313;Alex Cardoso Fonseca;Fonseca;2002-05-12;BRA;166;62;12;20;120
+p-000314;Thiago Queiroz;Tico;2003-02-20;BRA;180;77;4;20;100
+p-000315;Wellington Fonseca Dias;Tchê;2001-05-01;BRA;173;66;20;12;91
+p-000316;Hugo Monteiro Almeida;Almeida;1998-06-23;BRA;171;62;7;20;95
+p-000317;Hugo Oliveira Freitas;Freitas;2008-09-11;BRA;174;78;20;4;82
+p-000318;Wellington Almeida Almeida;Didi;2003-03-12;PAR;173;70;12;20;105
+p-000319;Kaio Mendes Martins;Kaio Martins;1996-06-05;BRA;176;72;12;20;88
+p-000320;Henrique Monteiro Farias;Henrique;2002-04-17;VEN;175;69;9;20;101
+p-000321;Davi Dias Ribeiro;Davi;2002-05-13;BRA;167;65;7;20;105
+p-000322;Everton Siqueira;Everton;1999-04-22;BRA;185;72;9;20;60
+p-000323;Nathan Moura;Tico;2007-10-27;BRA;177;78;20;7;102
+p-000324;Marcos Lopes;Gui;2000-06-26;BRA|ITA;181;68;11;20;79

@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manager-core"
+version = "0.1.0"
+description = "Headless simulation core for Manager, a football management game (Football Manager benchmark)"
+requires-python = ">=3.12"
+dependencies = []  # standard library only at runtime (research R1)
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6", "ruff>=0.6", "mypy>=1.11"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+manager_core = ["reference/*.csv"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # pt-BR text legitimately uses accented / typographic characters
+
+[tool.ruff.lint.per-file-ignores]
+# message catalogue: one natural-language sentence per line reads better than wrapped strings
+"src/manager_core/i18n/pt_BR.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/manager_core"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+markers = ["slow: slower checks (performance); still run in CI"]
