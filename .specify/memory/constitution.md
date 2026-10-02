@@ -11,9 +11,16 @@ desktop client.
 - Every simulation system (match engine, quick sim, economy, transfers, player development)
   MUST declare quantitative calibration targets drawn from real football data (e.g. goals,
   shots, xG, possession, fouls and cards per match; wage/value distributions; ageing curves).
-- A calibration harness MUST exist for each system and run over a large sample (≥1,000 matches
-  or ≥10 simulated seasons). A change that moves a metric outside its tolerance band MUST NOT be
-  merged unless the spec is amended to justify the new target.
+- Every target MUST cite a named source and retrieval date (e.g. FBref, Brasileirão 2025 season,
+  retrieved 2026-10-02), with the same provenance standard as Principle VI. Aggregate league
+  statistics MAY be stored in the public repository.
+- A calibration harness MUST exist for each system and runs in two tiers:
+  - **PR gate (fast)**: a fixed subset (~200 matches or ~2 seasons), run in parallel and
+    deterministic per match seed. Every PR that touches a simulation system MUST pass it.
+  - **Milestone gate (full)**: ≥1,000 matches or ≥10 simulated seasons. It MUST pass before a
+    milestone is closed.
+- A change that moves a metric outside its tolerance band MUST NOT be merged unless the spec is
+  amended to justify the new target.
 - Football Manager is the reference for feature design. A feature that deviates from FM's
   approach MUST state why in its spec.
 - Tactics MUST matter believably: no single tactic may dominate across opponents. Each spec that
@@ -24,7 +31,13 @@ Rationale: realism is the product. If it isn't measured it drifts silently.
 ### II. Deterministic, Reproducible Simulation
 
 - All randomness MUST flow from an explicit, seedable RNG owned by the simulation context. Global
-  random state, wall-clock time and dictionary ordering MUST NOT influence results.
+  random state and wall-clock time MUST NOT influence results.
+- Iteration order MUST be deterministic: never iterate over sets or other hash-ordered
+  collections of strings or objects when the order can affect results (string hashing is
+  randomised per process), so sort first. Parallel work MUST merge results in a fixed order
+  (e.g. by match id), never in completion order.
+- Every save and every calibration report MUST record the core version and the Python version.
+  Bit-for-bit reproducibility is only guaranteed for the same versions.
 - The same save, inputs and seed MUST produce the same match, season and world, bit for bit.
 - Every match MUST be replayable from its seed plus the recorded user decisions (substitutions,
   tactical changes).
@@ -38,6 +51,9 @@ possible.
   operable from tests and a CLI.
 - The Godot client MUST talk to the core only through a versioned, documented local API contract
   (`contracts/`). The client MUST NOT contain game rules.
+- This applies to every UI, including the Milestone 0 terminal UI: no UI may contain game rules.
+  Each one calls the core only through a thin core facade, which spec 010 formalises as the
+  versioned API contract.
 - The positional match engine MUST emit a time-sampled positional record (players and ball) so
   that text, 2D and future 3D views consume the same data without engine changes.
 
@@ -95,8 +111,10 @@ Rationale: an FM-scale game is huge. Shipping playable slices keeps it alive.
 - **Client**: Godot 4.x, Windows desktop as the primary target.
 - **Persistence**: one SQLite database per career save. Schema changes ship with migrations.
 - **Match simulation is two-tier**: a positional engine for matches the user's club plays or
-  watches, and a fast statistical sim for background matches. Both MUST be calibrated to the same
-  targets, and the quick sim MUST be validated against the positional engine.
+  watches, and a fast statistical sim for background matches. Each engine MUST be calibrated
+  independently against the real-data targets, so the quick sim does not depend on the positional
+  engine existing. Once both exist, they MUST be cross-validated against each other (same fixtures,
+  matching metric distributions within tolerance).
 - **Performance budgets** (reference: this Windows PC): positional match ≤ 10 s headless; a full
   world matchday via quick sim ≤ 5 s; advancing one in-game day without matches ≤ 1 s.
   Specs MAY tighten these.
@@ -110,7 +128,9 @@ Rationale: an FM-scale game is huge. Shipping playable slices keeps it alive.
 - One branch per spec (`NNN-feature-name`), merged into `main` through a pull request that the
   owner reviews. Direct commits to `main` are limited to documentation fixes.
 - A PR MUST have all tests passing and, if it touches a simulation system, MUST include the
-  calibration report (before/after metrics) in its description.
+  fast-gate calibration report (before/after metrics) in its description.
+- Continuous integration (GitHub Actions) MUST run the test suite and the fast calibration gate on
+  every PR once the first code spec lands.
 - `docs/roadmap.md` tracks milestones and spec order and is updated when a spec merges.
 
 ## Governance
@@ -122,4 +142,4 @@ Rationale: an FM-scale game is huge. Shipping playable slices keeps it alive.
 - Every PR review verifies compliance with Principles I–VII.
 - Runtime guidance for the coding agent lives in `CLAUDE.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-02 | **Last Amended**: 2026-10-02
+**Version**: 1.1.0 | **Ratified**: 2026-10-02 | **Last Amended**: 2026-10-02

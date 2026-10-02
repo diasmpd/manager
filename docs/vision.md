@@ -46,6 +46,9 @@ refines one part of it.
   private `manager-data` repo, never in this public repo.
   - *Risk*: these sites' terms of use restrict automated scraping. The import spec must define
     a compliant, personal-use collection approach (e.g. manual exports or low-volume fetches).
+  - *Coverage gap*: most Mineiro clubs other than Atlético, Cruzeiro and América are not in
+    SoFIFA, so there are no ratings to convert. For those clubs, attributes must be synthesised
+    from position, age, market value and league level (see roadmap, spec 011).
 
 ## Architecture (summary)
 
@@ -54,7 +57,7 @@ refines one part of it.
 | Simulation core | Python, headless, deterministic (seeded) |
 | Match engine | Two tiers: a positional engine for your matches, a statistical quick sim for the rest of the world |
 | Saves | One SQLite database per career |
-| Client | Godot 4 desktop app (Windows), talking to the core over a versioned local API |
+| Client | Godot 4 desktop app (Windows), talking to the core over a versioned local API. Milestone 0 is played through a Python terminal UI first; Godot arrives in spec 010 |
 | Online | Not built. The save and API design leave room for "leagues with friends" later |
 
 ## Out of scope (for now)
