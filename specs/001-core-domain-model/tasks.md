@@ -25,15 +25,15 @@ side and the manual-edit audit trail moved to spec 011.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Create the folder tree from plan.md "Source Code": `core/src/manager_core/{domain,ratings,io,sample,i18n,reference}/` with `__init__.py` in each package, `core/tests/{unit,contract,integration,fixtures/valid,fixtures/invalid}/`, `data/sample/`
-- [ ] T002 Create `core/pyproject.toml`:
+- [X] T001 Create the folder tree from plan.md "Source Code": `core/src/manager_core/{domain,ratings,io,sample,i18n,reference}/` with `__init__.py` in each package, `core/tests/{unit,contract,integration,fixtures/valid,fixtures/invalid}/`, `data/sample/`
+- [X] T002 Create `core/pyproject.toml`:
   - project `manager-core`, version `0.1.0`, `requires-python = ">=3.12"`, **no runtime dependencies**;
   - optional `dev` extra = pytest, hypothesis, ruff, mypy;
   - setuptools src layout with package data `reference/*.csv`;
   - `[tool.ruff]` line-length 100, `[tool.mypy]` strict on `manager_core`, `[tool.pytest.ini_options]` testpaths `tests` and marker `slow`.
-- [ ] T003 [P] Set `__version__ = "0.1.0"` in `core/src/manager_core/__init__.py`, and add `core/src/manager_core/__main__.py` delegating to `cli.main()`
-- [ ] T004 [P] Add `*.csv text eol=lf` to `.gitattributes` (research R4: committed CSVs must be byte-stable)
-- [ ] T005 [P] Create a test helper `core/tests/conftest.py` with fixtures: `repo_root`, `sample_dir` (= `data/sample`), `fixtures_dir`, and a `tmp_dataset(dir)` copier
+- [X] T003 [P] Set `__version__ = "0.1.0"` in `core/src/manager_core/__init__.py`, and add `core/src/manager_core/__main__.py` delegating to `cli.main()`
+- [X] T004 [P] Add `*.csv text eol=lf` to `.gitattributes` (research R4: committed CSVs must be byte-stable)
+- [X] T005 [P] Create a test helper `core/tests/conftest.py` with fixtures: `repo_root`, `sample_dir` (= `data/sample`), `fixtures_dir`, and a `tmp_dataset(dir)` copier
 
 ---
 
@@ -43,98 +43,98 @@ side and the manual-edit audit trail moved to spec 011.
 
 ### Tests first
 
-- [ ] T006 [P] Unit tests `core/tests/unit/test_attributes.py`:
+- [X] T006 [P] Unit tests `core/tests/unit/test_attributes.py`:
   - exactly 60 attributes, with 14 technical, 14 mental, 8 physical, 11 goalkeeping and 13 hidden, in FM order (data-model.md);
   - values "1–20" enforced by the constructor (raises on 0 or 21);
   - hidden defaults are 10, "except dirtiness 8, injury_proneness 8 and controversy 6";
   - `visible_for(is_goalkeeper=True)` gives the GK reduced technical set (first touch, free kicks, passing, penalty taking, technique).
-- [ ] T007 [P] Unit tests `core/tests/unit/test_positions.py`:
+- [X] T007 [P] Unit tests `core/tests/unit/test_positions.py`:
   - the 14 codes in FM order "GK, DL, DC, DR, WBL, WBR, DM, ML, MC, MR, AML, AMC, AMR, ST", and the line of each (GK / DEF = DL, DC, DR, WBL, WBR / MID = DM, ML, MC, MR / ATT = AML, AMC, AMR, ST);
   - band boundaries: Natural 18–20, Accomplished 15–17, Competent 12–14, Unconvincing 9–11, Awkward 5–8, Ineffectual 1–4;
   - familiarity factor anchors 20→1.00, 18→0.99, 15→0.96, 12→0.90, 9→0.82, 5→0.70, 1→0.55, with linear interpolation and monotonicity.
-- [ ] T008 [P] Unit tests `core/tests/unit/test_ability.py`:
+- [X] T008 [P] Unit tests `core/tests/unit/test_ability.py`:
   - CA formula from research R8 on hand-computed cases;
   - clamp to 1–200;
   - hypothesis property: raising any visible attribute never lowers CA;
   - `best_position` only considers familiarity ≥ 15, with ties broken by FM position order.
-- [ ] T009 [P] Unit tests `core/tests/unit/test_suitability.py`:
+- [X] T009 [P] Unit tests `core/tests/unit/test_suitability.py`:
   - weighted mean using `reference/position_weights.csv`;
   - an equally-attributed Natural player outranks an Unconvincing one;
   - mirrored positions (DR/DL, WBR/WBL, MR/ML, AMR/AML) give equal results for mirrored players;
   - `suitability_milli(player, position) == round(suitability × 1000)` and is an `int`.
-- [ ] T010 [P] Unit tests `core/tests/unit/test_dialect.py`:
+- [X] T010 [P] Unit tests `core/tests/unit/test_dialect.py`:
   - canonical write: UTF-8 with BOM, `;` separator, LF, ISO dates, plain integers, rows sorted by key, byte-identical on repeated writes;
   - canonical read: accepts both BOM and no BOM, LF and CRLF, and trims cells;
   - non-UTF-8 bytes give E033.
-- [ ] T011 [P] Contract test `core/tests/contract/test_csv_format.py`:
+- [X] T011 [P] Contract test `core/tests/contract/test_csv_format.py`:
   - every file and column name, and the column write order, exactly as in contracts/csv-format.md v1.0 (no `integrity.csv` in v1.0);
   - the attributes.csv columns are derived from `ATTRIBUTE_GROUPS` (single source of truth).
-- [ ] T012 [P] Contract test `core/tests/contract/test_facade.py`: `manager_core.api` exposes the functions and parameter names listed in contracts/facade.md
+- [X] T012 [P] Contract test `core/tests/contract/test_facade.py`: `manager_core.api` exposes the functions and parameter names listed in contracts/facade.md
 
 ### Implementation
 
-- [ ] T013 [P] Implement `core/src/manager_core/domain/attributes.py`:
+- [X] T013 [P] Implement `core/src/manager_core/domain/attributes.py`:
   - frozen, slotted `Attributes` with 60 explicit `int` fields;
   - `AttributeGroup` enum and `ATTRIBUTE_GROUPS` (FM order);
   - `HIDDEN_DEFAULTS`;
   - range check 1–20 in `__post_init__`;
   - `visible_for(is_goalkeeper)`.
-- [ ] T014 [P] Implement `core/src/manager_core/domain/positions.py`:
+- [X] T014 [P] Implement `core/src/manager_core/domain/positions.py`:
   - `Position` enum (FM order) and `Line`;
   - `FamiliarityBand` and `band_for(value)`;
   - `familiarity_factor(value)` with the R7 anchors;
   - `PositionFamiliarity` (immutable mapping, missing codes default to 1, values 1–20, `natural_positions()` for ≥ 15).
-- [ ] T015 [P] Implement `core/src/manager_core/domain/club.py`:
+- [X] T015 [P] Implement `core/src/manager_core/domain/club.py`:
   - frozen `Club` with the fields of data-model.md "Club", using the "Rules" column as constructor invariants: abbreviation "exactly 3 uppercase letters", colours `#RRGGBB`, capacity 500–250,000, reputation 1–20;
   - `ExternalRef(source, source_id)`.
-- [ ] T016 [P] Implement `core/src/manager_core/domain/player.py`:
+- [X] T016 [P] Implement `core/src/manager_core/domain/player.py`:
   - frozen `Player` with the data-model.md "Player" fields: nationalities 1–3, height 150–210, weight 50–110, feet 1–20 with "max(left, right) ≥ 15", PA 1–200;
   - `age(reference_date)` derived, never stored.
-- [ ] T017 [P] Implement `core/src/manager_core/domain/squad.py`:
+- [X] T017 [P] Implement `core/src/manager_core/domain/squad.py`:
   - frozen `SquadMembership`: shirt number 1–99 or None, money fields ≥ 0, currency required when a money field is set.
-- [ ] T018 [P] Implement `core/src/manager_core/domain/formation.py`:
+- [X] T018 [P] Implement `core/src/manager_core/domain/formation.py`:
   - `FormationSlot(index, position, x_m 0–105, y_m 0–68)` and `Formation`, requiring "exactly 11 slots, exactly one GK";
   - `load_catalogue()` reading `reference/formations.csv`.
-- [ ] T019 [P] Create reference data:
+- [X] T019 [P] Create reference data:
   - `core/src/manager_core/reference/position_weights.csv`, containing exactly the table in contracts/csv-format.md, with mirrored positions expanded;
   - `core/src/manager_core/reference/formations.csv`, with 4-4-2, 4-3-3, 4-2-3-1, 3-5-2 and 5-3-2 using the prototype's metre coordinates (`prototype/manager/tactics.py`);
   - `core/src/manager_core/reference/nations.csv` (`code;name_pt;confederation`): FIFA trigrams for all CONMEBOL members, the main UEFA nations including ENG/SCO/WAL/NIR, CONCACAF majors, and common African and Asian origins.
-- [ ] T020 Implement `core/src/manager_core/ratings/suitability.py` (depends on T013, T014, T019):
+- [X] T020 Implement `core/src/manager_core/ratings/suitability.py` (depends on T013, T014, T019):
   - `base(player, position)` as a weighted mean from position_weights.csv;
   - `suitability(player, position) = base × familiarity_factor`;
   - `suitability_milli(player, position) = round(suitability × 1000)` (int, research R9).
-- [ ] T021 Implement `core/src/manager_core/ratings/ability.py` (depends on T020):
+- [X] T021 Implement `core/src/manager_core/ratings/ability.py` (depends on T020):
   - `current_ability(player)`, `best_position(player)` and `is_goalkeeper(player)`, exactly per research R8: CA = round(1 + (S − 1) × 199 / 19), S = 0.85 × max natural base + 0.15 × mean of relevant visible attributes, clamped to 1–200.
-- [ ] T022 Implement `core/src/manager_core/domain/dataset.py`:
+- [X] T022 Implement `core/src/manager_core/domain/dataset.py`:
   - `Dataset` (format_version, reference_date, fictional, tool, tool_version, seed, notes, sources, clubs, players, memberships, record_flags);
   - `Source` and `RecordFlag` (flags: hidden_defaulted, potential_defaulted, potential_raised);
   - all collections exposed in sorted-id order;
   - queries `squad(club_id)` and `free_agents()`.
-- [ ] T023 [P] Implement `core/src/manager_core/i18n/__init__.py` (`t(key, **params)`, raising `KeyError` on a missing key in tests) and `core/src/manager_core/i18n/pt_BR.py`, with the catalogue for CLI labels, attribute names in Portuguese (FM-BR naming, e.g. "Finalização", "Desarme"), band names, position names and validation messages.
-- [ ] T024 Implement `core/src/manager_core/io/schema.py`:
+- [X] T023 [P] Implement `core/src/manager_core/i18n/__init__.py` (`t(key, **params)`, raising `KeyError` on a missing key in tests) and `core/src/manager_core/i18n/pt_BR.py`, with the catalogue for CLI labels, attribute names in Portuguese (FM-BR naming, e.g. "Finalização", "Desarme"), band names, position names and validation messages.
+- [X] T024 Implement `core/src/manager_core/io/schema.py`:
   - per-file column specs (name, type, required, range) for all files in contracts/csv-format.md v1.0;
   - attributes.csv columns generated from `ATTRIBUTE_GROUPS`;
   - `FORMAT_VERSION = "1.0"`, `SUPPORTED_MAJOR = 1`.
-- [ ] T025 Implement `core/src/manager_core/io/dialect.py`:
+- [X] T025 Implement `core/src/manager_core/io/dialect.py`:
   - canonical `write_table(path, columns, rows)`: UTF-8 BOM, `;`, LF, ISO dates, sorted;
   - canonical `read_table(path)`: UTF-8 with or without BOM (else E033), `;`, LF or CRLF, trimmed cells, returning raw string rows with 1-based row numbers;
   - no tolerant parsing (spec 011).
-- [ ] T026 Implement `core/src/manager_core/io/validate.py` (skeleton):
+- [X] T026 Implement `core/src/manager_core/io/validate.py` (skeleton):
   - `Issue(code, severity, file, record_id|row, field, value, message)` and `ValidationReport` (ordered issues, `ok`);
   - structural checks only: E001 missing file, E025 missing column, E004 integer parse/range, E002/E003 ids, W007 unknown column.
   - The full catalogue comes in US3.
-- [ ] T027 Implement `core/src/manager_core/io/reader.py`: `load(path) -> LoadResult(report, dataset|None)`.
+- [X] T027 Implement `core/src/manager_core/io/reader.py`: `load(path) -> LoadResult(report, dataset|None)`.
   - Read all tables, validate them, and only build domain objects if `report.ok` (all-or-nothing).
   - Apply hidden defaults with the `hidden_defaulted` flag.
   - An empty PA becomes CA with `potential_defaulted`.
   - PA below CA is raised to CA with `potential_raised` and W010.
   - Keep existing `record_flags.csv` rows (flags persist).
-- [ ] T028 Implement `core/src/manager_core/io/writer.py`: `write(dataset, path) -> ExportSummary` writing every v1.0 file of contracts/csv-format.md (including `record_flags.csv`) through `dialect.write_table`, with the column order exactly as in the contract.
-- [ ] T029 Implement the facade skeleton `core/src/manager_core/api.py`:
+- [X] T028 Implement `core/src/manager_core/io/writer.py`: `write(dataset, path) -> ExportSummary` writing every v1.0 file of contracts/csv-format.md (including `record_flags.csv`) through `dialect.write_table`, with the column order exactly as in the contract.
+- [X] T029 Implement the facade skeleton `core/src/manager_core/api.py`:
   - `load_dataset`, `validate_dataset`, `export_dataset`;
   - `NotFoundError(kind, id)`;
   - signatures per contracts/facade.md, with the remaining functions raising `NotImplementedError`.
-- [ ] T030 Implement the CLI skeleton `core/src/manager_core/cli.py`:
+- [X] T030 Implement the CLI skeleton `core/src/manager_core/cli.py`:
   - argparse groups `data`, `sample`, `club`, `player`, `position`, `lineup`, `formation`;
   - global `--data` (default `data/sample`), resolved from the repo root;
   - exit codes 0/1/2/3 per contracts/cli.md;

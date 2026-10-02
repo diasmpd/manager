@@ -22,3 +22,6 @@ saves/
 .vscode/
 Thumbs.db
 .DS_Store
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
