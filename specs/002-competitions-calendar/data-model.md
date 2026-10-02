@@ -7,11 +7,11 @@ engine object holding mutable progress; every view it returns is an immutable sn
 
 | Entity | Fields |
 |---|---|
-| Ruleset | id, name, short_name, state, country, participants, scoring (win/draw/loss points), tiebreakers (ordered list of `Tiebreaker`), calendar (`CalendarRule`), venues (neutral venue or none), stages (ordered `StageRule`s) |
+| Ruleset | id, name, short_name, state, country, regulation_year, valid_from, valid_to (optional), participants, scoring (win/draw/loss points), tiebreakers (ordered list of `Tiebreaker`), calendar (`CalendarRule`), venues (neutral venue or none), stages (ordered `StageRule`s) |
 | CalendarRule | window_start (month-day), window_end (month-day), weekend_days, midweek_days, kickoff_weekend, kickoff_midweek, min_rest_hours, avoid_windows (labels) |
 | StageRule (groups) | id, type=`groups`, group_count, group_size, matching (`own_group` / `other_groups` / `all`), rounds (1 or 2), draw (`pots_by_reputation` / `fixed`), outcomes (list of `OutcomeRule`) |
-| StageRule (knockout) | id, type=`knockout`, track (`main` or a side-title id), title (only for the final stage of a track), legs (1 or 2), entrants (list of `EntrantRule`), pairing, deciding_leg_host, tie_rule, venue (`home` / `neutral`), dates_with (optional stage id whose slots it shares) |
-| EntrantRule | source stage id, rule (`group_winners` / `best_of_place` place+count / `overall_places` from–to / `winners_of`) |
+| StageRule (knockout) | id, type=`knockout`, track (`main` or a side-title id), title (only for the final stage of a track), legs (1 or 2), entrants (list of `EntrantRule`), pairing, deciding_leg_host, tie_rule, venue (`home` / `neutral`), dates_with (optional stage id whose slots it shares), may_exceed_window (bool, default false) |
+| EntrantRule | source stage id, rule (`group_winners` / `best_of_place` place+count / `overall_places` from–to / `winners_of`), exclude_tracks (for `overall_places`: tracks whose entrants are skipped, next places fill in) |
 | OutcomeRule | kind (`relegated`), source (`overall_places` from–to) |
 | Tiebreaker (enum) | `wins`, `goal_difference`, `goals_for`, `head_to_head`, `fewer_red_cards`, `fewer_yellow_cards`, `draw` |
 
@@ -30,6 +30,12 @@ engine object holding mutable progress; every view it returns is an immutable sn
 | R009 | `head_to_head` with `draw` not last, or `draw` missing (no total order) |
 | R010 | window_end before window_start, or min_rest_hours < 0 |
 | R011 | `other_groups` matching with fewer than 2 groups |
+| R012 | two tracks can take the same club (an `overall_places` entrant rule overlapping another track's entrants from the same stage without `exclude_tracks`) |
+| R013 | invalid validity range (`valid_to` < `valid_from`, or missing `valid_from`) |
+| R014 | kick-off defaults and `min_rest_hours` make a weekend match after a midweek match impossible |
+
+**Season start errors**: `S001` season year outside the ruleset's validity range; `S002` wrong
+number of participants; `S003` the window cannot fit the rounds (`SchedulingError`).
 
 ## Season (engine)
 
@@ -46,7 +52,7 @@ engine object holding mutable progress; every view it returns is an immutable sn
 | Outcome | champion, runner_up, semifinalists, side titles (track → winner), relegated (list), final classification (list of club ids) |
 | SeasonCalendar | year, days (date → `CalendarDay`) |
 | CalendarDay | date, matches (ids), events, windows (labels) |
-| ReservedWindow | label, from (month-day), to (month-day), blocks (e.g. `state`) |
+| ReservedWindow | label, name, kind (`fixed` month-day range / `year` specific dates / `easter` offsets), blocks (e.g. `state`) |
 
 **State transitions** (driven by `advance_to(date)`):
 

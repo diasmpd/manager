@@ -59,8 +59,9 @@ The owner advances the calendar one day at a time (or to a chosen date). On each
 day's matches get results from a placeholder simulator, clearly labelled as temporary until the
 real match engine arrives (spec 003). Group tables and the overall classification update after
 each day, with the FMF tiebreakers. When the first phase ends, the game qualifies the three group
-winners and the best second-placed club for the semifinals, the 5th–8th overall for the Troféu
-Inconfidência, and marks the two worst clubs as relegated to Módulo II. The knockout rounds are
+winners and the best second-placed club for the semifinals, the clubs placed 5th–8th overall for
+the Troféu Inconfidência (any semifinalist among them is skipped and the next-placed club takes the
+spot), and marks the two worst clubs as relegated to Módulo II. The knockout rounds are
 paired, dated and played, including penalty shootouts where needed. The season ends with a
 Mineiro champion, an Inconfidência winner and the two relegated clubs recorded.
 
@@ -79,7 +80,9 @@ result sets.
    in the ruleset's order (see FR-012), and the order is the same every time.
 3. **Given** the end of the first phase, **When** qualification is decided, **Then** the three
    group winners and the best second-placed club (compared across groups) reach the semifinals,
-   5th–8th overall enter the Troféu Inconfidência, and 11th–12th overall are relegated.
+   the clubs placed 5th–8th overall enter the Troféu Inconfidência (a semifinalist in that range
+   is skipped and replaced by the next-placed club, so no club is ever in both tracks), and
+   11th–12th overall are relegated.
 4. **Given** the semifinalists, **When** they are paired, **Then** the best campaign meets the
    4th best and the 2nd meets the 3rd, over two legs with the better campaign at home in the
    second leg; a level aggregate goes straight to penalties (no advantage).
@@ -87,7 +90,8 @@ result sets.
    neutral state stadium; a draw goes to penalties.
 6. **Given** the Inconfidência semifinals and final, **When** a tie is level, **Then** it is
    decided by points across the two legs and then by the better first-phase placing (no
-   penalties).
+   penalties). The Inconfidência final may be played after the Mineiro window (its second leg
+   falls the weekend after the Mineiro final).
 7. **Given** a finished season, **When** the owner views the outcomes, **Then** the champion,
    runner-up, Inconfidência winner and the two relegated clubs are shown, and every result shown
    as coming from the placeholder simulator says so.
@@ -159,6 +163,10 @@ that the ruleset says it must avoid.
 - A club unable to fit its matches in the window with the minimum rest: date generation fails
   with a clear message rather than producing an illegal calendar.
 - Advancing past the last day of the year: refused (the next season is spec 004's game loop).
+- Up to three semifinalists (weak groups' winners) can rank 5th–8th overall: each is skipped
+  for the Inconfidência and replaced by the next-placed eligible club, which in extreme cases
+  may reach 11th (a relegated club can still play the Inconfidência; to be confirmed by FMF).
+- A season year outside the ruleset's validity range: refused with a clear message.
 - The neutral final stadium is also a club's home stadium (not the case in the sample world):
   still treated as neutral, as in the real Mineirão case.
 
@@ -169,20 +177,25 @@ that the ruleset says it must avoid.
 **Competition rules as data**
 
 - **FR-001**: Competition formats MUST be described as data (a ruleset), not code. A ruleset
-  declares: identity (name, state, season year it applies to), number of participants, stages in
-  order, and for each stage its structure, matching, scoring, ordering and outcomes.
+  declares: identity (name, state, the edition of the regulation it follows, and the range of
+  season years it is valid for: `valid_from` and an optional `valid_to`), number of participants,
+  stages in order, and for each stage its structure, matching, scoring, ordering and outcomes.
+  Starting a season in a year outside that range MUST be refused with a clear message.
 - **FR-002**: A ruleset MUST support at least these stage types: group stage (with "play own
   group", "play other groups" or "play everyone" matching, single or double round), and knockout
   rounds (single match or two legs).
 - **FR-003**: A ruleset MUST declare points per result (Mineiro: 3 / 1 / 0), the tiebreaker
   order, which places qualify where, relegation places, and side competitions fed by places
-  (Mineiro: Troféu Inconfidência for 5th–8th).
+  (Mineiro: Troféu Inconfidência for places 5th–8th, skipping clubs already in another track).
+  A ruleset MUST NOT be able to put a club in two tracks at once: entrant rules taken from places
+  declare which tracks' entrants they exclude, and validation rejects overlapping definitions.
 - **FR-004**: A ruleset MUST declare knockout details: pairing rule (e.g. best vs worst campaign),
   which side hosts the deciding leg, how level ties are decided (penalties; or points across legs
   then better placing; or other declared criteria) and the venue rule (home grounds or a named
   neutral stadium).
 - **FR-005**: A ruleset MUST declare its date window and calendar constraints (earliest and
-  latest dates, allowed weekdays, minimum rest between a club's matches, windows to avoid).
+  latest dates, allowed weekdays, minimum rest between a club's matches, windows to avoid), and
+  which stages may run past the window end (Mineiro: only the Inconfidência final).
 - **FR-006**: Loading a ruleset MUST validate it and report every problem at once (structural
   impossibilities, unknown criteria, places out of range, inconsistent stage references).
 - **FR-007**: The repository MUST include the Mineiro 2026 ruleset and at least one other test
@@ -236,8 +249,12 @@ that the ruleset says it must avoid.
 - **FR-019**: The season calendar MUST cover every day of the year. Each day may carry matches,
   stage events (draw, qualification, relegation decided) and reserved-window labels.
 - **FR-020**: The calendar MUST include reserved windows for later competitions (Brasileirão,
-  Copa do Brasil, international dates) as labelled, empty periods; their dates come from a data
-  file, not code. Only the Mineiro is populated in this spec.
+  Copa do Brasil, international dates) as labelled, empty periods; their dates come from data,
+  not code. Windows can be fixed (month-day ranges), set per year (e.g. FIFA dates, which change
+  every year), or computed from Easter (Carnival, Holy Week). Only the Mineiro is populated in
+  this spec.
+- **FR-020a**: Carnival MUST be labelled in the calendar every year (Saturday to Ash Wednesday),
+  and no state match may be scheduled on Carnival Monday or Tuesday (owner's decision).
 
 **Viewing (CLI)**
 
@@ -298,8 +315,9 @@ that the ruleset says it must avoid.
   - tiebreaker order (FR-012 uses the order customary in Brazilian state regulations);
   - semifinal pairing 1st×4th / 2nd×3rd by first-phase campaign, better campaign hosting the
     second leg;
-  - Troféu Inconfidência pairing (5th×8th, 6th×7th), its final being two legs with the same
-    tie rule as its semifinals;
+  - Troféu Inconfidência entrants (places 5–8 skipping semifinalists, vs. "best 4 not in the
+    semifinals"), pairing (5th×8th, 6th×7th), and its final being two legs with the same tie rule
+    as its semifinals and played after the Mineiro final;
   - the final going to penalties when level;
   - relegation by first-phase overall classification.
 - **Mineiro window**: from the second weekend of January to the first weekend of March, about 11
@@ -310,3 +328,13 @@ that the ruleset says it must avoid.
 - **Kick-off times**: plausible defaults (e.g. 16:00 weekends, 19:30/21:30 midweek); TV-driven
   scheduling is out of scope.
 - **Season state lives in memory** in this spec; saving it is spec 004.
+- **Participants**: in M0 they are the clubs of the ruleset's state in the sample world. From v1,
+  participants come from the previous season's outcomes (promotion/relegation), which is spec 004
+  or later.
+- **Draw pots by reputation**: the real FMF draw uses its own ranking; club reputation is the M0
+  stand-in until a ranking exists.
+- **Regulation edition vs. season**: the bundled ruleset follows the 2026 FMF regulation and is
+  valid from the 2026 season onward until a new regulation file replaces it.
+- **Rest and kick-offs are coupled**: with 66 h minimum rest, a midweek 21:30 kick-off leaves
+  only 30 minutes of margin before a Saturday or Sunday 16:00 kick-off; changing either value
+  must be re-validated (the scheduler enforces it).

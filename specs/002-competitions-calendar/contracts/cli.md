@@ -8,7 +8,7 @@ Placeholder results are marked "(provisório)".
 
 | Option | Default |
 |---|---|
-| `--ruleset` | `mg-modulo-i-2026` |
+| `--ruleset` | `mg-modulo-i-2026` (2026 regulation, valid from 2026) |
 | `--year` | `2027` |
 | `--master-seed` | `20261002` |
 | `--date YYYY-MM-DD` | the end of the season for result views; the start for the draw and the fixture list |

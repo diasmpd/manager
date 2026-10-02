@@ -10,12 +10,14 @@ regulation article each rule comes from.
 format_version = 1
 
 [competition]
-id = "mg-modulo-i-2026"
+id = "mg-modulo-i-2026"            # names the regulation edition
 name = "Campeonato Mineiro – Módulo I"
 short_name = "Mineiro"
 state = "MG"
 country = "BRA"
 participants = 12
+regulation_year = 2026
+valid_from = 2026                   # valid until a newer regulation file sets valid_to here
 
 [scoring]
 win = 3
@@ -80,7 +82,9 @@ id = "inconfidencia-semifinal"
 type = "knockout"
 track = "inconfidencia"
 legs = 2
-entrants = [{ from = "primeira-fase", rule = "overall_places", places = [5, 8] }]
+# Places 5-8 overall; a semifinalist in that range is skipped and the next place fills in.
+entrants = [{ from = "primeira-fase", rule = "overall_places", places = [5, 8],
+              exclude_tracks = ["main"] }]
 pairing = "campaign_1v4_2v3"
 deciding_leg_host = "better_campaign"
 tie_rule = "points_then_campaign"
@@ -99,6 +103,7 @@ deciding_leg_host = "better_campaign"
 tie_rule = "points_then_campaign"
 venue = "home"
 dates_with = "final"
+may_exceed_window = true            # leg 2 the weekend after the Mineiro final (owner decision)
 ```
 
 ## Keys
@@ -115,7 +120,10 @@ dates_with = "final"
 | `deciding_leg_host` | `better_campaign` | The better campaign hosts the second leg |
 | `tie_rule` | `penalties`, `points_then_campaign` | `points_then_campaign` compares points over the legs, then the better campaign (no penalties) |
 | `venue` | `home`, `neutral` | `neutral` needs `[venues.neutral]` |
-| `dates_with` | stage id | Share that stage's date slots, plus the next free slot if more legs are needed |
+| `dates_with` | stage id | Share that stage's date slots, plus the next free weekend slot if more legs are needed |
+| `may_exceed_window` | `true` / `false` (default) | The stage may be scheduled after `window_end` |
+| `exclude_tracks` | list of track ids | For `overall_places`: skip clubs that are entrants of these tracks; next places fill in |
+| `regulation_year`, `valid_from`, `valid_to` | years | A season outside `valid_from..valid_to` is refused (S001) |
 | `tiebreakers` | ordered subset of `wins`, `goal_difference`, `goals_for`, `head_to_head`, `fewer_red_cards`, `fewer_yellow_cards`, `draw` | `draw` must be last |
 
 ## Reserved calendar windows (`reference/calendar/brazil.toml`)
@@ -129,5 +137,23 @@ to = "03-31"
 blocks = ["state"]
 ```
 
-Windows apply to every year. The ones that block state competitions constrain date generation.
-The others only label the calendar.
+Fixed windows apply to every year. An optional `brazil-<year>.toml` adds that year's specific
+dates (e.g. FIFA windows). Easter-based windows are computed:
+
+```toml
+[[easter_windows]]
+label = "carnaval"
+name = "Carnaval"
+offset_from = -50   # Saturday
+offset_to = -46     # Ash Wednesday
+
+[[easter_windows]]
+label = "carnaval-segunda-terca"
+name = "Carnaval (segunda e terça)"
+offset_from = -48
+offset_to = -47
+blocks = ["state"]
+```
+
+Windows that block state competitions constrain date generation. The others only label the
+calendar.

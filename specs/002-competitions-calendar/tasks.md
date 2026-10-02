@@ -32,7 +32,7 @@ description: "Task list for 002 Competitions and Calendar"
   - `sub_seed(seed, label)` is stable and label-sensitive;
   - Python `hash()` is never used (assert values for known inputs).
 - [ ] T004 [P] Contract test `core/tests/contract/test_ruleset_format.py`:
-  - `mg-modulo-i-2026.toml` loads into the `Ruleset` dataclasses with exactly the values in contracts/ruleset-format.md: 12 participants, 3×4 groups, `other_groups`, 1 round, tiebreaker order, window 01-08 to 03-08, 66 h, neutral venue "Arena Estadual das Gerais";
+  - `mg-modulo-i-2026.toml` loads into the `Ruleset` dataclasses with exactly the values in contracts/ruleset-format.md: 12 participants, `regulation_year` 2026 and `valid_from` 2026, 3×4 groups, `other_groups`, 1 round, tiebreaker order, window 01-08 to 03-08, 66 h, neutral venue "Arena Estadual das Gerais", Inconfidência entrants `overall_places [5, 8]` with `exclude_tracks = ["main"]`, Inconfidência final `may_exceed_window = true`;
   - five stages in order, with the tracks `main` and `inconfidencia` and their titles.
 - [ ] T005 [P] Unit tests `core/tests/unit/test_results.py`: `Result` and `Shootout` invariants (non-negative goals, the shootout winner consistent with the kicks, sudden death after 5 each), `source` is required, and `PlaceholderProvider` satisfies the `ResultProvider` protocol.
 
@@ -43,10 +43,10 @@ description: "Task list for 002 Competitions and Calendar"
   - frozen dataclasses `Ruleset`, `Scoring`, `CalendarRule`, `NeutralVenue`, `GroupStageRule`, `KnockoutStageRule`, `EntrantRule`, `OutcomeRule`;
   - enums `Tiebreaker`, `Matching`, `Pairing`, `TieRule`, `Venue`;
   - `load_ruleset(id)` (bundled) and `load_ruleset_file(path)`, using `tomllib`;
-  - a `RulesetReport` with codes R001–R011 from data-model.md, collecting every problem before any object is built;
+  - a `RulesetReport` with codes R001–R014 from data-model.md, collecting every problem before any object is built;
   - `list_rulesets()`.
 - [ ] T008 [P] Write `core/src/manager_core/reference/competitions/mg-modulo-i-2026.toml` exactly per contracts/ruleset-format.md, with comments citing the press sources from the spec header and marking the unconfirmed rules ("a confirmar no regulamento FMF 2026").
-- [ ] T009 [P] Write `core/src/manager_core/reference/calendar/brazil.toml`. Reserved windows (month-day, labels, blocks):
+- [ ] T009 [P] Write `core/src/manager_core/reference/calendar/brazil.toml` with fixed windows and the Easter-based Carnival windows from contracts/ruleset-format.md (Carnival Saturday to Ash Wednesday labelled; Monday and Tuesday `blocks = ["state"]`), plus `brazil-2027.toml` with the 2027 FIFA windows (dates marked approximate). Fixed reserved windows (month-day, labels, blocks):
   - FIFA windows 03-23–03-31, 06-01–06-09, 09-01–09-09, 10-05–10-13 and 11-09–11-17, each `blocks = ["state"]`;
   - "Copa do Brasil (fases iniciais)" 02-18–05-31;
   - "Brasileirão Séries A–D" 03-28–12-06;
@@ -100,12 +100,16 @@ description: "Task list for 002 Competitions and Calendar"
   - no date falls in a window with `blocks = ["state"]`;
   - no club has two matches less than 66 h apart (kick-off to kick-off);
   - kick-offs are 16:00 on weekends and 21:30 midweek;
-  - a window too short for the rounds raises a clear `SchedulingError`.
+  - a window too short for the rounds raises a clear `SchedulingError`;
+  - **rest boundary** (review item 5): Wednesday 21:30 → Saturday 16:00 is accepted (66.5 h), and the same with a 22:00 kick-off is rejected; a Thursday club is never placed on Saturday;
+  - **Carnival**: Easter dates are correct for 2026–2030 (known values), and no state match falls on Carnival Monday or Tuesday for any year 2026–2030 on 200 seeds;
+  - **window**: every round stays inside the window except stages with `may_exceed_window` (only the Inconfidência final legs), on 200 seeds × years 2026–2030.
 - [ ] T016 [P] [US1] Integration test `core/tests/integration/test_season_start.py`:
   - `start_season(sample, "mg-modulo-i-2026", 2027, 20261002)` gives 3 groups headed by `vale-do-ouro`, `serra-negra` and `alvorada`;
   - 48 first-phase matches with stable ids and venues equal to the home club's stadium;
   - two starts are field-by-field equal (SC-002 for the start);
-  - starting with the wrong number of participants is refused with a clear message.
+  - starting with the wrong number of participants is refused with a clear message (S002);
+  - starting in a year before `valid_from` (e.g. 2025) is refused (S001).
 - [ ] T017 [P] [US1] Contract test `core/tests/contract/test_cli_season_start.py`: `season groups` and `season fixtures [--round N | --club ID]` exit 0 and print the documented columns; an unknown club exits 3.
 
 ### Implementation
@@ -156,7 +160,7 @@ description: "Task list for 002 Competitions and Calendar"
   - the table columns are consistent (P = W + D + L, GD = GF − GA);
   - the overall classification across groups.
 - [ ] T026 [P] [US2] Unit tests `core/tests/unit/test_knockout.py`:
-  - entrants: group winners + best 2nd; overall places 5–8;
+  - entrants: group winners + best 2nd; overall places 5–8 with `exclude_tracks`: a semifinalist placed 5th–8th is skipped and the next eligible place fills in (hand-built table where 2 semifinalists rank 6th and 7th → entrants are 5th, 8th, 9th, 10th);
   - pairing `campaign_1v4_2v3`;
   - the better campaign hosts the second leg;
   - an aggregate tie goes to penalties (no away goals);
@@ -171,7 +175,8 @@ description: "Task list for 002 Competitions and Calendar"
   - 200 seeds played to the end; the 1,000-seed version is marked `slow` (SC-001);
   - exactly 1 champion, 2 finalists, 4 semifinalists, 4 Inconfidência entrants and 2 relegated clubs, consistent with the final tables;
   - the relegated clubs are 11th and 12th overall;
-  - Inconfidência entrants are 5th–8th overall;
+  - no club is ever in both tracks (regression for the review's 55% overlap finding), and the Inconfidência entrants are the first four non-semifinalists from place 5 onward;
+  - only the Inconfidência final may fall after the window end;
   - knockout dates come after the first phase;
   - no rest violations across all matches, including knockouts;
   - outcomes are identical on replay (SC-002).
@@ -228,7 +233,7 @@ description: "Task list for 002 Competitions and Calendar"
   - places 8 relegated;
   - no neutral venue;
   - window 01-15 to 04-30.
-- [ ] T038 [P] [US3] Create one broken ruleset per R-code in `core/tests/fixtures/rulesets/R0xx_*.toml` (R001–R011), each with an `expected.txt`.
+- [ ] T038 [P] [US3] Create one broken ruleset per R-code in `core/tests/fixtures/rulesets/R0xx_*.toml` (R001–R014), each with an `expected.txt`. R012 = a side track on `overall_places` overlapping the main track's entrants without `exclude_tracks`.
 - [ ] T039 [P] [US3] Contract test `core/tests/contract/test_ruleset_validation.py`: every R-fixture is rejected with its code and location (key path), a file with 3 defects reports all 3, and both bundled rulesets validate clean (SC-006).
 - [ ] T040 [P] [US3] Integration test `core/tests/integration/test_other_ruleset.py`:
   - `test-liga-unica` with the 8 lowest-id sample clubs plays to the end;
@@ -252,20 +257,21 @@ description: "Task list for 002 Competitions and Calendar"
 
 - [ ] T042 [P] [US4] Unit tests `core/tests/unit/test_calendar.py`:
   - `SeasonCalendar(year)` covers every day (365 or 366 days);
-  - reserved windows are labelled on their days;
+  - reserved windows are labelled on their days (fixed, per-year and Easter-based);
+  - Carnival 2027 is labelled 6–10 February, with no state matches on 8–9 February;
   - Mineiro matchdays carry their match ids and stage events;
   - no Mineiro match falls on a `blocks = ["state"]` day.
 - [ ] T043 [P] [US4] Contract test `core/tests/contract/test_cli_season_calendar.py`: `season calendar` prints 12 month summaries; `season calendar --month 2` lists every February day with matches and windows; `--month 13` exits 3.
 
 ### Implementation
 
-- [ ] T044 [US4] Implement `core/src/manager_core/competition/calendar.py` (`ReservedWindow` loading from `brazil.toml`, `SeasonCalendar`, `CalendarDay`), the `season_calendar` facade function and the `season calendar` CLI.
+- [ ] T044 [US4] Implement in `core/src/manager_core/competition/calendar.py`: reserved windows from `brazil.toml` (fixed and Easter-based) and the optional per-year file, `SeasonCalendar` and `CalendarDay`. Then the `season_calendar` facade function and the `season calendar` CLI. Note: the Easter computation and blocking windows are needed earlier by the scheduler (T020), so `easter(year)` and window resolution are written in T020 and reused here.
 
 ---
 
 ## Phase 7: Polish
 
-- [ ] T045 [P] Update `docs/roadmap.md`: mark 002 as done, and add to the open items "confirmar critérios de desempate / chaveamento / Inconfidência no regulamento oficial FMF 2026".
+- [ ] T045 [P] Update `docs/roadmap.md`: mark 002 as done, and add to the open items "confirmar no regulamento oficial FMF 2026: critérios de desempate, chaveamento das semifinais, participantes e datas do Troféu Inconfidência (5º–8º pulando semifinalistas vs. melhores 4 fora das semifinais)". Also note for spec 004: participants come from the previous season's outcomes.
 - [ ] T046 [P] Update the `README.md` quick start with `season` commands.
 - [ ] T047 Make sure `ruff check .`, `mypy` (strict) and the full pytest suite pass, and that the 1,000-season `slow` test passes locally.
 - [ ] T048 Run [quickstart.md](quickstart.md) on Windows and note any deviations.

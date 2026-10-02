@@ -37,6 +37,8 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
   - **`knockout`**:
     - `legs`: 1 or 2;
     - entrants from earlier results (`group_winners`, `best_of_place`, `overall_places`, `winners_of`);
+      `overall_places` can declare `exclude_tracks`: clubs already entrants of those tracks are
+      skipped and the next-placed clubs fill in, so no club is ever in two tracks;
     - `pairing`: `campaign_1v4_2v3` or `campaign_high_low`;
     - `deciding_leg_host`: `better_campaign`;
     - `tie_rule`: `penalties` or `points_then_campaign`;
@@ -102,7 +104,9 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
        slots, spread evenly through the group stage (where real calendars put them).
   - **Side rounds**: side-competition rounds share the slot of a main knockout round with the
     same position (Inconfidência semifinal legs go with the Mineiro semifinal legs). The
-    Inconfidência final legs go on the main final's slot and on the next free slot.
+    Inconfidência final legs go on the main final's slot and on the next free weekend slot; that
+    stage declares `may_exceed_window = true` (owner's decision: the Inconfidência final can end
+    after the Mineiro window). Every other round must stay inside the window.
   - **Days and times within a slot**: matches are spread over its days (e.g. 3 Saturday and
     3 Sunday). A club is placed on the later day of a weekend if it played midweek, so its rest
     stays at or above `min_rest_hours`.
@@ -173,6 +177,26 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
   published CBF calendar pattern, and the 2026 FIFA windows are used. All of this is
   approximate, to be refined when those competitions are specified.
 
+## R11b. Moving dates (review item 4)
+
+- **Decision**: three kinds of reserved window in `reference/calendar/`:
+  - **fixed**: month-day ranges in `brazil.toml`, applied every year;
+  - **per year**: optional `brazil-<year>.toml` that adds windows for that year only (FIFA dates
+    differ per year);
+  - **computed**: from Easter, with Easter computed by the anonymous Gregorian algorithm.
+    Carnival is labelled from Saturday to Ash Wednesday (Easter −50 to −46). Carnival Monday and
+    Tuesday (Easter −48 and −47) carry `blocks = ["state"]` (owner's decision).
+- **Rationale**: Carnival 2027 is 6–9 February, inside the Mineiro window, and real Estaduais
+  avoid Carnival Tuesday.
+
+## R11c. Ruleset validity years (review item 3)
+
+- **Decision**: `[competition]` declares `regulation_year`, `valid_from` and an optional
+  `valid_to`. `start_season` refuses a year outside the range (error `S001`). The id
+  `mg-modulo-i-2026` names the regulation edition. It is valid from 2026 onward, so the default
+  2027 season is in range. A future regulation becomes a new file with `valid_from` set to its
+  year, and the old file gets a `valid_to`.
+
 ## R12. Neutral venue
 
 - **Decision**: the Mineiro ruleset declares
@@ -180,6 +204,13 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
   It is fictional, a Mineirão equivalent in the sample world's capital. Real rulesets in
   `manager-data` can name the real stadium.
 - **Rationale**: no change to the 001 data format, and the venue belongs to the competition rules.
+
+## R12b. Rest boundary (review item 5)
+
+- The defaults (midweek 21:30, weekend 16:00, 66 h rest) leave a 30-minute margin: a club
+  playing Wednesday must play Saturday or Sunday, and a club playing Thursday must play Sunday.
+  The scheduler tests sit exactly at that boundary, and the ruleset validator (R014) rejects
+  defaults that make a weekend after a midweek impossible.
 
 ## R13. CLI
 
