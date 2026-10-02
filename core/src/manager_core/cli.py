@@ -182,8 +182,52 @@ def _cmd_player_show(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
-def _not_implemented(args: argparse.Namespace) -> int:  # filled in by US2
-    raise NotImplementedError
+def _parse_position(code: str) -> Position:
+    try:
+        return Position(code.upper())
+    except ValueError:
+        raise api.NotFoundError("position", code) from None
+
+
+def _cmd_position_rank(args: argparse.Namespace) -> int:
+    dataset = _load(args.data)
+    if dataset is None:
+        return EXIT_INVALID
+    position = _parse_position(args.position)
+    rows = [
+        [r.label, t(f"band.{r.band.value}"), _suit(r.suitability_milli), r.player_id]
+        for r in api.rank_for_position(dataset, args.club_id, position)
+    ]
+    _print_table(
+        [t("cli.col.player"), t("cli.col.band"), t("cli.col.suitability"), t("cli.col.id")], rows
+    )
+    return EXIT_OK
+
+
+def _cmd_lineup_suggest(args: argparse.Namespace) -> int:
+    dataset = _load(args.data)
+    if dataset is None:
+        return EXIT_INVALID
+    result = api.suggest_lineup(dataset, args.club_id, formation=args.formation)
+    labels = {e.player_id: e.label for e in api.squad(dataset, args.club_id)}
+    rows = [
+        [_pos(a.position), labels[a.player_id], _suit(a.suitability_milli), a.player_id]
+        for a in result.assignments
+    ]
+    print(t("cli.lineup.title", formation=result.formation))
+    _print_table(
+        [t("cli.col.slot"), t("cli.col.player"), t("cli.col.suitability"), t("cli.col.id")], rows
+    )
+    print(t("cli.lineup.total", total=_suit(result.total_milli)))
+    for flag in result.flags:
+        print(f"  ! {t(f'cli.lineup.flag.{flag}')}")
+    return EXIT_OK
+
+
+def _cmd_formation_list(args: argparse.Namespace) -> int:
+    for f in api.list_formations():
+        print(f"{f.name:<8} " + " ".join(_pos(p) for p in f.positions))
+    return EXIT_OK
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -223,16 +267,16 @@ def _build_parser() -> argparse.ArgumentParser:
     cmd = position.add_parser("rank")
     cmd.add_argument("club_id")
     cmd.add_argument("position")
-    cmd.set_defaults(func=_not_implemented)
+    cmd.set_defaults(func=_cmd_position_rank)
 
     lineup = groups.add_parser("lineup").add_subparsers(dest="command", required=True)
     cmd = lineup.add_parser("suggest")
     cmd.add_argument("club_id")
     cmd.add_argument("--formation", default="4-4-2")
-    cmd.set_defaults(func=_not_implemented)
+    cmd.set_defaults(func=_cmd_lineup_suggest)
 
     formation = groups.add_parser("formation").add_subparsers(dest="command", required=True)
-    formation.add_parser("list").set_defaults(func=_not_implemented)
+    formation.add_parser("list").set_defaults(func=_cmd_formation_list)
     return parser
 
 

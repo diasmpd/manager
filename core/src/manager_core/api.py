@@ -25,7 +25,9 @@ from manager_core.io import reader, writer
 from manager_core.io.reader import LoadResult
 from manager_core.io.validate import ValidationReport
 from manager_core.io.writer import ExportSummary
+from manager_core.ratings import lineup
 from manager_core.ratings.ability import best_position, current_ability, is_goalkeeper
+from manager_core.ratings.lineup import Lineup
 from manager_core.ratings.suitability import suitability_milli
 
 SquadSort = Literal["position", "ca", "age", "number"]
@@ -34,6 +36,7 @@ DEFAULT_SEED = 20261002
 __all__ = [
     "ClubSummary",
     "ExportSummary",
+    "Lineup",
     "LoadResult",
     "NotFoundError",
     "PlayerProfile",
@@ -280,15 +283,23 @@ def player_profile(
     )
 
 
-# ---- who plays where (implemented in US2) --------------------------------------------------
+# ---- who plays where -----------------------------------------------------------------------
 
 
 def rank_for_position(dataset: Dataset, club_id: str, position: Position) -> list[PositionRanking]:
-    raise NotImplementedError("US2")
+    players = _club_players(dataset, club_id)
+    labels = _labels(dataset, players)
+    return [
+        PositionRanking(p.id, labels[p.id], band_for(p.positions[position]), score)
+        for p, score in lineup.rank_for_position(players, position)
+    ]
 
 
-def suggest_lineup(dataset: Dataset, club_id: str, formation: str = "4-4-2") -> object:
-    raise NotImplementedError("US2")
+def suggest_lineup(dataset: Dataset, club_id: str, formation: str = "4-4-2") -> Lineup:
+    catalogue = load_catalogue()
+    if formation not in catalogue:
+        raise NotFoundError("formation", formation)
+    return lineup.best_xi(_club_players(dataset, club_id), catalogue[formation])
 
 
 def list_formations() -> list[Formation]:

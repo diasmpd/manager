@@ -216,25 +216,25 @@ commands return sensible results.
 
 ### Tests for User Story 2 (write first, must fail)
 
-- [ ] T040 [P] [US2] Unit tests `core/tests/unit/test_lineup.py`:
-  - bitmask-DP best XI equals the brute-force optimum on 20 random small squads (12–14 players, seeded);
+- [X] T040 [P] [US2] Unit tests `core/tests/unit/test_lineup.py`:
+  - bitmask-DP best assignment equals the brute-force optimum on 20 random small cases (5 slots incl. GK, 6–8 players, seeded; a full 11-slot brute force is computationally infeasible, so the same `best_assignment` routine is checked on smaller slot sets);
   - each player is used at most once;
   - exactly one player fills the GK slot;
   - **deliberately tied fixtures** (players with identical attributes and familiarities, giving equal integer totals): the result is the lexicographically smallest player-id tuple in slot order, and identical across 100 repeated runs and across shuffled input orders;
   - totals are integers (milli-points);
   - a squad with no fit GK still returns 11 players with the `outfield_in_goal` flag;
   - a 27-player squad runs in < 0.5 s.
-- [ ] T041 [P] [US2] Contract test `core/tests/contract/test_cli_lineup.py`:
+- [X] T041 [P] [US2] Contract test `core/tests/contract/test_cli_lineup.py`:
   - `position rank <club> DC`, `lineup suggest <club> --formation 4-3-3` and `formation list` exit 0 with the contracts/cli.md columns;
   - an unknown position, club or formation exits 3.
 
 ### Implementation for User Story 2
 
-- [ ] T042 [US2] Implement `core/src/manager_core/ratings/lineup.py`:
+- [X] T042 [US2] Implement `core/src/manager_core/ratings/lineup.py`:
   - `rank_for_position(players, position)`, sorted by `suitability_milli` desc, then id;
   - `best_xi(players, formation) -> Lineup(assignments, total_milli, flags)` via bitmask DP over the 11 slots on **integer** `suitability_milli` scores, with the exact tie-break "higher total, then lexicographically smaller tuple of player ids in slot order" (research R9).
-- [ ] T043 [US2] Facade: implement `rank_for_position`, `suggest_lineup` and `list_formations` in `core/src/manager_core/api.py`.
-- [ ] T044 [US2] CLI: implement `position rank`, `lineup suggest [--formation]` and `formation list` in `core/src/manager_core/cli.py`.
+- [X] T043 [US2] Facade: implement `rank_for_position`, `suggest_lineup` and `list_formations` in `core/src/manager_core/api.py`.
+- [X] T044 [US2] CLI: implement `position rank`, `lineup suggest [--formation]` and `formation list` in `core/src/manager_core/cli.py`.
 
 **Checkpoint**: US1 and US2 work independently.
 
