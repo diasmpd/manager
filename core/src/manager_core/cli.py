@@ -168,10 +168,14 @@ def _cmd_player_show(args: argparse.Namespace) -> int:
         print(f"  {t('cli.pa')}: {p.potential_ability}")
     print()
     groups = list(p.attributes) + ([p.hidden] if p.hidden else [])
-    columns = [
-        [t(f"group.{g.group.value}").upper()] + [f"{t(f'attr.{n}')} {v:>2}" for n, v in g.values]
-        for g in groups
-    ]
+    columns = []
+    for g in groups:
+        names = [t(f"attr.{n}") for n, _ in g.values]
+        pad = max(len(name) for name in names)
+        columns.append(
+            [t(f"group.{g.group.value}").upper()]
+            + [f"{name.ljust(pad)} {v:>2}" for name, (_, v) in zip(names, g.values, strict=True)]
+        )
     width = max(len(line) for col in columns for line in col) + 3
     for i in range(max(len(c) for c in columns)):
         print("".join((c[i] if i < len(c) else "").ljust(width) for c in columns).rstrip())

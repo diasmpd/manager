@@ -158,20 +158,20 @@ browse from the CLI with FM-style profiles.
 
 ### Tests for User Story 1 (write first, must fail)
 
-- [ ] T031 [P] [US1] Integration test `core/tests/integration/test_sample_world.py`:
+- [X] T031 [P] [US1] Integration test `core/tests/integration/test_sample_world.py`:
   - `data/sample/` loads with `report.ok` and no W001;
   - 12 clubs in tiers 3 strong / 5 mid / 4 small (by reputation);
   - each club has 25–30 players, "at least 3 goalkeepers and at least 2 natural players for each line";
   - every age (at the reference date) within 16–38, and at least 80% within 18–34;
   - the provenance marks `fictional=true` and records the generator version and seed;
   - no real club names: assert against a denylist of current Mineiro clubs (Atlético, Cruzeiro, América, Tombense, Athletic, Ipatinga, Pouso Alegre, Democrata, Villa Nova, URT, Caldense, Uberlândia, Itabirito, North, Betim, Patrocinense).
-- [ ] T032 [P] [US1] Integration test `core/tests/integration/test_sample_determinism.py`: generating with seed 20261002 into a temp dir is byte-identical to `data/sample/` for every file (SC-002), and a different seed differs.
-- [ ] T033 [P] [US1] Integration test `core/tests/integration/test_sample_coherence.py`:
+- [X] T032 [P] [US1] Integration test `core/tests/integration/test_sample_determinism.py`: generating with seed 20261002 into a temp dir is byte-identical to `data/sample/` for every file (SC-002), and a different seed differs.
+- [X] T033 [P] [US1] Integration test `core/tests/integration/test_sample_coherence.py`:
   - for each position, the mean of its key attributes among its natural players exceeds the mean among natural players of the **other lines** by ≥ 2 (SC-005, lines per data-model.md);
   - goalkeepers' mean goalkeeping attributes exceed outfield players' by ≥ 8;
   - hidden attributes are not constant (W005 never raised);
   - strong-tier average CA > mid > small.
-- [ ] T034 [P] [US1] Contract test `core/tests/contract/test_cli_explore.py`:
+- [X] T034 [P] [US1] Contract test `core/tests/contract/test_cli_explore.py`:
   - `club list`, `club squad <id> --sort position|ca|age|number` and `player show <id> [--hidden]` exit 0, with the columns from contracts/cli.md;
   - hidden attributes and PA appear only with `--hidden`;
   - an unknown id exits 3;
@@ -179,10 +179,10 @@ browse from the CLI with FM-style profiles.
 
 ### Implementation for User Story 1
 
-- [ ] T035 [P] [US1] Create `core/src/manager_core/sample/names.py`:
+- [X] T035 [P] [US1] Create `core/src/manager_core/sample/names.py`:
   - 12 curated fictional club identities: fictional Minas Gerais-style towns, with names, short names, abbreviations, UF = MG, colours, stadium names and capacities, founded years, and reputation per tier (strong 13–15, mid 9–11, small 6–8);
   - pools of common Brazilian first names, surnames and football nicknames.
-- [ ] T036 [US1] Implement `core/src/manager_core/sample/generator.py`:
+- [X] T036 [US1] Implement `core/src/manager_core/sample/generator.py`:
   - `generate(seed=20261002) -> Dataset`, using its own `random.Random(seed)`;
   - 27 players per club (3 GK, ≥ 2 natural per line);
   - tier key-attribute means about 13.5, 10 and 8, with per-player spread;
@@ -197,9 +197,9 @@ browse from the CLI with FM-style profiles.
   - provenance: fictional, tool `manager_core.sample`, version and seed.
   - Ages at the reference date: all within 16–38, at least 80% within 18–34.
   - Iterate only in sorted or fixed order (Constitution II).
-- [ ] T037 [US1] Facade: implement `generate_sample`, `list_clubs` (ClubSummary with squad size and average CA), `squad` (SquadEntry: number, display name, age, best position, band, suitability, CA, with sorts position/ca/age/number) and `player_profile` (FM-grouped visible attributes, hidden attributes and PA only when `include_hidden`) in `core/src/manager_core/api.py`.
-- [ ] T038 [US1] CLI: implement `sample generate [--seed] [--out]`, `club list`, `club squad` and `player show [--hidden]` in `core/src/manager_core/cli.py`. Render text tables using pt-BR labels via `t()`, with display-name disambiguation.
-- [ ] T039 [US1] Generate the sample world into `data/sample/*.csv` via `python -m manager_core sample generate`, adjusting the generator (not the data) until T031–T033 pass. **Show the owner a few squads and profiles before committing.**
+- [X] T037 [US1] Facade: implement `generate_sample`, `list_clubs` (ClubSummary with squad size and average CA), `squad` (SquadEntry: number, display name, age, best position, band, suitability, CA, with sorts position/ca/age/number) and `player_profile` (FM-grouped visible attributes, hidden attributes and PA only when `include_hidden`) in `core/src/manager_core/api.py`.
+- [X] T038 [US1] CLI: implement `sample generate [--seed] [--out]`, `club list`, `club squad` and `player show [--hidden]` in `core/src/manager_core/cli.py`. Render text tables using pt-BR labels via `t()`, with display-name disambiguation.
+- [X] T039 [US1] Generate the sample world into `data/sample/*.csv` via `python -m manager_core sample generate`, adjusting the generator (not the data) until T031–T033 pass. **Show the owner a few squads and profiles before committing.**
 
 **Checkpoint**: US1 is fully functional. The MVP can be demonstrated.
 
