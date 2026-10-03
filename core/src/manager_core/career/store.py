@@ -30,16 +30,21 @@ from manager_core.career.career import (
 )
 from manager_core.career.codec import decode_result, encode_result
 from manager_core.career.recorded import RecordedProvider
+from manager_core.career.selection import Selection
 from manager_core.domain.dataset import Dataset
 from manager_core.i18n import t
 from manager_core.io import reader, writer
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2  # 2: the user's team selection (spec 005)
 AUTOSAVE = "autosave"
 SUFFIX = ".sqlite"
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 # Migrations: MIGRATIONS[n] upgrades a file from format n to n + 1.
-MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {}
+def _v1_to_v2(conn: sqlite3.Connection) -> None:
+    conn.execute("CREATE TABLE IF NOT EXISTS selection (selection_json TEXT NOT NULL)")
+
+
+MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {1: _v1_to_v2}
 
 SCHEMA = """
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -51,6 +56,7 @@ CREATE TABLE season (ruleset_toml TEXT NOT NULL, year INTEGER NOT NULL,
     master_seed INTEGER NOT NULL, participants_json TEXT NOT NULL);
 CREATE TABLE results (match_id TEXT PRIMARY KEY, result_json TEXT NOT NULL);
 CREATE TABLE history (year INTEGER PRIMARY KEY, record_json TEXT NOT NULL);
+CREATE TABLE selection (selection_json TEXT NOT NULL);
 """
 
 
@@ -139,6 +145,11 @@ def save(career: Career, saves: Path, name: str | None = None,
         conn.executemany("INSERT INTO results VALUES (?, ?)", [
             (mid, json.dumps(encode_result(r), sort_keys=True))
             for mid, r in sorted(season.results.items())])
+        if career.selection is not None:
+            sel = career.selection
+            conn.execute("INSERT INTO selection VALUES (?)", (json.dumps({
+                "formation": sel.formation, "starters": [list(s) for s in sel.starters],
+                "bench": list(sel.bench)}),))
         conn.executemany("INSERT INTO history VALUES (?, ?)", [
             (r.year, json.dumps(record_to_json(r), sort_keys=True)) for r in career.history])
         conn.commit()
@@ -173,6 +184,7 @@ def load(saves: Path, name: str) -> Career:
         stored = dict(conn.execute("SELECT match_id, result_json FROM results").fetchall())
         history = [record_from_json(json.loads(r)) for (r,) in conn.execute(
             "SELECT record_json FROM history ORDER BY year").fetchall()]
+        sel_row = conn.execute("SELECT selection_json FROM selection").fetchone()
     except sqlite3.Error as exc:
         raise SaveError("V003", detail=str(exc)) from exc
     finally:
@@ -192,8 +204,14 @@ def load(saves: Path, name: str) -> Career:
     unknown = set(recorded) - provider.used
     if unknown:
         raise SaveError("V003", detail=", ".join(sorted(unknown)[:3]))
+    selection = None
+    if sel_row is not None:
+        d = json.loads(sel_row[0])
+        selection = Selection(d["formation"], tuple((i, pid) for i, pid in d["starters"]),
+                              tuple(d["bench"]))
     return Career(c[0], c[1], c[2], current, date.fromisoformat(c[4]), world, ruleset_toml,
-                  season, history, stop_from_json(json.loads(c[5]) if c[5] else None))
+                  season, history, stop_from_json(json.loads(c[5]) if c[5] else None),
+                  selection)
 
 
 def list_saves(saves: Path) -> list[SaveSummary]:

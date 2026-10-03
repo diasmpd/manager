@@ -17,8 +17,10 @@ from manager_core.calibration import harness
 from manager_core.calibration.harness import CalibrationReport
 from manager_core.career import career as career_mod
 from manager_core.career import rollover, store
+from manager_core.career import selection as selection_mod
 from manager_core.career.career import Career, SeasonRecord, Stop
 from manager_core.career.discipline import Discipline
+from manager_core.career.selection import Selection, SelectionIssue
 from manager_core.career.store import SaveSummary
 from manager_core.competition import rules
 from manager_core.competition.calendar import CalendarDay
@@ -550,9 +552,11 @@ def new_career(dataset: Dataset, name: str, club_id: str, master_seed: int | Non
 
 def load_career(saves: Path, name: str) -> Career:
     try:
-        return store.load(saves, name)
+        career = store.load(saves, name)
     except store.SaveNotFoundError:
         raise NotFoundError("save", name) from None
+    apply_selection(career)
+    return career
 
 
 def save_career(career: Career, saves: Path, name: str | None = None) -> Path:
@@ -576,9 +580,13 @@ def continue_career(career: Career, saves: Path, *, to_season_end: bool = False)
     def autosave(c: Career) -> None:
         store.save(c, saves, store.AUTOSAVE, allow_autosave=True)
 
-    stop = career_mod.continue_(career, autosave, rollover.next_season)
+    def next_season(c: Career) -> None:
+        rollover.next_season(c)
+        apply_selection(c)  # the new season has a new provider; keep the user's choice
+
+    stop = career_mod.continue_(career, autosave, next_season)
     while to_season_end and stop.kind != career_mod.SEASON_END:
-        stop = career_mod.continue_(career, autosave, rollover.next_season)
+        stop = career_mod.continue_(career, autosave, next_season)
     store.save(career, saves)
     return stop
 
@@ -625,3 +633,46 @@ def career_status(career: Career) -> CareerStatus:
 
 def career_history(career: Career) -> list[SeasonRecord]:
     return list(career.history)
+
+
+# ---- team selection (spec 005) ---------------------------------------------------------------
+
+
+class SelectionError(ValueError):
+    def __init__(self, issues: list[SelectionIssue]) -> None:
+        super().__init__(", ".join(f"{i.code}:{i.player_id}" for i in issues))
+        self.issues = issues
+
+
+def propose_selection(career: Career, formation: str | None = None) -> Selection:
+    """The assistant's XI and bench, for the given formation or the current selection's."""
+    if formation is None:
+        formation = career.selection.formation if career.selection else "4-4-2"
+    return selection_mod.propose(career, formation)
+
+
+def validate_selection(career: Career, selection: Selection) -> list[SelectionIssue]:
+    return selection_mod.validate(career, selection)
+
+
+def apply_selection(career: Career) -> None:
+    """Re-apply the career's selection to its season (after load or rollover); a selection that
+    is no longer valid (players left or are suspended) is dropped."""
+    sel = career.selection
+    if sel is not None and any(i.severity == "error"
+                               for i in selection_mod.validate(career, sel)):
+        career.selection = sel = None
+    career.live_provider.override(
+        career.user_club_id,
+        None if sel is None else selection_mod.to_team_sheet(career, sel))
+
+
+def confirm_selection(career: Career, selection: Selection) -> list[SelectionIssue]:
+    """Confirm the user's selection; errors refuse it, warnings are returned."""
+    issues = selection_mod.validate(career, selection)
+    errors = [i for i in issues if i.severity == "error"]
+    if errors:
+        raise SelectionError(errors)
+    career.selection = selection
+    apply_selection(career)
+    return issues

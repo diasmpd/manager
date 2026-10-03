@@ -64,6 +64,15 @@ class Career:
     season: Season
     history: list[SeasonRecord] = field(default_factory=list)
     pending: Stop | None = None
+    selection: Any = None  # spec 005: the user's confirmed Selection (career.selection module)
+
+    @property
+    def live_provider(self) -> QuickSimProvider:
+        provider = self.season.provider
+        assert isinstance(provider, RecordedProvider)
+        live = provider.live
+        assert isinstance(live, QuickSimProvider)
+        return live
 
     @property
     def year(self) -> int:
