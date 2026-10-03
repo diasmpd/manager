@@ -38,6 +38,7 @@ from manager_core.ratings.suitability import suitability_milli
 
 SquadSort = Literal["position", "ca", "age", "number"]
 DEFAULT_SEED = 20261002
+DEFAULT_RULESET = "mg-modulo-i-2026"  # the CLI default (contracts/cli.md)
 
 __all__ = [
     "ClubSummary",
@@ -354,6 +355,10 @@ def validate_ruleset(path: Path) -> RulesetReport:
 def start_season(dataset: Dataset, ruleset_id: str, year: int, master_seed: int,
                  participants: Sequence[str] | None = None, *,
                  result_provider: ResultProvider | None = None) -> Season:
+    """Participants default to the clubs of the ruleset's state, sorted by id."""
+    for club_id in participants or ():
+        if club_id not in dataset.clubs:
+            raise NotFoundError("club", club_id)
     return Season.start(dataset, load_ruleset(ruleset_id), year, master_seed, participants,
                         result_provider)
 
@@ -410,12 +415,10 @@ def season_table(season: Season, group: str | None = None) -> list[TableRow]:
         raise NotFoundError("group", group)
     rows = season.group_table(group) if group is not None else season.overall_table()
     zones: dict[str, str] = {}
-    for stage in season.ruleset.knockout_stages:
-        first_of_track = next(s for s in season.ruleset.knockout_stages if s.track == stage.track)
-        if stage is first_of_track:
-            zone = "semifinal" if stage.track == "main" else f"side:{stage.track}"
-            for club in season.stage_entrants.get(stage.id, []):
-                zones.setdefault(club, zone)
+    for track in season.ruleset.tracks():
+        first = season.ruleset.first_stage_of(track)
+        for club in season.stage_entrants.get(first.id, []):
+            zones.setdefault(club, f"track:{track}")
     for club in season.relegated:
         zones[club] = "relegated"
     return [dataclasses.replace(r, zone=zones.get(r.club_id)) for r in rows]

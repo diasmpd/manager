@@ -90,7 +90,7 @@ class SeasonEvent:
 class Outcome:
     champion: str
     runner_up: str
-    semifinalists: tuple[str, ...]
+    main_entrants: tuple[str, ...]
     side_entrants: dict[str, list[str]]
     side_titles: dict[str, str]
     relegated: list[str]
@@ -364,7 +364,7 @@ class Season:
         assert self.runner_up is not None
         return Outcome(
             champion=self.titles["main"], runner_up=self.runner_up,
-            semifinalists=tuple(self.stage_entrants[main_stages[0].id]),
+            main_entrants=tuple(self.stage_entrants[main_stages[0].id]),
             side_entrants=side,
             side_titles={k: v for k, v in self.titles.items() if k != "main"},
             relegated=list(self.relegated), final_classification=self.overall,

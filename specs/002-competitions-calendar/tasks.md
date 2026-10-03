@@ -226,16 +226,16 @@ description: "Task list for 002 Competitions and Calendar"
 
 ### Tests (first)
 
-- [ ] T037 [P] [US3] Write `core/src/manager_core/reference/competitions/test-liga-unica.toml`, a structurally different format:
+- [X] T037 [P] [US3] Write `core/src/manager_core/reference/competitions/test-liga-unica.toml`, a structurally different format:
   - 8 clubs, `matching = "all"`, 2 rounds (double round-robin);
   - tiebreakers `["goal_difference", "wins", "goals_for", "draw"]`;
   - a two-leg final between 1st and 2nd with `tie_rule = "points_then_campaign"`;
   - places 8 relegated;
   - no neutral venue;
   - window 01-15 to 04-30.
-- [ ] T038 [P] [US3] Create one broken ruleset per R-code in `core/tests/fixtures/rulesets/R0xx_*.toml` (R001–R014), each with an `expected.txt`. R012 = a side track on `overall_places` overlapping the main track's entrants without `exclude_tracks`.
-- [ ] T039 [P] [US3] Contract test `core/tests/contract/test_ruleset_validation.py`: every R-fixture is rejected with its code and location (key path), a file with 3 defects reports all 3, and both bundled rulesets validate clean (SC-006).
-- [ ] T040 [P] [US3] Integration test `core/tests/integration/test_other_ruleset.py`:
+- [X] T038 [P] [US3] Create one broken ruleset per R-code in `core/tests/fixtures/rulesets/R0xx_*.toml` (R001–R014), each with an `expected.txt`. R012 = a side track on `overall_places` overlapping the main track's entrants without `exclude_tracks`.
+- [X] T039 [P] [US3] Contract test `core/tests/contract/test_ruleset_validation.py`: every R-fixture is rejected with its code and location (key path), a file with 3 defects reports all 3, and both bundled rulesets validate clean (SC-006).
+- [X] T040 [P] [US3] Integration test `core/tests/integration/test_other_ruleset.py`:
   - `test-liga-unica` with the 8 lowest-id sample clubs plays to the end;
   - 14 rounds;
   - the final is 1st versus 2nd;
@@ -245,7 +245,7 @@ description: "Task list for 002 Competitions and Calendar"
 
 ### Implementation
 
-- [ ] T041 [US3] Make sure every Mineiro-specific value comes from the ruleset (remove any leftover constants found by T040). Implement `participants` selection by `--participants`/state, and the `season rules [--validate PATH]` CLI with `list_rulesets` and `validate_ruleset` in the facade.
+- [X] T041 [US3] Make sure every Mineiro-specific value comes from the ruleset (remove any leftover constants found by T040). Implement `participants` selection by `--participants`/state, and the `season rules [--validate PATH]` CLI with `list_rulesets` and `validate_ruleset` in the facade.
 
 **Checkpoint**: two rulesets play, and broken rulesets are rejected clearly.
 

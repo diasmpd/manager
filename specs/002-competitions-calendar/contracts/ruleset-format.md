@@ -111,6 +111,8 @@ may_exceed_window = true            # leg 2 the weekend after the Mineiro final 
 |---|---|---|
 | `format_version` | `1` | A file with a higher major version is refused |
 | `stages[].type` | `groups`, `knockout` | |
+| `stages[].name` | text | Optional in-game display name (pt-BR, data like club names); defaults to the id |
+| `stages[].title` | text | The title a track awards, on its final stage (e.g. "Campeão Mineiro") |
 | `matching` | `own_group`, `other_groups`, `all` | `all` ignores groups |
 | `rounds` | `1`, `2` | 2 means home and away |
 | `draw` | `pots_by_reputation`, `fixed` | `fixed` reads `groups = [["id", …], …]` |

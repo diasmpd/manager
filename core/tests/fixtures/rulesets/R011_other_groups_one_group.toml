@@ -1,0 +1,59 @@
+# Formato de teste (spec 002, US3): estruturalmente diferente do Mineiro, para provar que os
+# regulamentos são dados. Não corresponde a nenhum estadual real.
+#
+# - 8 clubes em turno e returno (todos contra todos, ida e volta: 14 rodadas);
+# - desempate começa pelo saldo de gols;
+# - final em dois jogos entre 1º e 2º, decidida por pontos e depois campanha (sem pênaltis);
+# - o 8º colocado é rebaixado; não há local neutro.
+
+format_version = 1
+
+[competition]
+id = "test-liga-unica"
+name = "Liga Única de Teste"
+short_name = "Liga Única"
+state = "MG"
+country = "BRA"
+participants = 8
+regulation_year = 2026
+valid_from = 2026
+
+[scoring]
+win = 3
+draw = 1
+loss = 0
+tiebreakers = ["goal_difference", "wins", "goals_for", "draw"]
+
+[calendar]
+window_start = "01-15"
+window_end = "04-30"
+weekend_days = ["sat", "sun"]
+midweek_days = ["wed", "thu"]
+kickoff_weekend = "16:00"
+kickoff_midweek = "21:30"
+min_rest_hours = 66
+avoid_windows = ["fifa"]
+
+[[stages]]
+id = "turno-returno"
+name = "Turno e returno"
+type = "groups"
+group_count = 1
+group_size = 8
+matching = "other_groups"
+rounds = 2
+draw = "pots_by_reputation"
+outcomes = [{ kind = "relegated", overall_places = [8, 8] }]
+
+[[stages]]
+id = "decisao"
+name = "Decisão"
+type = "knockout"
+track = "main"
+title = "Campeão da Liga Única"
+legs = 2
+entrants = [{ from = "turno-returno", rule = "overall_places", places = [1, 2] }]
+pairing = "campaign_high_low"
+deciding_leg_host = "better_campaign"
+tie_rule = "points_then_campaign"
+venue = "home"

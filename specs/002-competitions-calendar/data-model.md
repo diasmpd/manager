@@ -9,8 +9,8 @@ engine object holding mutable progress; every view it returns is an immutable sn
 |---|---|
 | Ruleset | id, name, short_name, state, country, regulation_year, valid_from, valid_to (optional), participants, scoring (win/draw/loss points), tiebreakers (ordered list of `Tiebreaker`), calendar (`CalendarRule`), venues (neutral venue or none), stages (ordered `StageRule`s) |
 | CalendarRule | window_start (month-day), window_end (month-day), weekend_days, midweek_days, kickoff_weekend, kickoff_midweek, min_rest_hours, avoid_windows (labels) |
-| StageRule (groups) | id, type=`groups`, group_count, group_size, matching (`own_group` / `other_groups` / `all`), rounds (1 or 2), draw (`pots_by_reputation` / `fixed`), outcomes (list of `OutcomeRule`) |
-| StageRule (knockout) | id, type=`knockout`, track (`main` or a side-title id), title (only for the final stage of a track), legs (1 or 2), entrants (list of `EntrantRule`), pairing, deciding_leg_host, tie_rule, venue (`home` / `neutral`), dates_with (optional stage id whose slots it shares), may_exceed_window (bool, default false) |
+| StageRule (groups) | id, name (optional display name), type=`groups`, group_count, group_size, matching (`own_group` / `other_groups` / `all`), rounds (1 or 2), draw (`pots_by_reputation` / `fixed`), outcomes (list of `OutcomeRule`) |
+| StageRule (knockout) | id, name (optional display name), type=`knockout`, track (`main` or a side-title id), title (only for the final stage of a track), legs (1 or 2), entrants (list of `EntrantRule`), pairing, deciding_leg_host, tie_rule, venue (`home` / `neutral`), dates_with (optional stage id whose slots it shares), may_exceed_window (bool, default false) |
 | EntrantRule | source stage id, rule (`group_winners` / `best_of_place` place+count / `overall_places` from–to / `winners_of`), exclude_tracks (for `overall_places`: tracks whose entrants are skipped, next places fill in) |
 | OutcomeRule | kind (`relegated`), source (`overall_places` from–to) |
 | Tiebreaker (enum) | `wins`, `goal_difference`, `goals_for`, `head_to_head`, `fewer_red_cards`, `fewer_yellow_cards`, `draw` |
@@ -25,12 +25,12 @@ engine object holding mutable progress; every view it returns is an immutable sn
 | R004 | participants ≠ group_count × group_size |
 | R005 | stage reference to an unknown or later stage |
 | R006 | place out of range (e.g. `overall_places` 11–13 with 12 clubs) |
-| R007 | knockout entrants not a power of two, or not equal to 2 × pairs |
+| R007 | knockout entrants not a power of two (not reported when an entrant rule was already rejected) |
 | R008 | `venue = "neutral"` without a neutral venue declared |
 | R009 | `head_to_head` with `draw` not last, or `draw` missing (no total order) |
 | R010 | window_end before window_start, or min_rest_hours < 0 |
 | R011 | `other_groups` matching with fewer than 2 groups |
-| R012 | two tracks can take the same club (an `overall_places` entrant rule overlapping another track's entrants from the same stage without `exclude_tracks`) |
+| R012 | two tracks can take the same club (an `overall_places` entrant rule drawing from the same stage as another track's entrant rule without `exclude_tracks`; two `overall_places` rules with disjoint ranges do not overlap) |
 | R013 | invalid validity range (`valid_to` < `valid_from`, or missing `valid_from`) |
 | R014 | kick-off defaults and `min_rest_hours` make a weekend match after a midweek match impossible |
 
@@ -47,9 +47,9 @@ number of participants; `S003` the window cannot fit the rounds (`SchedulingErro
 | Result | home_goals, away_goals, source (`placeholder` / later `quick_sim` / `engine`), red/yellow cards per side (optional), shootout (`Shootout` or none) |
 | Shootout | kicks: ordered list of (club_id, scored), winner_id |
 | KnockoutTie | id, stage_id, club ids (higher campaign first), matches (1 or 2), winner_id (once decided), decided_by (`aggregate` / `penalties` / `points` / `campaign`) |
-| TableRow | club_id, played, won, drawn, lost, goals_for, goals_against, goal_difference, points, red_cards?, yellow_cards?, place, decided_by (criterion that separated it from the next row), zone (`semifinal`, `side:<track>`, `relegated` or none) |
+| TableRow | club_id, played, won, drawn, lost, goals_for, goals_against, goal_difference, points, red_cards?, yellow_cards?, place, decided_by (criterion that separated it from the next row), zone (`track:<track>` for the entrants of a track's first knockout stage, `relegated`, or none; the display text comes from the ruleset's stage names and track titles) |
 | SeasonEvent | date, kind (`draw`, `stage_complete`, `qualified`, `paired`, `relegated`, `champion`, `side_champion`), payload |
-| Outcome | champion, runner_up, semifinalists, side titles (track → winner), relegated (list), final classification (list of club ids) |
+| Outcome | champion, runner_up, main_entrants (entrants of the main track's first knockout stage), side titles (track → winner), relegated (list), final classification (list of club ids) |
 | SeasonCalendar | year, days (date → `CalendarDay`) |
 | CalendarDay | date, matches (ids), events, windows (labels) |
 | ReservedWindow | label, name, kind (`fixed` month-day range / `year` specific dates / `easter` offsets), blocks (e.g. `state`) |

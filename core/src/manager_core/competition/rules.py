@@ -117,6 +117,7 @@ class GroupStageRule:
     draw: DrawMethod
     fixed_groups: tuple[tuple[str, ...], ...] = ()
     outcomes: tuple[OutcomeRule, ...] = ()
+    name: str | None = None  # in-game display name (data, like club names)
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,6 +133,7 @@ class KnockoutStageRule:
     deciding_leg_host: str = "better_campaign"
     dates_with: str | None = None
     may_exceed_window: bool = False
+    name: str | None = None
 
 
 StageRule = GroupStageRule | KnockoutStageRule
@@ -166,6 +168,21 @@ class Ruleset:
     @property
     def knockout_stages(self) -> tuple[KnockoutStageRule, ...]:
         return tuple(s for s in self.stages if isinstance(s, KnockoutStageRule))
+
+    def stage_name(self, stage_id: str) -> str:
+        return self.stage(stage_id).name or stage_id
+
+    def tracks(self) -> tuple[str, ...]:
+        """Knockout tracks in declaration order (`main` is the championship itself)."""
+        return tuple(dict.fromkeys(s.track for s in self.knockout_stages))
+
+    def track_title(self, track: str) -> str:
+        """The title the track awards (the `title` of its final stage), or the track id."""
+        return next((s.title for s in self.knockout_stages if s.track == track and s.title),
+                    track)
+
+    def first_stage_of(self, track: str) -> KnockoutStageRule:
+        return next(s for s in self.knockout_stages if s.track == track)
 
 
 @dataclass(frozen=True, slots=True)
@@ -386,7 +403,7 @@ def _parse_stages(r: _Reader, doc: dict[str, Any], participants: int | None,
     seen: dict[str, int] = {}
     entrants_per_stage: dict[str, int] = {}
     group_counts: dict[str, int] = {}
-    track_sources: dict[str, set[tuple[str, str]]] = {}  # track -> {(source stage, kind)}
+    track_sources: dict[str, list[EntrantRule]] = {}  # track -> its entrant rules
     n = participants or 0
 
     for i, raw in enumerate(raw_stages):
@@ -442,16 +459,17 @@ def _parse_group_stage(r: _Reader, raw: dict[str, Any], path: str, sid: str,
         if not 1 <= places[0] <= places[1] <= n:
             report.add("R006", f"{path}.outcomes[{j}]", places=f"{places[0]}–{places[1]}")
         outcomes.append(OutcomeRule("relegated", places))
+    name = r.get(raw, "name", str, path, default=None)
     if None in (count, size, matching, rounds, draw):
         return None
     assert count and size and matching and rounds and draw
-    return GroupStageRule(sid, count, size, matching, rounds, draw, fixed, tuple(outcomes))
+    return GroupStageRule(sid, count, size, matching, rounds, draw, fixed, tuple(outcomes), name)
 
 
 def _parse_knockout(r: _Reader, raw: dict[str, Any], path: str, sid: str, n: int,
                     seen: dict[str, int], entrants_per_stage: dict[str, int],
                     group_counts: dict[str, int], has_neutral: bool,
-                    track_sources: dict[str, set[tuple[str, str]]]) -> KnockoutStageRule | None:
+                    track_sources: dict[str, list[EntrantRule]]) -> KnockoutStageRule | None:
     report = r.report
     track = r.get(raw, "track", str, path)
     legs = r.get(raw, "legs", int, path)
@@ -459,6 +477,7 @@ def _parse_knockout(r: _Reader, raw: dict[str, Any], path: str, sid: str, n: int
     tie_rule = r.enum(raw, "tie_rule", TieRule, path)
     venue = r.enum(raw, "venue", Venue, path)
     title = r.get(raw, "title", str, path, default=None)
+    name = r.get(raw, "name", str, path, default=None)
     dates_with = r.get(raw, "dates_with", str, path, default=None)
     exceed = r.get(raw, "may_exceed_window", bool, path, default=False)
     if legs is not None and legs not in (1, 2):
@@ -470,17 +489,21 @@ def _parse_knockout(r: _Reader, raw: dict[str, Any], path: str, sid: str, n: int
 
     entrants: list[EntrantRule] = []
     total = 0
+    broken = False  # an entrant rule was rejected: its count is unknown, skip R007
     for j, e in enumerate(r.get(raw, "entrants", list, path) or []):
         epath = f"{path}.entrants[{j}]"
         if not isinstance(e, dict):
             report.add("R002", epath, expected="table")
+            broken = True
             continue
         source = r.get(e, "from", str, epath)
         kind = r.enum(e, "rule", EntrantKind, epath)
         if source is not None and source not in seen:
             report.add("R005", f"{epath}.from", ref=source)
+            broken = True
             continue
         if source is None or kind is None:
+            broken = True
             continue
         exclude = tuple(r.get(e, "exclude_tracks", list, epath, default=[]) or [])
         entrant = EntrantRule(source, kind, exclude_tracks=exclude)
@@ -495,6 +518,7 @@ def _parse_knockout(r: _Reader, raw: dict[str, Any], path: str, sid: str, n: int
             places = _places(e.get("places"))
             if places is None or not 1 <= places[0] <= places[1] <= n:
                 report.add("R006", f"{epath}.places", places=str(e.get("places")))
+                broken = True
             else:
                 entrant = EntrantRule(source, kind, places=places, exclude_tracks=exclude)
                 total += places[1] - places[0] + 1
@@ -504,39 +528,45 @@ def _parse_knockout(r: _Reader, raw: dict[str, Any], path: str, sid: str, n: int
         if track is not None:
             _check_overlap(report, epath, track, entrant, track_sources)
 
-    if total < 2 or total % 2:
+    # a power of two, so every track ends in a single final
+    if not broken and (total < 2 or total & (total - 1)):
         report.add("R007", f"{path}.entrants", count=total)
     entrants_per_stage[sid] = total
     if None in (track, legs, pairing, tie_rule, venue):
         return None
     assert track and legs and pairing and tie_rule and venue
     return KnockoutStageRule(sid, track, legs, tuple(entrants), pairing, tie_rule, venue, title,
-                             "better_campaign", dates_with, bool(exceed))
+                             "better_campaign", dates_with, bool(exceed), name)
 
 
 def _check_overlap(report: RulesetReport, path: str, track: str, entrant: EntrantRule,
-                   track_sources: dict[str, set[tuple[str, str]]]) -> None:
-    """R012: an entrant rule taking places from a stage that another track also draws from
-    must exclude that track, or the same club could play both."""
+                   track_sources: dict[str, list[EntrantRule]]) -> None:
+    """R012: an `overall_places` rule drawing from the same stage as another track's entrant
+    rule could take the same club, unless it excludes that track or both are `overall_places`
+    with disjoint ranges."""
     if entrant.kind is EntrantKind.WINNERS_OF:
         return
-    for other, sources in track_sources.items():
-        if other == track:
+    for other, rules in track_sources.items():
+        if other == track or other in entrant.exclude_tracks:
             continue
-        same_source = any(src == entrant.source for src, _ in sources)
-        uses_places = entrant.kind is EntrantKind.OVERALL_PLACES or any(
-            k == EntrantKind.OVERALL_PLACES.value for src, k in sources if src == entrant.source
-        )
-        if same_source and uses_places and other not in entrant.exclude_tracks:
+        for rule in rules:
+            if rule.source != entrant.source or track in rule.exclude_tracks:
+                continue
+            if EntrantKind.OVERALL_PLACES not in (rule.kind, entrant.kind):
+                continue
+            if (rule.places and entrant.places
+                    and (rule.places[1] < entrant.places[0] or entrant.places[1] < rule.places[0])):
+                continue
             report.add("R012", path, track=other)
-    track_sources.setdefault(track, set()).add((entrant.source, entrant.kind.value))
+            break
+    track_sources.setdefault(track, []).append(entrant)
 
 
 def _load(text_loader: Callable[[], str], source: str) -> Ruleset:
     report = RulesetReport(source)
     try:
         doc = tomllib.loads(text_loader())
-    except (tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:
+    except (OSError, tomllib.TOMLDecodeError, UnicodeDecodeError) as exc:
         report.add("R001", source, detail=str(exc))
         raise RulesetError(report) from exc
     ruleset = _parse(doc, report)

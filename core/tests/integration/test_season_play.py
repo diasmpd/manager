@@ -32,7 +32,7 @@ def _check(season: Season) -> None:
     assert out is not None
     overall = [r.club_id for r in api.season_table(season)]
     assert len(overall) == 12
-    semis = set(out.semifinalists)
+    semis = set(out.main_entrants)
     assert len(semis) == 4
     assert out.champion in semis and out.runner_up in semis and out.champion != out.runner_up
     # group winners + best second are the semifinalists

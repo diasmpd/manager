@@ -11,6 +11,7 @@ from pathlib import Path
 
 from manager_core import api
 from manager_core.competition.results import PLACEHOLDER
+from manager_core.competition.rules import RulesetError, RulesetReport
 from manager_core.competition.season import Season, SeasonError, SeasonEvent
 from manager_core.domain.dataset import Dataset
 from manager_core.domain.positions import Position
@@ -247,7 +248,8 @@ def _season(args: argparse.Namespace, play: bool = False) -> Season | None:
     dataset = _load(args.data)
     if dataset is None:
         return None
-    season = api.start_season(dataset, args.ruleset, args.year, args.master_seed)
+    participants = args.participants.split(",") if args.participants else None
+    season = api.start_season(dataset, args.ruleset, args.year, args.master_seed, participants)
     if play:
         api.advance_to(season, args.date or date(args.year, 12, 31))
     return season
@@ -287,7 +289,7 @@ def _cmd_season_fixtures(args: argparse.Namespace) -> int:
         key = (m.stage_id, m.round)
         if args.club is None and key != current:
             current = key
-            stage = t(f"season.stage.{m.stage_id}")
+            stage = season.ruleset.stage_name(m.stage_id)
             print(f"{stage} – {t('season.round', round=m.round)}")
         print(_match_line(m))
     return EXIT_OK
@@ -305,7 +307,7 @@ def _cmd_season_table(args: argparse.Namespace) -> int:
                                    "zone", "decided_by")],
         [[r.place, season.club_name(r.club_id), r.played, r.won, r.drawn, r.lost, r.goals_for,
           r.goals_against, r.goal_difference, r.points,
-          t(f"zone.{r.zone.replace(':', '.')}") if r.zone else "",
+          _zone_text(season, r.zone),
           # only show real tie-breaks (clubs level on points)
           t(f"criterion.{r.decided_by}") if r.decided_by not in (None, "points") else ""]
          for r in rows],
@@ -321,7 +323,7 @@ def _cmd_season_bracket(args: argparse.Namespace) -> int:
     for tie in api.season_bracket(season):
         if tie.stage_id != current:
             current = tie.stage_id
-            print(t(f"season.stage.{tie.stage_id}"))
+            print(season.ruleset.stage_name(tie.stage_id))
         winner = ""
         if tie.winner_id:
             name = tie.high_name if tie.winner_id == tie.high_id else tie.low_name
@@ -353,17 +355,42 @@ def _cmd_season_outcomes(args: argparse.Namespace) -> int:
     if out is None:
         print(t("outcome.not_finished", date=_fmt_date(season.current_date)))
         return EXIT_OK
-    name = season.club_name
-    print(f"{t('outcome.champion')}: {name(out.champion)}")
+    name, rules = season.club_name, season.ruleset
+    print(f"{rules.track_title('main')}: {name(out.champion)}")
     print(f"{t('outcome.runner_up')}: {name(out.runner_up)}")
-    print(f"{t('outcome.semifinalists')}: {', '.join(name(c) for c in out.semifinalists)}")
+    first = rules.stage_name(rules.first_stage_of("main").id)
+    entrants = ", ".join(name(c) for c in out.main_entrants)
+    print(f"{t('outcome.qualified', stage=first)}: {entrants}")
     for track, winner in out.side_titles.items():
-        print(f"{t(f'outcome.{track}')}: {name(winner)}")
-    print(f"{t('outcome.relegated')}: {', '.join(name(c) for c in out.relegated)}")
+        print(f"{rules.track_title(track)}: {name(winner)}")
+    if out.relegated:
+        print(f"{t('outcome.relegated')}: {', '.join(name(c) for c in out.relegated)}")
     print(f"{t('outcome.classification')}:")
     for place, club in enumerate(out.final_classification, start=1):
         print(f"  {place:>2}. {name(club)}")
     print(t("season.provisional_note"))
+    return EXIT_OK
+
+
+def _print_ruleset_report(report: RulesetReport) -> None:
+    for issue in report.issues:
+        print(f"{issue.code}  {issue.message}")
+
+
+def _cmd_season_rules(args: argparse.Namespace) -> int:
+    if args.validate is not None:
+        report = api.validate_ruleset(args.validate)
+        if report.ok:
+            print(t("rules.ok", path=args.validate))
+            return EXIT_OK
+        _print_ruleset_report(report)
+        print(t("rules.invalid", count=len(report.issues)))
+        return EXIT_INVALID
+    _print_table(
+        [t(f"rules.{k}") for k in ("id", "name", "state", "valid")],
+        [[r.id, r.name, r.state, f"{r.valid_from}–{r.valid_to or ''}"]
+         for r in api.list_rulesets()],
+    )
     return EXIT_OK
 
 
@@ -372,15 +399,38 @@ def _fmt_date(day: date) -> str:
 
 
 def _event_text(season: Season, e: SeasonEvent) -> str:
-    names = [season.club_name(c) if c in season.participants else c for c in e.payload]
-    return t(f"event.{e.kind}", detail=", ".join(names))
+    stage_ids = {st.id for st in season.ruleset.stages}
+    tracks = set(season.ruleset.tracks())
+
+    def label(item: str) -> str:
+        if item in season.participants:
+            return season.club_name(item)
+        if item in stage_ids:
+            return season.ruleset.stage_name(item)
+        if item in tracks:
+            return season.ruleset.track_title(item)
+        return item
+
+    return t(f"event.{e.kind}", detail=", ".join(label(p) for p in e.payload))
+
+
+def _zone_text(season: Season, zone: str | None) -> str:
+    if zone is None:
+        return ""
+    if zone.startswith("track:"):
+        track = zone.removeprefix("track:")
+        if track == "main":
+            return season.ruleset.stage_name(season.ruleset.first_stage_of(track).id)
+        return season.ruleset.track_title(track)
+    return t(f"zone.{zone}")
 
 
 def _add_season_options(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--ruleset", default="mg-modulo-i-2026")
+    parser.add_argument("--ruleset", default=api.DEFAULT_RULESET)
     parser.add_argument("--year", type=int, default=2027)
     parser.add_argument("--master-seed", type=int, default=20261002)
     parser.add_argument("--date", type=date.fromisoformat, default=None)
+    parser.add_argument("--participants", help="club ids separated by commas")
 
 
 def _sub_date(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -452,6 +502,9 @@ def _build_parser() -> argparse.ArgumentParser:
     _sub_date(season_cmds.add_parser("bracket")).set_defaults(func=_cmd_season_bracket)
     _sub_date(season_cmds.add_parser("day")).set_defaults(func=_cmd_season_day)
     _sub_date(season_cmds.add_parser("outcomes")).set_defaults(func=_cmd_season_outcomes)
+    cmd = season_cmds.add_parser("rules")
+    cmd.add_argument("--validate", type=Path, metavar="PATH")
+    cmd.set_defaults(func=_cmd_season_rules)
     return parser
 
 
@@ -469,5 +522,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return EXIT_NOT_FOUND
     except SeasonError as exc:
         print(exc.message, file=sys.stderr)
+        return EXIT_INVALID
+    except RulesetError as exc:
+        for issue in exc.report.issues:
+            print(f"{issue.code}  {issue.message}", file=sys.stderr)
         return EXIT_INVALID
     return code
