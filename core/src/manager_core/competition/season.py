@@ -194,11 +194,16 @@ class Season:
                         key=lambda m: (m.kickoff, m.id))
         for m in todays:
             rng = random.Random(sub_seed(self.seed, f"match:{m.id}"))
-            ctx = MatchContext(self.seed, m.stage_id)
+            ctx = self._context(m)
             self.results[m.id] = self.provider.play(
                 m.id, self.dataset.club(m.home_id), self.dataset.club(m.away_id), ctx, rng)
             if m.tie_id is not None:
                 self._maybe_resolve_tie(m.tie_id)
+
+    def _context(self, match: Match) -> MatchContext:
+        stage = self.ruleset.stage(match.stage_id)
+        neutral = isinstance(stage, KnockoutStageRule) and stage.venue is Venue.NEUTRAL
+        return MatchContext(self.seed, match.stage_id, neutral)
 
     def _maybe_resolve_tie(self, tie_id: str) -> None:
         legs = self.tie_matches[tie_id]
@@ -216,7 +221,7 @@ class Season:
             m = self.matches[last]
             shootout = self.provider.shootout(
                 last, self.dataset.club(m.home_id), self.dataset.club(m.away_id),
-                MatchContext(self.seed, tie.stage_id), rng)
+                self._context(m), rng, last_result=self.results[last])
             self.results[last] = dataclasses.replace(self.results[last], shootout=shootout)
             played[-1] = (played[-1][0], played[-1][1], self.results[last])
             outcome = resolve_tie(tie, played, stage.tie_rule, self.ruleset.scoring)

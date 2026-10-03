@@ -1,0 +1,326 @@
+# Metas de calibração do quick sim (spec 003, contracts/calibration-targets.md).
+# Somente estatísticas agregadas de ligas reais (Constituição I e VI).
+# "Série A 2024–25" = 720 jogos contados por este projeto nas matrizes de resultados das
+# páginas da Wikipedia (que citam a CBF):
+#   https://en.wikipedia.org/wiki/2025_Campeonato_Brasileiro_S%C3%A9rie_A
+#   https://en.wikipedia.org/wiki/2024_Campeonato_Brasileiro_S%C3%A9rie_A
+format_version = 1
+
+[[targets]]
+id = "goals_per_match"
+sample = "league"
+kind = "primary"
+unit = "per_match"
+target = 2.50
+low = 2.30
+high = 2.70
+source = "Série A 2024 (2,45) e 2025 (2,55), contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "home_win"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.486
+low = 0.446
+high = 0.526
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "draw"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.261
+low = 0.221
+high = 0.301
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "away_win"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.253
+low = 0.213
+high = 0.293
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "home_goals"
+sample = "league"
+kind = "primary"
+unit = "per_match"
+target = 1.47
+low = 1.32
+high = 1.62
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "away_goals"
+sample = "league"
+kind = "primary"
+unit = "per_match"
+target = 1.02
+low = 0.87
+high = 1.17
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "nil_nil"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.066
+low = 0.045
+high = 0.09
+source = "Série A 2024–25, contagem própria (48 de 720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "total_goals_0"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.066
+low = 0.026
+high = 0.106
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "total_goals_1"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.204
+low = 0.164
+high = 0.244
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "total_goals_2"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.253
+low = 0.213
+high = 0.293
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "total_goals_3"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.253
+low = 0.213
+high = 0.293
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "total_goals_4"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.132
+low = 0.092
+high = 0.172
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "total_goals_5plus"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.092
+low = 0.052
+high = 0.132
+source = "Série A 2024–25, contagem própria (720 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "fav_win"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.65
+low = 0.55
+high = 0.75
+source = "Série A 2024–25, top 5 x últimos 5 da tabela final (100 jogos); amostra: top 3 x últimos 3 de 12"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "fav_draw"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.24
+low = 0.14
+high = 0.34
+source = "Série A 2024–25, top 5 x últimos 5 da tabela final (100 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "fav_loss"
+sample = "league"
+kind = "primary"
+unit = "ratio"
+target = 0.11
+low = 0.01
+high = 0.21
+source = "Série A 2024–25, top 5 x últimos 5 da tabela final (100 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "yellows_per_match"
+sample = "league"
+kind = "primary"
+unit = "per_match"
+target = 5.2
+low = 4.5
+high = 6.0
+source = "Série A 2025: 903 amarelos em 173 jogos (Gazeta Mercantil, https://gazetamercantil.com/estatisticas-de-brasileirao-serie-a-2025)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "reds_per_match"
+sample = "league"
+kind = "primary"
+unit = "per_match"
+target = 0.25
+low = 0.17
+high = 0.33
+source = "Série A 2025: 95 vermelhos em 380 jogos (Itatiaia)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "mineiro_draw"
+sample = "mineiro"
+kind = "primary"
+unit = "ratio"
+target = 0.29
+low = 0.22
+high = 0.36
+source = "Mineiro 2025 e 2026, primeira fase (96 jogos), tabelas dos grupos (Wikipedia)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "mineiro_goals_per_match"
+sample = "mineiro"
+kind = "primary"
+unit = "per_match"
+target = 2.33
+low = 2.0
+high = 2.7
+source = "Mineiro 2025 (2,19) e 2026 (2,48), primeira fase (96 jogos)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "shots_on_target_per_side"
+sample = "league"
+kind = "secondary"
+unit = "per_side"
+target = 4.2
+low = 3.5
+high = 5.0
+source = "Série A 2025, médias dos clubes 3,5–5,5 (Grêmio News)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "shots_per_match"
+sample = "league"
+kind = "secondary"
+unit = "per_match"
+target = 25.0
+low = 21.0
+high = 29.0
+source = "Provedores 20–27 por jogo (FootyStats 2026: 27,0); a confirmar"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "xg_minus_goals"
+sample = "league"
+kind = "secondary"
+unit = "per_match"
+target = 0.0
+low = -0.3
+high = 0.3
+source = "Definição: xG acompanha os gols ao longo de uma temporada"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "corners_per_match"
+sample = "league"
+kind = "secondary"
+unit = "per_match"
+target = 9.8
+low = 8.5
+high = 11.0
+source = "Série A 2025, totais por clube 8,8–11,0 (Grêmio News)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "fouls_per_match"
+sample = "league"
+kind = "secondary"
+unit = "per_match"
+target = 26.0
+low = 22.0
+high = 30.0
+source = "FootyStats Série A 2026: 25,8 por jogo; a confirmar"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "late_goal_share"
+sample = "league"
+kind = "secondary"
+unit = "ratio"
+target = 0.261
+low = 0.21
+high = 0.31
+source = "Brasileirão 2025: 26,1% dos gols após os 75 minutos (Goal.com)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "first_half_goal_share"
+sample = "league"
+kind = "secondary"
+unit = "ratio"
+target = 0.438
+low = 0.39
+high = 0.49
+source = "Brasileirão 2019: 43,8% dos gols no primeiro tempo (Revista Brasileira de Futsal e Futebol)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "shootout_conversion"
+sample = "mineiro"
+kind = "secondary"
+unit = "ratio"
+target = 0.752
+low = 0.70
+high = 0.80
+source = "75,2% de 343 cobranças em grandes torneios (PMC11627389)"
+retrieved = 2026-10-02
+
+[[targets]]
+id = "own_goal_share"
+sample = "league"
+kind = "secondary"
+unit = "ratio"
+target = 0.03
+low = 0.015
+high = 0.045
+source = "Premier League 2023–25 (2,9–3,9%); sem fonte brasileira ainda"
+retrieved = 2026-10-02
