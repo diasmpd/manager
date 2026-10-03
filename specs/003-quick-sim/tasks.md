@@ -222,7 +222,7 @@ pass.
 - [X] T036 [P] Update `docs/roadmap.md` (003 done, 004 next; a note for 007: cross-validate against the quick sim using the same targets file) and the `README.md` quick start (`season match`, `season scorers`, `calibrate`).
 - [X] T037 Make sure `ruff check .`, `mypy` (strict) and the full pytest suite pass, including `slow` (milestone gate and 1,000 seasons).
 - [X] T038 Run [quickstart.md](quickstart.md) on Windows and note any deviations.
-- [ ] T039 Open the PR `003-quick-sim` with the PR-gate calibration report (before = placeholder metrics, after = quick sim), the test results and the quickstart check.
+- [X] T039 Open the PR `003-quick-sim` with the PR-gate calibration report (before = placeholder metrics, after = quick sim), the test results and the quickstart check.
 
 ---
 
