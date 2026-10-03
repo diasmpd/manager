@@ -40,6 +40,7 @@ class QuickSimProvider:
         self.dataset = dataset
         self.params = params or load_params()
         self._sheets = _sheets_for(dataset)
+        self._overrides: dict[str, TeamSheet] = {}
 
     def with_params(self, params: ModelParams) -> QuickSimProvider:
         """A provider with other parameters that shares this one's team sheets."""
@@ -47,8 +48,23 @@ class QuickSimProvider:
         twin._sheets = self._sheets
         return twin
 
+    def override(self, club_id: str, sheet: TeamSheet | None) -> None:
+        """Play this club with a fixed sheet (the user's selection, spec 005); None clears it."""
+        if sheet is None:
+            self._overrides.pop(club_id, None)
+        else:
+            self._overrides[club_id] = sheet
+
     def team_sheet(self, club_id: str, unavailable: frozenset[str] = frozenset()) -> TeamSheet:
         """The club's sheet without its unavailable (suspended) players, cached per set."""
+        if club_id in self._overrides:  # the user's selection, repaired if someone is missing
+            chosen = self._overrides[club_id]
+            missing = unavailable & ({pid for _, pid in chosen.starters} | set(chosen.bench))
+            if not missing:
+                return chosen
+            squad = sorted(self.dataset.squad(club_id), key=lambda p: p.id)
+            return repair_team_sheet(chosen, squad,
+                                     frozenset(unavailable & {p.id for p in squad}))
         if club_id not in self._sheets:
             squad = sorted(self.dataset.squad(club_id), key=lambda p: p.id)
             self._sheets[club_id] = build_team_sheet(club_id, squad)

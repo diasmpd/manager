@@ -1,0 +1,55 @@
+/* Manager terminal UI (spec 005) */
+Screen {
+    layout: vertical;
+}
+
+#too-small {
+    display: none;
+    dock: top;
+    height: 3;
+    background: $error;
+    color: $text;
+    content-align: center middle;
+}
+
+#main {
+    height: 1fr;
+}
+
+#sidebar {
+    width: 22;
+    padding: 1 2;
+    background: $panel;
+}
+
+#views {
+    width: 1fr;
+    padding: 0 1;
+}
+
+#views > * {
+    height: 1fr;
+}
+
+#squad-table, #overall-table {
+    height: auto;
+    max-height: 30;
+}
+
+#dialog {
+    width: 96%;
+    height: 94%;
+    margin: 1 2;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary;
+}
+
+TeamSelectionScreen DataTable {
+    width: 1fr;
+    height: 1fr;
+}
+
+#feed {
+    height: 1fr;
+}

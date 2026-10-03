@@ -19,8 +19,8 @@ working game.
 | 002 | Competitions and calendar: Campeonato Mineiro format as data (rulesets), draw, fixtures, dates, tables and tiebreakers, knockouts, Troféu Inconfidência, outcomes, day-by-day calendar with reserved windows. [Spec](../specs/002-competitions-calendar/spec.md) | ✅ done (PR) |
 | 003 | Quick sim (statistical), calibrated independently against real-data targets: minute-by-minute events from FM attributes (xG, cards per player, substitutions, game state, booked-player caution), player-based shootouts, calibration harness with PR/milestone gates. [Spec](../specs/003-quick-sim/spec.md) | ✅ done (PR) |
 | 004 | Career save (SQLite) and the day-by-day game loop: saves with weekly autosave, "Continuar" that stops at events, suspensions (real rules), season rollover with promotion, ageing, development, player-decided retirement and youngsters. [Spec](../specs/004-career-save/spec.md) | ✅ done (PR) |
-| 005 | **Playable Mineiro season from the terminal** (Python TUI): includes basic squad and lineup selection (and formation choice, if 001 models it), so the user makes real decisions before 006 | ⏳ next |
-| 006 | Tactics model: roles and duties, team and individual instructions, set pieces; custom formations with separate attacking/defending shapes and free player placement (owner request) | — |
+| 005 | **Playable Mineiro season from the terminal** (Python TUI): includes basic squad and lineup selection (and formation choice, if 001 models it), so the user makes real decisions before 006. [Spec](../specs/005-terminal-season/spec.md) | ✅ done (PR) |
+| 006 | Tactics model: roles and duties, team and individual instructions, set pieces; custom formations with separate attacking/defending shapes and free player placement (owner request) | ⏳ next |
 | 007 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003 | — |
 | 008 | Match report: stats, xG, FM-style player ratings, PT-BR commentary | — |
 | 009 | Assistant: suggestions and optional auto-subs | — |

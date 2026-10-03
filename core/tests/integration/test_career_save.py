@@ -9,7 +9,7 @@ import pytest
 
 from manager_core import api
 from manager_core.career.career import Career
-from manager_core.career.store import SaveError
+from manager_core.career.store import FORMAT_VERSION, SaveError
 from manager_core.domain.dataset import Dataset
 
 SAMPLE = Path(__file__).resolve().parents[3] / "data" / "sample"
@@ -68,7 +68,7 @@ def test_save_as_is_an_independent_copy(world: Dataset, tmp_path: Path) -> None:
 def test_newer_format_is_refused(world: Dataset, tmp_path: Path) -> None:
     api.save_career(api.new_career(world, "novo", "alvorada", master_seed=1), tmp_path)
     with sqlite3.connect(tmp_path / "novo.sqlite") as conn:
-        conn.execute("PRAGMA user_version = 2")
+        conn.execute(f"PRAGMA user_version = {FORMAT_VERSION + 1}")
     with pytest.raises(SaveError) as info:
         api.load_career(tmp_path, "novo")
     assert info.value.code == "V001"
