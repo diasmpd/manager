@@ -49,6 +49,8 @@ TUNABLE = [
     ("strength.xg_attack", 0.0, 1.0),
     ("rates.yellow_per_foul", 0.05, 0.5),
     ("rates.direct_red_per_foul", 0.0005, 0.02),
+    ("caution.card", 0.05, 0.95),  # full ease-off; player strength scales it
+    ("caution.foul", 0.05, 0.95),
     ("rates.corner_per_shot", 0.05, 0.8),
     ("rates.own_goal_share", 0.005, 0.1),
 ]
