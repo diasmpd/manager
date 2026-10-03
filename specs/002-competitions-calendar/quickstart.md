@@ -51,7 +51,8 @@ Expected:
 ## 4. Determinism
 
 Run `season outcomes` twice and confirm the output is identical. With `--master-seed 1`, the
-draw and the champion differ.
+draw differs. The champion can differ too, but not always: the three strongest clubs share the
+titles (seeds 1–8 give Vale do Ouro 3, Serra Negra 3, Alvorada 2).
 
 ## 5. Rules as data (US3)
 
