@@ -10,11 +10,11 @@ from manager_core import api
 from manager_core.competition.results import MatchContext
 from manager_core.domain.player import Player
 from manager_core.domain.positions import Position
-from manager_core.quicksim.engine import kick_factor, simulate_match
+from manager_core.quicksim.engine import kick_factor, penalty_order, simulate_match
 from manager_core.quicksim.params import load_params
 from manager_core.quicksim.provider import QuickSimProvider
 from manager_core.quicksim.report import keeper_at_end
-from manager_core.quicksim.shootout import kick_takers, play_shootout
+from manager_core.quicksim.shootout import kick_takers, play_shootout, shootout_orders
 from tests.helpers import attrs, player
 
 SAMPLE = Path(__file__).resolve().parents[3] / "data" / "sample"
@@ -108,3 +108,30 @@ def test_season_shootouts_are_valid(seed: int) -> None:
         if result.shootout is not None:
             assert result.report is not None
             assert result.shootout.winner_id in {k[0] for k in result.shootout.kicks}
+
+
+def test_larger_side_reduces_to_equate() -> None:
+    """IFAB Law 10: a team with more players reduces to the opponents' number before the kicks.
+    It leaves out its worst takers and keeps its goalkeeper."""
+    params = load_params()
+    a, a_gk = _side("a")  # 11 players
+    b, b_gk = _side("b")
+    b = [p for p in b if p.id != "b00"]  # 10 players: one was sent off
+    worst_a = penalty_order([p for p in a if p is not a_gk])[-1]
+    orders = shootout_orders(a, a_gk, b, b_gk)
+    assert len(orders[0]) == len(orders[1]) == 10
+    assert a_gk in orders[0] and orders[0][-1] is a_gk
+    assert worst_a not in orders[0]
+    for n in range(200):
+        shootout = play_shootout("A", a, a_gk, "B", b, b_gk, params, random.Random(f"eq{n}"))
+        takers = kick_takers(shootout, a, a_gk, b, b_gk)
+        assert worst_a.id not in takers[::2]
+        a_takers = takers[::2]
+        assert a_takers == [orders[0][i % 10].id for i in range(len(a_takers))]
+
+
+def test_equal_sides_are_not_reduced() -> None:
+    a, a_gk = _side("a")
+    b, b_gk = _side("b")
+    first, second = shootout_orders(a, a_gk, b, b_gk)
+    assert len(first) == len(second) == 11
