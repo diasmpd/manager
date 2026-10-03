@@ -34,3 +34,12 @@ jobs:
         run: mypy
       - name: Tests (includes the quick-sim PR calibration gate)
         run: pytest -q -m "not milestone"
+      - name: Install terminal UI (spec 005)
+        working-directory: tui
+        run: python -m pip install -e ".[dev]"
+      - name: Terminal UI lint, types and tests
+        working-directory: tui
+        run: |
+          ruff check .
+          mypy
+          pytest -q

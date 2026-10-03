@@ -18,11 +18,16 @@ from manager_core.calibration.harness import CalibrationReport
 from manager_core.career import career as career_mod
 from manager_core.career import rollover, store, views
 from manager_core.career import selection as selection_mod
-from manager_core.career.career import Career, SeasonRecord, Stop
+from manager_core.career.career import Career as Career  # re-exported: part of the facade
+from manager_core.career.career import SeasonRecord as SeasonRecord
+from manager_core.career.career import Stop as Stop
 from manager_core.career.discipline import Discipline
-from manager_core.career.selection import Selection, SelectionIssue
+from manager_core.career.selection import Selection as Selection
+from manager_core.career.selection import SelectionIssue as SelectionIssue
 from manager_core.career.store import SaveSummary
-from manager_core.career.views import FeedLine, NewsItem, SquadRow
+from manager_core.career.views import FeedLine as FeedLine
+from manager_core.career.views import NewsItem as NewsItem
+from manager_core.career.views import SquadRow as SquadRow
 from manager_core.competition import rules
 from manager_core.competition.calendar import CalendarDay
 from manager_core.competition.results import Result, ResultProvider
@@ -38,6 +43,7 @@ from manager_core.domain.dataset import Dataset
 from manager_core.domain.formation import Formation, load_catalogue
 from manager_core.domain.player import Player
 from manager_core.domain.positions import FamiliarityBand, Position, band_for
+from manager_core.i18n import t
 from manager_core.io import reader, writer
 from manager_core.io.reader import LoadResult
 from manager_core.io.validate import ValidationReport
@@ -702,3 +708,47 @@ def last_user_match(career: Career) -> str | None:
     played = [m for m in season.sorted_matches() if m.id in season.results
               and career.user_club_id in (m.home_id, m.away_id)]
     return played[-1].id if played else None
+
+
+def formation_positions(formation: str) -> list[str]:
+    """Slot position codes of a formation, in slot order."""
+    catalogue = load_catalogue()
+    if formation not in catalogue:
+        raise NotFoundError("formation", formation)
+    return [slot.position.value for slot in catalogue[formation].slots]
+
+
+def swap_in_selection(career: Career, selection: Selection, slot: int,
+                      incoming: str) -> Selection:
+    """Put `incoming` in `slot`. If he was on the bench, the player he replaces takes his
+    bench place; if he was a starter, the two swap slots; otherwise the replaced player
+    leaves the selection. The result is not validated (see validate_selection)."""
+    starters = dict(selection.starters)
+    outgoing = starters.get(slot)
+    bench = list(selection.bench)
+    if incoming in starters.values():
+        other_slot = next(i for i, pid in starters.items() if pid == incoming)
+        starters[other_slot] = outgoing if outgoing is not None else incoming
+    elif incoming in bench and outgoing is not None:
+        bench[bench.index(incoming)] = outgoing
+    elif incoming in bench:
+        bench.remove(incoming)
+    starters[slot] = incoming
+    return Selection(selection.formation, tuple(sorted(starters.items())), tuple(bench))
+
+
+def match_stat_lines(season: Season, match_id: str) -> list[str]:
+    """The match report's stat line as text rows (localised), for clients."""
+    report = match_view(season, match_id).result
+    if report is None or report.report is None:
+        return []
+    r = report.report
+    m = season.matches[match_id]
+    rows = [f"{'':14}{season.club_name(m.home_id):>16}{season.club_name(m.away_id):>16}"]
+    for key in ("shots", "shots_on_target", "xg", "possession", "corners", "fouls", "yellows",
+                "reds"):
+        home, away = getattr(r.home, key), getattr(r.away, key)
+        if key == "possession":
+            home, away = f"{home}%", f"{away}%"
+        rows.append(f"{t(f'stat.{key}'):14}{home!s:>16}{away!s:>16}")
+    return rows

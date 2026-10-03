@@ -5,7 +5,8 @@ the game is built around Brazilian football. The simulation core is in Python an
 client is in Godot.
 
 > Status: Milestone 0 in progress. Specs 001 (core domain model), 002 (competitions and
-> calendar), 003 (quick sim) and 004 (career save and game loop) are implemented. See [docs/roadmap.md](docs/roadmap.md).
+> calendar), 003 (quick sim), 004 (career save and game loop) and 005 (playable season in the
+> terminal) are implemented. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Quick start (Windows, PowerShell)
 
@@ -44,6 +45,16 @@ Checks: `cd core; ruff check .; mypy; pytest -q`. Validation guides:
 [003](specs/003-quick-sim/quickstart.md),
 [004](specs/004-career-save/quickstart.md).
 
+## Play (terminal)
+
+```powershell
+pip install -e "tui[dev]"
+python -m manager_core career new minha --club alvorada   # create a career once
+python -m manager_tui minha                               # play: Space = Continuar, Q = save and quit
+```
+
+Keys and screens: [specs/005-terminal-season/quickstart.md](specs/005-terminal-season/quickstart.md).
+
 ## Docs
 - [Product vision](docs/vision.md): what the game is and the decisions behind it
 - [Roadmap](docs/roadmap.md): milestones, spec order and the pain-point log
@@ -59,6 +70,7 @@ Real club and player data is **not** in this repository. It lives in a private d
 This repo only contains code and a fictional sample dataset.
 
 ## Layout
+- `tui/`: the terminal game (Textual), which calls only the core facade
 - `core/`: headless Python simulation core (`manager_core`): domain model, ratings, CSV I/O,
   competitions (rulesets as TOML data, season engine, calendar), quick sim and calibration, CLI
 - `data/sample/`: committed fictional sample world (generated, deterministic)
