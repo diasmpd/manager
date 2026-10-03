@@ -82,6 +82,8 @@ class MatchReport:
     away_finishers: tuple[str, ...]
     stoppage: tuple[int, int]
     model_version: str
+    home_keeper: str | None = None  # in the GK slot at the final whistle (engine-recorded)
+    away_keeper: str | None = None
 
     def stats(self, side: str) -> SideStats:
         return self.home if side == HOME else self.away
@@ -91,6 +93,9 @@ class MatchReport:
 
     def finishers(self, side: str) -> tuple[str, ...]:
         return self.home_finishers if side == HOME else self.away_finishers
+
+    def keeper(self, side: str) -> str | None:
+        return self.home_keeper if side == HOME else self.away_keeper
 
 
 def card_counts(events: Sequence[MatchEvent], side: str) -> tuple[int, int]:
@@ -180,18 +185,13 @@ def _check_players(report: MatchReport) -> list[str]:
             problems.append(f"too_many_windows:{side}")
         if set(report.finishers(side)) != on[side]:
             problems.append(f"finishers:{side}")
+        keeper = report.keeper(side)
+        if keeper is not None and keeper not in report.finishers(side):
+            problems.append(f"keeper_not_on_pitch:{side}")
     return problems
 
 
 def keeper_at_end(report: MatchReport, side: str) -> str | None:
-    """The player in goal at the final whistle: the starting keeper if he finished, otherwise
-    the reserve keeper who came on (the last substitute still on the pitch)."""
-    lineup = report.lineup(side)
-    finishers = set(report.finishers(side))
-    keeper = next((pid for pos, pid in lineup.starters if pos is Position.GK), None)
-    if keeper in finishers:
-        return keeper
-    for e in reversed(report.events):
-        if e.kind == "sub" and e.side == side and e.other_player_id in finishers:
-            return e.other_player_id
-    return None
+    """The player in goal at the final whistle, as recorded by the engine: the reserve keeper
+    after a keeper's red card, or the outfield player who went in goal."""
+    return report.keeper(side)

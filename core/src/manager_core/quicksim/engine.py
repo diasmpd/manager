@@ -460,7 +460,12 @@ class _Match:
             home_finishers=tuple(pid for _, pid in home.on_pitch()),
             away_finishers=tuple(pid for _, pid in away.on_pitch()),
             stoppage=stoppage, model_version=self.params.model_version,
+            home_keeper=_id(goalkeeper_on(home)), away_keeper=_id(goalkeeper_on(away)),
         )
+
+
+def _id(player: Player | None) -> str | None:
+    return player.id if player is not None else None
 
 
 def _fit(player: Player, position: Position) -> int:
