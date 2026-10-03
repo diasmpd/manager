@@ -1,0 +1,401 @@
+# Opções táticas no modelo do FM26 (spec 006, research R1). Ids em inglês; rótulos em pt-BR.
+# Fontes: página do FM26 "In Possession, Out of Possession", guia de instruções do FMScout e
+# base de instruções do FM Sidekick (consultadas em 2026-10-03).
+format_version = 1
+
+# ---- mentalidade (7 níveis, efeito real: decisão do dono) ------------------------------------
+[mentality]
+label = "Mentalidade"
+default = "balanced"
+settings = ["very_defensive", "defensive", "cautious", "balanced", "positive", "attacking",
+            "very_attacking"]
+labels = ["Muito defensiva", "Defensiva", "Cautelosa", "Equilibrada", "Positiva", "Ofensiva",
+          "Muito ofensiva"]
+
+# ---- instruções de equipe: com a bola ---------------------------------------------------------
+[[team]]
+id = "passing_directness"
+phase = "ip_overview"
+label = "Objetividade do passe"
+settings = ["much_shorter", "shorter", "balanced", "more_direct", "much_more_direct"]
+labels = ["Muito mais curto", "Mais curto", "Equilibrado", "Mais direto", "Muito mais direto"]
+default = "balanced"
+
+[[team]]
+id = "tempo"
+phase = "ip_overview"
+label = "Ritmo"
+settings = ["lower", "standard", "higher"]
+labels = ["Mais lento", "Normal", "Mais rápido"]
+default = "standard"
+
+[[team]]
+id = "time_wasting"
+phase = "ip_overview"
+label = "Fazer cera"
+settings = ["less_often", "standard", "more_often"]
+labels = ["Menos", "Normal", "Mais"]
+default = "standard"
+
+[[team]]
+id = "attacking_transition"
+phase = "ip_overview"
+label = "Transição ofensiva"
+settings = ["counter", "standard", "patient"]
+labels = ["Contra-ataque", "Normal", "Construção paciente"]
+default = "standard"
+
+[[team]]
+id = "attacking_width"
+phase = "ip_overview"
+label = "Largura ofensiva"
+settings = ["much_narrower", "narrower", "standard", "wider", "much_wider"]
+labels = ["Muito mais estreita", "Mais estreita", "Normal", "Mais larga", "Muito mais larga"]
+default = "standard"
+
+[[team]]
+id = "creative_freedom"
+phase = "ip_overview"
+label = "Liberdade criativa"
+settings = ["disciplined", "balanced", "expressive"]
+labels = ["Mais disciplinado", "Equilibrado", "Mais expressivo"]
+default = "balanced"
+
+[[team]]
+id = "play_for_set_pieces"
+phase = "ip_overview"
+label = "Jogar pela bola parada"
+settings = ["keep_ball_in_play", "standard"]
+labels = ["Manter a bola em jogo", "Normal"]
+default = "standard"
+
+[[team]]
+id = "build_up_strategy"
+phase = "ip_build_up"
+label = "Estratégia de saída"
+settings = ["play_through_press", "mixed", "direct"]
+labels = ["Sair jogando sob pressão", "Misto", "Direto"]
+default = "mixed"
+
+[[team]]
+id = "goal_kicks"
+phase = "ip_build_up"
+label = "Tiros de meta"
+settings = ["short", "mixed", "long"]
+labels = ["Curtos", "Mistos", "Longos"]
+default = "mixed"
+
+[[team]]
+id = "gk_distribution_speed"
+phase = "ip_build_up"
+label = "Velocidade da reposição do goleiro"
+settings = ["slower", "balanced", "faster"]
+labels = ["Mais lenta", "Equilibrada", "Mais rápida"]
+default = "balanced"
+
+[[team]]
+id = "gk_distribution_target"
+phase = "ip_build_up"
+label = "Alvo da reposição do goleiro"
+settings = ["centre_backs", "full_backs", "midfielders", "forwards"]
+labels = ["Zagueiros", "Laterais", "Meio-campistas", "Atacantes"]
+default = "centre_backs"
+
+[[team]]
+id = "pass_reception_progression"
+phase = "ip_progression"
+label = "Recepção do passe (progressão)"
+settings = ["balanced", "overlapped"]
+labels = ["Equilibrada", "Sobreposta"]
+default = "balanced"
+
+[[team]]
+id = "dribbling_progression"
+phase = "ip_progression"
+label = "Drible (progressão)"
+settings = ["reduced", "balanced", "encouraged"]
+labels = ["Menos", "Equilibrado", "Mais"]
+default = "balanced"
+
+[[team]]
+id = "supporting_runs"
+phase = "ip_progression"
+label = "Corridas de apoio"
+settings = ["both_flanks", "one_flank", "balanced"]
+labels = ["Pelos dois lados", "Por um lado", "Equilibradas"]
+default = "balanced"
+
+[[team]]
+id = "progress_through"
+phase = "ip_progression"
+label = "Progredir por"
+settings = ["left", "balanced", "right"]
+labels = ["Esquerda", "Equilibrado", "Direita"]
+default = "balanced"
+
+[[team]]
+id = "dribbling_final_third"
+phase = "ip_final_third"
+label = "Drible (último terço)"
+settings = ["reduced", "balanced", "encouraged"]
+labels = ["Menos", "Equilibrado", "Mais"]
+default = "balanced"
+
+[[team]]
+id = "pass_reception_final_third"
+phase = "ip_final_third"
+label = "Recepção do passe (último terço)"
+settings = ["balanced", "overlapped"]
+labels = ["Equilibrada", "Sobreposta"]
+default = "balanced"
+
+[[team]]
+id = "patience"
+phase = "ip_final_third"
+label = "Paciência"
+settings = ["work_ball_into_box", "balanced", "less_often"]
+labels = ["Trabalhar a bola até a área", "Equilibrada", "Menos"]
+default = "balanced"
+
+[[team]]
+id = "shots_from_distance"
+phase = "ip_final_third"
+label = "Chutes de longe"
+settings = ["reduced", "balanced", "encouraged"]
+labels = ["Menos", "Equilibrado", "Mais"]
+default = "balanced"
+
+[[team]]
+id = "crossing_style"
+phase = "ip_final_third"
+label = "Estilo de cruzamento"
+settings = ["low", "balanced", "high"]
+labels = ["Rasteiros", "Equilibrado", "Altos"]
+default = "balanced"
+
+# ---- instruções de equipe: sem a bola ---------------------------------------------------------
+[[team]]
+id = "line_of_engagement"
+phase = "oop_overview"
+label = "Linha de marcação"
+settings = ["high_press", "mid_block", "low_block"]
+labels = ["Pressão alta", "Bloco médio", "Bloco baixo"]
+default = "mid_block"
+
+[[team]]
+id = "defensive_line"
+phase = "oop_overview"
+label = "Linha defensiva"
+settings = ["deeper", "standard", "higher", "much_higher"]
+labels = ["Mais recuada", "Normal", "Mais alta", "Muito mais alta"]
+default = "standard"
+
+[[team]]
+id = "defensive_line_behaviour"
+phase = "oop_overview"
+label = "Comportamento da linha"
+settings = ["balanced", "offside_trap", "step_up"]
+labels = ["Equilibrado", "Linha de impedimento", "Subir a linha"]
+default = "balanced"
+
+[[team]]
+id = "trigger_press"
+phase = "oop_overview"
+label = "Gatilho de pressão"
+settings = ["less_often", "balanced", "more_often"]
+labels = ["Menos", "Equilibrado", "Mais"]
+default = "balanced"
+
+[[team]]
+id = "defensive_transition"
+phase = "oop_overview"
+label = "Transição defensiva"
+settings = ["counter_press", "standard", "regroup"]
+labels = ["Contrapressão", "Normal", "Recompor"]
+default = "standard"
+
+[[team]]
+id = "tackling"
+phase = "oop_overview"
+label = "Desarmes"
+settings = ["ease_off", "standard", "aggressive"]
+labels = ["Mais leves", "Normais", "Mais duros"]
+default = "standard"
+
+[[team]]
+id = "pressing_trap_high"
+phase = "oop_high_press"
+label = "Armadilha de pressão (pressão alta)"
+settings = ["balanced", "active"]
+labels = ["Equilibrada", "Ativa"]
+default = "balanced"
+
+[[team]]
+id = "prevent_short_gk_distribution"
+phase = "oop_high_press"
+label = "Impedir saída curta do goleiro"
+settings = ["no", "yes"]
+labels = ["Não", "Sim"]
+default = "no"
+
+[[team]]
+id = "pressing_trap_mid"
+phase = "oop_mid_block"
+label = "Armadilha de pressão (bloco médio)"
+settings = ["balanced", "active"]
+labels = ["Equilibrada", "Ativa"]
+default = "balanced"
+
+[[team]]
+id = "cross_engagement_mid"
+phase = "oop_mid_block"
+label = "Combate aos cruzamentos (bloco médio)"
+settings = ["hold_position", "balanced", "contest"]
+labels = ["Manter posição", "Equilibrado", "Disputar"]
+default = "balanced"
+
+[[team]]
+id = "pressing_trap_low"
+phase = "oop_low_block"
+label = "Armadilha de pressão (bloco baixo)"
+settings = ["balanced", "active"]
+labels = ["Equilibrada", "Ativa"]
+default = "balanced"
+
+[[team]]
+id = "cross_engagement_low"
+phase = "oop_low_block"
+label = "Combate aos cruzamentos (bloco baixo)"
+settings = ["hold_position", "balanced", "contest"]
+labels = ["Manter posição", "Equilibrado", "Disputar"]
+default = "balanced"
+
+# ---- instruções individuais (FM26: 10 com a bola, 4 sem a bola) ------------------------------
+[[player]]
+id = "attacking_width"
+phase = "ip"
+label = "Largura"
+settings = ["standard", "stay_wider", "sit_narrower", "move_into_channels"]
+labels = ["Normal", "Mais aberto", "Mais por dentro", "Buscar os corredores"]
+
+[[player]]
+id = "cross_from"
+phase = "ip"
+label = "Cruzar de"
+settings = ["standard", "byline", "deep"]
+labels = ["Normal", "Linha de fundo", "Mais de trás"]
+
+[[player]]
+id = "crossing_strategy"
+phase = "ip"
+label = "Estratégia de cruzamento"
+settings = ["standard", "target_forward", "near_post", "centre", "far_post"]
+labels = ["Normal", "No centroavante", "Primeiro pau", "No meio", "Segundo pau"]
+
+[[player]]
+id = "dribbling_direction"
+phase = "ip"
+label = "Direção do drible"
+settings = ["standard", "cut_inside", "run_wide"]
+labels = ["Normal", "Cortar para dentro", "Ir para o fundo"]
+
+[[player]]
+id = "dribbling_frequency"
+phase = "ip"
+label = "Frequência do drible"
+settings = ["less", "standard", "more"]
+labels = ["Menos", "Normal", "Mais"]
+
+[[player]]
+id = "forward_runs"
+phase = "ip"
+label = "Infiltrações"
+settings = ["more", "standard", "fewer"]
+labels = ["Mais", "Normal", "Menos"]
+
+[[player]]
+id = "freedom_of_movement"
+phase = "ip"
+label = "Liberdade de movimentação"
+settings = ["follow_position", "roam"]
+labels = ["Manter a posição", "Flutuar"]
+
+[[player]]
+id = "hold_up_ball"
+phase = "ip"
+label = "Segurar a bola"
+settings = ["no", "yes"]
+labels = ["Não", "Sim"]
+
+[[player]]
+id = "passing_risk"
+phase = "ip"
+label = "Risco no passe"
+settings = ["fewer", "standard", "more"]
+labels = ["Menos riscos", "Normal", "Mais riscos"]
+
+[[player]]
+id = "shoot"
+phase = "ip"
+label = "Finalizar"
+settings = ["less_often", "standard", "more_often"]
+labels = ["Menos", "Normal", "Mais"]
+
+[[player]]
+id = "marking"
+phase = "oop"
+label = "Marcação"
+settings = ["standard", "tighter"]
+labels = ["Normal", "Mais justa"]
+
+[[player]]
+id = "marking_target"
+phase = "oop"
+label = "Alvo da marcação"
+settings = ["standard", "position", "specific"]
+labels = ["Normal", "Por posição", "Jogador específico"]
+
+[[player]]
+id = "pressing"
+phase = "oop"
+label = "Pressão"
+settings = ["less_often", "standard", "more_often"]
+labels = ["Menos", "Normal", "Mais"]
+
+[[player]]
+id = "tackling"
+phase = "oop"
+label = "Desarmes"
+settings = ["ease_off", "standard", "harder"]
+labels = ["Mais leves", "Normais", "Mais duros"]
+
+# ---- bola parada --------------------------------------------------------------------------------
+[set_pieces]
+takers = ["penalties", "corners_left", "corners_right", "free_kicks_direct",
+          "free_kicks_indirect", "long_throws", "captain"]
+taker_labels = ["Pênaltis", "Escanteios (esquerda)", "Escanteios (direita)", "Faltas diretas",
+                "Faltas indiretas", "Laterais longos", "Capitão"]
+
+[[set_pieces.setups]]
+id = "attacking_corners"
+label = "Escanteios a favor"
+settings = ["mixed", "near_post", "far_post", "short"]
+labels = ["Misto", "Primeiro pau", "Segundo pau", "Curto"]
+
+[[set_pieces.setups]]
+id = "defending_corners"
+label = "Escanteios contra"
+settings = ["mixed", "zonal", "man"]
+labels = ["Misto", "Por zona", "Individual"]
+
+[[set_pieces.setups]]
+id = "attacking_free_kicks"
+label = "Faltas a favor"
+settings = ["mixed", "direct", "into_box", "short"]
+labels = ["Misto", "Chute direto", "Na área", "Curto"]
+
+[[set_pieces.setups]]
+id = "defending_free_kicks"
+label = "Faltas contra"
+settings = ["mixed", "zonal", "man"]
+labels = ["Misto", "Por zona", "Individual"]

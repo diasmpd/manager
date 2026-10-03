@@ -1,0 +1,115 @@
+"""A team's tactic on the FM26 model (spec 006 FR-001, FR-003).
+
+A tactic has an in-possession (IP) and an out-of-possession (OOP) formation, a 7-level mentality,
+every team instruction (by phase), an IP and an OOP role plus individual instructions per slot,
+and set-piece takers and setups. There are no duties (FM26).
+"""
+
+from __future__ import annotations
+
+from collections.abc import Set
+from dataclasses import dataclass
+
+from manager_core.domain.formation import load_catalogue
+from manager_core.tactics.catalogue import IP, OOP, load_options, load_roles, suggest_oop
+
+
+@dataclass(frozen=True, slots=True)
+class SlotTactic:
+    slot: int  # index in the IP formation
+    ip_role: str
+    oop_role: str
+    instructions: tuple[tuple[str, str], ...] = ()  # player instruction id, setting
+
+
+@dataclass(frozen=True, slots=True)
+class SetPieces:
+    takers: tuple[tuple[str, str | None], ...] = ()  # taker id -> player id (None = auto)
+    setups: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Tactic:
+    ip_formation: str
+    oop_formation: str
+    mentality: str
+    team: tuple[tuple[str, str], ...]  # team instruction id -> setting, sorted
+    slots: tuple[SlotTactic, ...]
+    set_pieces: SetPieces = SetPieces()
+    style: str | None = None  # AI style id, if any
+
+    def setting(self, instruction: str) -> str:
+        return dict(self.team)[instruction]
+
+
+@dataclass(frozen=True, slots=True)
+class TacticIssue:
+    code: str  # T001 unknown option / T002 role / T003 locked / T004 taker / T005 formation
+    path: str
+
+
+def default_team_instructions() -> tuple[tuple[str, str], ...]:
+    return tuple(sorted((o.id, o.default) for o in load_options().team))
+
+
+def default_tactic(ip_formation: str = "4-4-2", oop_formation: str | None = None,
+                   style: str | None = None) -> Tactic:
+    formation = load_catalogue()[ip_formation]
+    defaults = load_roles().defaults
+    options = load_options()
+    slots = tuple(SlotTactic(s.index, *defaults[s.position]) for s in formation.slots)
+    set_pieces = SetPieces(tuple((t, None) for t in options.takers),
+                           tuple((o.id, o.settings[0]) for o in options.setups))
+    return Tactic(ip_formation, oop_formation or suggest_oop(ip_formation)[0],
+                  options.mentality.default, default_team_instructions(), slots, set_pieces,
+                  style)
+
+
+def validate(tactic: Tactic, squad: Set[str] | None = None) -> list[TacticIssue]:
+    issues: list[TacticIssue] = []
+    catalogue = load_catalogue()
+    options = load_options()
+    roles = load_roles().roles
+    for path, name in (("ip_formation", tactic.ip_formation),
+                       ("oop_formation", tactic.oop_formation)):
+        if name not in catalogue:
+            issues.append(TacticIssue("T005", path))
+    if tactic.mentality not in options.mentality.settings:
+        issues.append(TacticIssue("T001", "mentality"))
+    for option_id, setting in tactic.team:
+        option = options.team_option(option_id)
+        if option is None or setting not in option.settings:
+            issues.append(TacticIssue("T001", f"team.{option_id}"))
+    if tactic.ip_formation not in catalogue:
+        return issues
+    formation = catalogue[tactic.ip_formation]
+    if sorted(s.slot for s in tactic.slots) != [s.index for s in formation.slots]:
+        issues.append(TacticIssue("T002", "slots"))
+        return issues
+    for slot in tactic.slots:
+        position = formation.slots[slot.slot].position
+        path = f"slots[{slot.slot}]"
+        for phase, role_id in ((IP, slot.ip_role), (OOP, slot.oop_role)):
+            role = roles.get(role_id)
+            if role is None or role.phase != phase or position not in role.positions:
+                issues.append(TacticIssue("T002", f"{path}.{phase}_role"))
+        locked: dict[str, str] = {}
+        for role_id in (slot.ip_role, slot.oop_role):
+            if role_id in roles:
+                locked.update(roles[role_id].locked)
+        for instr, setting in slot.instructions:
+            option = options.player_option(instr)
+            if option is None or setting not in option.settings:
+                issues.append(TacticIssue("T001", f"{path}.{instr}"))
+            elif instr in locked and locked[instr] != setting:
+                issues.append(TacticIssue("T003", f"{path}.{instr}"))
+    for taker, player_id in tactic.set_pieces.takers:
+        if taker not in options.takers:
+            issues.append(TacticIssue("T001", f"set_pieces.{taker}"))
+        elif player_id is not None and squad is not None and player_id not in squad:
+            issues.append(TacticIssue("T004", f"set_pieces.{taker}"))
+    for setup, setting in tactic.set_pieces.setups:
+        option = options.setup_option(setup)
+        if option is None or setting not in option.settings:
+            issues.append(TacticIssue("T001", f"set_pieces.{setup}"))
+    return issues
