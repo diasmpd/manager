@@ -39,4 +39,7 @@ files = ["src/manager_core"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
-markers = ["slow: slower checks (performance); still run in CI"]
+markers = [
+    "slow: slower checks (performance); still run in CI",
+    "milestone: milestone-gate checks (Constitution I), run before closing a milestone, not in CI",
+]

@@ -61,6 +61,7 @@ def test_seasons_complete(world: Dataset, seed: int) -> None:
 
 
 @pytest.mark.slow
+@pytest.mark.milestone
 @pytest.mark.parametrize("seed", range(50, 1000))
 def test_seasons_complete_1000(world: Dataset, seed: int) -> None:
     _check_season(_played(world, seed))

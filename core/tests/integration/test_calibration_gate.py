@@ -62,6 +62,7 @@ def test_a_broken_parameter_fails_the_gate(world: Dataset) -> None:
 
 
 @pytest.mark.slow
+@pytest.mark.milestone
 def test_milestone_gate_passes(world: Dataset) -> None:
     report = run(world, "milestone")
     failing = {r.target.id: round(r.value, 3) for r in report.results if r.verdict == "fail"}
