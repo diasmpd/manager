@@ -76,6 +76,18 @@ working game.
 - Finances and board, scouting, staff, media and morale.
 - Full real-data import with provenance.
 
+### Living world (owner's five-year picture, see vision)
+
+Features to place in later milestones once the core game is complete. Each will get its own spec:
+
+- **Match importance** model (competition, stage, rivalry, stakes): the input for everything
+  below.
+- **Supporters**: attendance, travelling fans, home pressure and city mood by importance.
+- **Officials**: a referee pool with levels and styles, assigned by competition and
+  importance.
+- **Match-day events**: build-up, entrance ceremonies and city events for finals and derbies.
+- **Media and morale** reacting to the stakes (overlaps with v1's media and morale).
+
 ## Later
 
 2D match view → Libertadores and Sul-Americana → 3D match view → online leagues with friends.

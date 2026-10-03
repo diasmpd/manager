@@ -28,6 +28,27 @@ refines one part of it.
   - Scouting, staff and media: scouts, coaching staff, press conferences, morale.
 - **Language**: game in PT-BR. Code and docs in English.
 
+## The five-year picture: a living football world
+
+The owner's long-term aim (2026-10-03): in about five years the game should feel *complete*. It
+should be a living football world that reacts the way real life does, not only correct results.
+The weight of a match changes everything around it:
+
+- **Supporters and the city**: a Mineiro group game is an ordinary day. A Libertadores final
+  stops the city: fans travel, there is a buzz before the match and events around the city.
+- **Match-day ceremony**: big matches have an entrance ceremony, tifos and a different build-up.
+- **Officials**: the referee depends on the competition and the match's importance (an elite
+  or FIFA referee for a final, a local one for a small state game), and refereeing style
+  matters.
+- **Atmosphere effects**: crowd size, noise and pressure follow the stakes, and they act on
+  players and match behaviour (with measured, realistic trade-offs: Principle I and V).
+
+The building block is the **importance of a match**: a derived value from the competition,
+the stage, the rivalry and what is at stake. Supporters, officials, events, media and player
+nerves will all read it. Specs build toward this step by step and do not build it early
+(Constitution VII). Until then, each spec keeps the extension point open, for example by
+carrying the competition and stage into the match context.
+
 ## Realism priorities
 
 1. Match statistics consistent with real leagues: goals, shots, xG, possession, fouls, cards.
