@@ -111,6 +111,8 @@ may_exceed_window = true            # leg 2 the weekend after the Mineiro final 
 |---|---|---|
 | `format_version` | `1` | A file with a higher major version is refused |
 | `stages[].type` | `groups`, `knockout` | |
+| `weekend_days`, `midweek_days` | weekday names | A block of days that may wrap round the week: `["sun", "mon"]` is Sunday then the next Monday |
+| `outcomes` | list | Several `relegated` rules accumulate (in table order) |
 | `stages[].name` | text | Optional in-game display name (pt-BR, data like club names); defaults to the id |
 | `stages[].title` | text | The title a track awards, on its final stage (e.g. "Campeão Mineiro") |
 | `matching` | `own_group`, `other_groups`, `all` | `all` ignores groups |
@@ -139,7 +141,8 @@ blocks = ["state"]
 ```
 
 Fixed windows apply to every year. An optional `brazil-<year>.toml` adds that year's specific
-dates (e.g. FIFA windows) and replaces the fixed windows that share a label with them, so
+dates (e.g. FIFA windows) and replaces every fixed window that shares a label with them,
+whether dated or Easter-based (a label is one window whatever its kind), so
 `brazil.toml` can hold default FIFA dates for years without their own file. Easter-based windows are computed:
 
 ```toml

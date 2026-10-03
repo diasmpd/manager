@@ -34,10 +34,20 @@ class Slot:
         return self.days[0]
 
 
+def day_block(days: tuple[int, ...]) -> tuple[int, tuple[int, ...]]:
+    """(first weekday, offsets) of a block of weekdays that may wrap round the week: the
+    block starts after the largest gap, so Sunday+Monday is Sunday then the next day."""
+    ordered = sorted(set(days))
+    n = len(ordered)
+    gaps = [(ordered[(i + 1) % n] - ordered[i]) % 7 or 7 for i in range(n)]
+    first = ordered[(gaps.index(max(gaps)) + 1) % n]
+    return first, tuple(sorted((d - first) % 7 for d in ordered))
+
+
 def resolve_window(cal: CalendarRule, year: int) -> tuple[date, date]:
     """Window start = first weekend (its first day) on or after window_start."""
     start = date(year, *cal.window_start)
-    first_weekend_day = min(cal.weekend_days)
+    first_weekend_day = day_block(cal.weekend_days)[0]
     while start.weekday() != first_weekend_day:
         start += timedelta(days=1)
     return start, date(year, *cal.window_end)
@@ -45,17 +55,15 @@ def resolve_window(cal: CalendarRule, year: int) -> tuple[date, date]:
 
 def _slots(kind_days: tuple[int, ...], kind: str, start: date, end: date | None,
            blocked: frozenset[date], limit: int | None = None) -> list[Slot]:
-    first = min(kind_days)
+    first, offsets = day_block(kind_days)
     d = start
     while d.weekday() != first:
         d += timedelta(days=1)
     slots: list[Slot] = []
     while (end is None or d <= end) and (limit is None or len(slots) < limit):
-        days = tuple(
-            d + timedelta(days=wd - first) for wd in sorted(kind_days)
-            if (end is None or d + timedelta(days=wd - first) <= end)
-            and d + timedelta(days=wd - first) not in blocked
-        )
+        candidates = [d + timedelta(days=k) for k in offsets]
+        days = tuple(day for day in candidates
+                     if (end is None or day <= end) and day not in blocked)
         if days:
             slots.append(Slot(kind, days))
         d += timedelta(days=7)
