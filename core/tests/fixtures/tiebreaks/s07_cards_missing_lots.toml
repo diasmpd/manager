@@ -1,0 +1,4 @@
+name = "sem dados de cartões: critérios neutros, sorteio decide"
+clubs = ["a", "b", "w", "x", "y", "z"]
+matches = [["a","x",1,0], ["y","a",1,0], ["b","z",1,0], ["w","b",1,0], ["y","x",2,0], ["w","z",2,0]]
+expect_decided_by_any = { a = "draw", b = "draw" }

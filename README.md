@@ -4,8 +4,8 @@ A personal football management game for Windows. Football Manager is the realism
 the game is built around Brazilian football. The simulation core is in Python and the desktop
 client is in Godot.
 
-> Status: Milestone 0 in progress. Spec 001 (core domain model) is implemented. See
-> [docs/roadmap.md](docs/roadmap.md).
+> Status: Milestone 0 in progress. Specs 001 (core domain model) and 002 (competitions and
+> calendar) are implemented. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Quick start (Windows, PowerShell)
 
@@ -17,10 +17,20 @@ python -m manager_core club squad vale-do-ouro          # a squad
 python -m manager_core player show p-000026             # an FM-style player profile
 python -m manager_core lineup suggest vale-do-ouro --formation 4-3-3
 python -m manager_core data validate data/sample        # import validation report
+
+# a Campeonato Mineiro season (results are provisional until the quick sim, spec 003)
+python -m manager_core season groups                    # the draw
+python -m manager_core season fixtures --club alvorada  # one club's dates
+python -m manager_core season --date 2027-02-01 table   # overall classification on a date
+python -m manager_core season bracket                   # semifinals, final, Troféu Inconfidência
+python -m manager_core season outcomes                  # champion, relegated, final order
+python -m manager_core season calendar --month 2        # February day by day
+python -m manager_core season rules                     # bundled competition rulesets
 ```
 
-Checks: `cd core; ruff check .; mypy; pytest -q`. The full validation guide is
-[specs/001-core-domain-model/quickstart.md](specs/001-core-domain-model/quickstart.md).
+Checks: `cd core; ruff check .; mypy; pytest -q`. Validation guides:
+[001](specs/001-core-domain-model/quickstart.md),
+[002](specs/002-competitions-calendar/quickstart.md).
 
 ## Docs
 - [Product vision](docs/vision.md): what the game is and the decisions behind it
@@ -37,7 +47,8 @@ Real club and player data is **not** in this repository. It lives in a private d
 This repo only contains code and a fictional sample dataset.
 
 ## Layout
-- `core/`: headless Python simulation core (`manager_core`): domain model, ratings, CSV I/O, CLI
+- `core/`: headless Python simulation core (`manager_core`): domain model, ratings, CSV I/O,
+  competitions (rulesets as TOML data, season engine, calendar), CLI
 - `data/sample/`: committed fictional sample world (generated, deterministic)
 - `specs/`, `docs/`, `.specify/`: specifications and project governance
 

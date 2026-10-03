@@ -6,12 +6,19 @@ Spec 004 (saves) and 010 (out-of-process API) will replace it with a session/han
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import dataclasses
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
+from manager_core.competition import rules
+from manager_core.competition.calendar import CalendarDay
+from manager_core.competition.results import Result, ResultProvider
+from manager_core.competition.rules import Ruleset, RulesetReport, RulesetSummary
+from manager_core.competition.season import Match, Outcome, Season, SeasonEvent
+from manager_core.competition.standings import TableRow
 from manager_core.domain.attributes import (
     ATTRIBUTE_GROUPS,
     AttributeGroup,
@@ -32,6 +39,7 @@ from manager_core.ratings.suitability import suitability_milli
 
 SquadSort = Literal["position", "ca", "age", "number"]
 DEFAULT_SEED = 20261002
+DEFAULT_RULESET = "mg-modulo-i-2026"  # the CLI default (contracts/cli.md)
 
 __all__ = [
     "ClubSummary",
@@ -304,3 +312,154 @@ def suggest_lineup(dataset: Dataset, club_id: str, formation: str = "4-4-2") -> 
 
 def list_formations() -> list[Formation]:
     return list(load_catalogue().values())
+
+
+# ---- competitions (spec 002) -----------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class GroupView:
+    label: str
+    club_ids: tuple[str, ...]
+    club_names: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MatchView:
+    id: str
+    stage_id: str
+    round: int
+    kickoff: datetime
+    home_id: str
+    home_name: str
+    away_id: str
+    away_name: str
+    venue: str
+    result: Result | None
+
+
+def list_rulesets() -> list[RulesetSummary]:
+    return rules.list_rulesets()
+
+
+def load_ruleset(ruleset_id: str) -> Ruleset:
+    try:
+        return rules.load_ruleset(ruleset_id)
+    except rules.RulesetNotFoundError:
+        raise NotFoundError("ruleset", ruleset_id) from None
+
+
+def validate_ruleset(path: Path) -> RulesetReport:
+    return rules.validate_ruleset_file(path)
+
+
+def start_season(dataset: Dataset, ruleset_id: str, year: int, master_seed: int,
+                 participants: Sequence[str] | None = None, *,
+                 result_provider: ResultProvider | None = None) -> Season:
+    """Participants default to the clubs of the ruleset's state, sorted by id."""
+    for club_id in participants or ():
+        if club_id not in dataset.clubs:
+            raise NotFoundError("club", club_id)
+    return Season.start(dataset, load_ruleset(ruleset_id), year, master_seed, participants,
+                        result_provider)
+
+
+def season_groups(season: Season) -> list[GroupView]:
+    return [GroupView(g.label, g.club_ids, tuple(season.club_name(c) for c in g.club_ids))
+            for g in season.groups]
+
+
+def _match_view(season: Season, m: Match) -> MatchView:
+    return MatchView(m.id, m.stage_id, m.round, m.kickoff, m.home_id, season.club_name(m.home_id),
+                     m.away_id, season.club_name(m.away_id), m.venue, season.results.get(m.id))
+
+
+def match_view(season: Season, match_id: str) -> MatchView:
+    if match_id not in season.matches:
+        raise NotFoundError("match", match_id)
+    return _match_view(season, season.matches[match_id])
+
+
+def season_fixtures(season: Season, club_id: str | None = None,
+                    round: int | None = None) -> list[MatchView]:
+    if club_id is not None and club_id not in season.participants:
+        raise NotFoundError("club", club_id)
+    return [
+        _match_view(season, m) for m in season.sorted_matches()
+        if (club_id is None or club_id in (m.home_id, m.away_id))
+        and (round is None or (m.stage_id == season.ruleset.group_stage.id and m.round == round))
+    ]
+
+
+@dataclass(frozen=True, slots=True)
+class TieView:
+    id: str
+    stage_id: str
+    track: str
+    high_id: str
+    high_name: str
+    low_id: str
+    low_name: str
+    legs: tuple[MatchView, ...]
+    winner_id: str | None
+    decided_by: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class DayView:
+    day: date
+    matches: tuple[MatchView, ...]
+    events: tuple[SeasonEvent, ...]
+
+
+def advance_to(season: Season, day: date) -> list[SeasonEvent]:
+    return season.advance_to(day)
+
+
+def season_table(season: Season, group: str | None = None) -> list[TableRow]:
+    """A group table, or the overall classification (group=None), with zones once decided."""
+    if group is not None and group not in {g.label for g in season.groups}:
+        raise NotFoundError("group", group)
+    rows = season.group_table(group) if group is not None else season.overall_table()
+    zones: dict[str, str] = {}
+    for track in season.ruleset.tracks():
+        first = season.ruleset.first_stage_of(track)
+        for club in season.stage_entrants.get(first.id, []):
+            zones.setdefault(club, f"track:{track}")
+    for club in season.relegated:
+        zones[club] = "relegated"
+    return [dataclasses.replace(r, zone=zones.get(r.club_id)) for r in rows]
+
+
+def season_bracket(season: Season) -> list[TieView]:
+    views = []
+    for tie in sorted(season.ties.values(), key=lambda t: (
+            [s.id for s in season.ruleset.stages].index(t.stage_id), t.id)):
+        outcome = season.tie_outcomes.get(tie.id)
+        legs = tuple(_match_view(season, season.matches[m]) for m in season.tie_matches[tie.id])
+        views.append(TieView(tie.id, tie.stage_id, tie.track, tie.high_id,
+                             season.club_name(tie.high_id), tie.low_id,
+                             season.club_name(tie.low_id), legs,
+                             outcome.winner_id if outcome else None,
+                             outcome.decided_by if outcome else None))
+    return views
+
+
+def season_day(season: Season, day: date) -> DayView:
+    matches = tuple(_match_view(season, m) for m in season.sorted_matches()
+                    if m.kickoff.date() == day)
+    return DayView(day, matches, tuple(e for e in season.events if e.day == day))
+
+
+def season_outcomes(season: Season) -> Outcome | None:
+    return season.outcome()
+
+
+def season_calendar(season: Season, month: int | None = None) -> list[CalendarDay]:
+    """Every day of the season's year, or of one month (1-12)."""
+    calendar = season.calendar()
+    if month is None:
+        return list(calendar.days)
+    if not 1 <= month <= 12:
+        raise NotFoundError("month", str(month))
+    return list(calendar.month(month))

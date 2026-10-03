@@ -1,0 +1,73 @@
+# Janelas reservadas do calendário brasileiro (aproximadas; refinadas quando as competições
+# nacionais forem especificadas). Datas fixas valem para todos os anos; brazil-<ano>.toml
+# traz as datas específicas de um ano e substitui as fixas de mesmo rótulo (ex.: "fifa");
+# janelas de Páscoa são calculadas.
+
+# Datas FIFA padrão (aproximadas), usadas nos anos sem brazil-<ano>.toml.
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "03-23"
+to = "03-31"
+blocks = ["state"]
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "06-01"
+to = "06-09"
+blocks = ["state"]
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "09-01"
+to = "09-09"
+blocks = ["state"]
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "10-05"
+to = "10-13"
+blocks = ["state"]
+
+[[windows]]
+label = "fifa"
+name = "Data FIFA"
+from = "11-09"
+to = "11-17"
+blocks = ["state"]
+
+[[windows]]
+label = "copa-do-brasil"
+name = "Copa do Brasil (fases iniciais)"
+from = "02-18"
+to = "05-31"
+
+[[windows]]
+label = "brasileirao"
+name = "Brasileirão Séries A–D"
+from = "03-28"
+to = "12-06"
+
+# Carnaval: sábado a quarta-feira de cinzas (Páscoa −50 a −46).
+[[easter_windows]]
+label = "carnaval"
+name = "Carnaval"
+offset_from = -50
+offset_to = -46
+
+# Segunda e terça de Carnaval: sem jogos estaduais (decisão do dono).
+[[easter_windows]]
+label = "carnaval-segunda-terca"
+name = "Carnaval (segunda e terça)"
+offset_from = -48
+offset_to = -47
+blocks = ["state"]
+
+[[easter_windows]]
+label = "semana-santa"
+name = "Semana Santa"
+offset_from = -3
+offset_to = 0

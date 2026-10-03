@@ -1,0 +1,5 @@
+name = "três clubes empatados: confronto direto não se aplica; amarelos decidem"
+clubs = ["a", "b", "c"]
+matches = [["a","b",1,0,0,0,0,0], ["b","c",1,0,0,0,1,0], ["c","a",1,0,0,0,2,0]]
+expect_order = ["a", "b", "c"]
+expect_decided_by = { a = "fewer_yellow_cards", b = "fewer_yellow_cards" }

@@ -1,0 +1,5 @@
+name = "dois clubes que se enfrentaram: confronto direto decide"
+clubs = ["a", "b", "x", "y", "z"]
+matches = [["a","b",1,0], ["x","a",1,0], ["b","y",1,0], ["x","z",1,0]]
+expect_order = ["a", "b"]
+expect_decided_by = { a = "head_to_head" }

@@ -1,0 +1,3 @@
+R013 competition.valid_to
+R004 stages[0]
+R008 stages[1].venue

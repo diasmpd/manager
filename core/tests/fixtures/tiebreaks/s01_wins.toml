@@ -1,0 +1,5 @@
+name = "dois clubes empatados em pontos: vitórias decidem"
+clubs = ["a", "b", "x", "y", "z"]
+matches = [["a","x",1,0], ["y","a",1,0], ["b","x",0,0], ["b","y",0,0], ["b","z",0,0]]
+expect_order = ["a", "b"]
+expect_decided_by = { a = "wins" }
