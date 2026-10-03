@@ -278,9 +278,11 @@ class Season:
         self.stages_done.add(rule.id)
         self.overall = tuple(r.club_id for r in self.overall_table())
         self.events.append(SeasonEvent(day, "stage_complete", (rule.id,)))
-        for outcome in rule.outcomes:
-            self.relegated = list(self.overall[outcome.places[0] - 1:outcome.places[1]])
-            self.events.append(SeasonEvent(day, "relegated", tuple(self.relegated)))
+        for outcome in rule.outcomes:  # several rules accumulate, in table order
+            places = self.overall[outcome.places[0] - 1:outcome.places[1]]
+            self.relegated.extend(c for c in places if c not in self.relegated)
+            self.events.append(SeasonEvent(day, "relegated", tuple(places)))
+        self.relegated.sort(key=self.overall.index)
 
     def _campaign_order(self, clubs: Sequence[str]) -> list[str]:
         return sorted(clubs, key=self.overall.index)

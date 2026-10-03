@@ -64,11 +64,14 @@ def _month_day(year: int, raw: str) -> date:
     return date(year, month, day)
 
 
-@cache
-def reserved_windows(year: int) -> tuple[ReservedWindow, ...]:
+def merge_windows(year: int, fixed: dict[str, Any] | None,
+                  specific: dict[str, Any] | None) -> tuple[ReservedWindow, ...]:
+    """Fixed windows plus the year's own file. A label in the year file (dated or Easter-based)
+    replaces every fixed window with that label, whatever its kind."""
+    replaced = {w["label"] for kind in ("windows", "easter_windows")
+                for w in (specific or {}).get(kind, [])}
     windows: list[ReservedWindow] = []
-    fixed, specific = _read("brazil.toml"), _read(f"brazil-{year}.toml")
-    replaced = {w["label"] for w in (specific or {}).get("windows", [])}
+    anchor = easter(year)
     for doc in (fixed, specific):
         if doc is None:
             continue
@@ -79,13 +82,19 @@ def reserved_windows(year: int) -> tuple[ReservedWindow, ...]:
                 w["label"], w["name"], _month_day(year, w["from"]), _month_day(year, w["to"]),
                 tuple(w.get("blocks", ())),
             ))
-        anchor = easter(year)
         for w in doc.get("easter_windows", []):
+            if doc is fixed and w["label"] in replaced:
+                continue
             windows.append(ReservedWindow(
                 w["label"], w["name"], anchor + timedelta(days=w["offset_from"]),
                 anchor + timedelta(days=w["offset_to"]), tuple(w.get("blocks", ())),
             ))
     return tuple(sorted(windows, key=lambda w: (w.start, w.label)))
+
+
+@cache
+def reserved_windows(year: int) -> tuple[ReservedWindow, ...]:
+    return merge_windows(year, _read("brazil.toml"), _read(f"brazil-{year}.toml"))
 
 
 def blocked_days(year: int, avoid_labels: Iterable[str]) -> frozenset[date]:
