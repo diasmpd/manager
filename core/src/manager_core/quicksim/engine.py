@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from manager_core.competition.results import Result
 from manager_core.domain.player import Player
 from manager_core.domain.positions import Position
-from manager_core.quicksim.params import ModelParams
+from manager_core.quicksim.params import LineWeights, ModelParams
 from manager_core.quicksim.ratings import (
     POSITION_GROUP,
     Group,
@@ -41,8 +41,6 @@ from manager_core.quicksim.report import (
 from manager_core.quicksim.squad import TeamSheet
 
 SOURCE = "quick_sim"
-PENALTY_XG = 0.78
-POSSESSION_SLOPE = 0.3
 
 
 def _attr(p: Player, name: str) -> int:
@@ -141,10 +139,7 @@ class _Match:
         self.events.append(MatchEvent(minute, side, kind, player_id, other_id, xg))
 
     def _line_weight(self, group: Group) -> float:
-        w = self.params.scorers.line_weights
-        return {Group.GOALKEEPER: w.goalkeeper, Group.DEFENDER: w.defender,
-                Group.MIDFIELDER: w.midfielder, Group.ATTACKING_MID: w.attacking_mid,
-                Group.FORWARD: w.forward}[group]
+        return line_weight(self.params.scorers.line_weights, group)
 
     # ---- the minute loop -------------------------------------------------------------------
 
@@ -230,7 +225,7 @@ class _Match:
             median = p.strength.xg_median * math.exp(
                 p.strength.xg_attack * (r.attack - o.defence) / 5)
             xg = median * opp_conceded_quality * math.exp(p.strength.xg_sigma * rng.gauss(0, 1))
-            self._shot(side, minute, min(0.95, max(0.01, xg)))
+            self._shot(side, minute, min(p.shots.xg_max, max(p.shots.xg_min, xg)))
             if rng.random() < p.rates.corner_per_shot:
                 me.corners += 1
         if rng.random() < p.rates.penalty * pressure:
@@ -238,7 +233,7 @@ class _Match:
         if rng.random() < p.rates.corner_base:
             me.corners += 1
         foul_rate = p.rates.foul * r.discipline / 10
-        foul_rate *= math.exp(0.15 * (o.attack - r.defence) / 5)
+        foul_rate *= math.exp(p.fouls.pressure * (o.attack - r.defence) / 5)
         if rng.random() < foul_rate:
             self._foul(side, minute)
 
@@ -249,12 +244,13 @@ class _Match:
         me, opp = self.sides[side], self.sides[other(side)]
         me.shots += 1
         me.xg += xg
-        on_target = min(0.95, 0.25 + 0.9 * xg)
+        shots = p.shots
+        on_target = min(shots.on_target_max, shots.on_target_base + shots.on_target_slope * xg)
         if self.rng.random() >= on_target:
             return
         me.on_target += 1
         keeper = math.exp(-p.strength.keeper * (opp.ratings.goalkeeping - 10) / 5)
-        if self.rng.random() < min(0.99, xg / on_target * keeper):
+        if self.rng.random() < min(shots.goal_max, xg / on_target * keeper):
             self._goal(side, minute, xg)
 
     def _penalty(self, side: str, minute: Minute) -> None:
@@ -265,24 +261,26 @@ class _Match:
             return
         taker = penalty_order(outfield)[0]
         keeper = goalkeeper_on(opp)
-        probability = 0.78 * kick_factor(self.params, taker, keeper) / self.params.shootout.base
+        pen = self.params.penalties
+        probability = (pen.conversion * kick_factor(self.params, taker, keeper)
+                       / self.params.shootout.base)
         me.shots += 1
-        me.xg += PENALTY_XG
-        if self.rng.random() < min(0.97, probability):
+        me.xg += pen.xg
+        if self.rng.random() < min(pen.conversion_max, probability):
             me.on_target += 1
             me.goals += 1
-            self._event(minute, side, "penalty_goal", taker.id, None, PENALTY_XG)
+            self._event(minute, side, "penalty_goal", taker.id, None, pen.xg)
         else:
-            if self.rng.random() < 0.7:  # most misses are saves
+            if self.rng.random() < pen.miss_saved:  # most misses are saves
                 me.on_target += 1
-            self._event(minute, side, "penalty_miss", taker.id, None, PENALTY_XG)
+            self._event(minute, side, "penalty_miss", taker.id, None, pen.xg)
 
     def _goal(self, side: str, minute: Minute, xg: float) -> None:
         p = self.params
         me, opp = self.sides[side], self.sides[other(side)]
         me.goals += 1
         if self.rng.random() < p.rates.own_goal_share:
-            weights = [(pid, {Group.DEFENDER: 1.0, Group.MIDFIELDER: 0.3}.get(opp.group_of(i), 0.1))
+            weights = [(pid, line_weight(p.weights.own_goal, opp.group_of(i)))
                        for i, pid in opp.on_pitch()]
             culprit = _weighted(self.rng, weights)
             if culprit is not None:  # the shot stays counted: it was deflected in
@@ -309,8 +307,7 @@ class _Match:
                 if pid == scorer:
                     continue
                 pl, group = me.player(pid), me.group_of(i)
-                line = {Group.GOALKEEPER: 0.05, Group.DEFENDER: 0.4, Group.MIDFIELDER: 0.8,
-                        Group.ATTACKING_MID: 1.0, Group.FORWARD: 0.7}[group]
+                line = line_weight(p.weights.assist, group)
                 skill = (_attr(pl, "passing") + _attr(pl, "vision") + _attr(pl, "crossing")) / 3
                 assist_weights.append((pid, line * skill))
             assister = _weighted(self.rng, assist_weights)
@@ -324,20 +321,20 @@ class _Match:
         me.fouls += 1
         weights = []
         for i, pid in me.on_pitch():
-            line = {Group.GOALKEEPER: 0.05, Group.DEFENDER: 1.0, Group.MIDFIELDER: 0.8,
-                    Group.ATTACKING_MID: 0.5, Group.FORWARD: 0.4}[me.group_of(i)]
-            w = line * (me.discipline(pid) / 10) ** 1.5
+            line = line_weight(p.weights.fouler, me.group_of(i))
+            w = line * (me.discipline(pid) / 10) ** p.fouls.fouler_exponent
             if p.caution.enabled and me.yellows.get(pid):
                 w *= p.caution.foul
             weights.append((pid, w))
         fouler = _weighted(self.rng, weights)
         if fouler is None:
             return
-        proneness = (me.discipline(fouler) / 10) ** 2  # cards rise steeply with temperament
+        proneness = (me.discipline(fouler) / 10) ** p.fouls.card_exponent  # rises steeply
         if self.rng.random() < p.rates.direct_red_per_foul * proneness:
             self._send_off(side, minute, fouler, "red")
             return
-        card = p.rates.yellow_per_foul * proneness * (0.8 + 0.4 * min(minute.base, 90) / 90)
+        ramp = p.fouls.card_minute_start + p.fouls.card_minute_span * min(minute.base, 90) / 90
+        card = p.rates.yellow_per_foul * proneness * ramp
         if p.caution.enabled and me.yellows.get(fouler):
             card *= p.caution.card
         if self.rng.random() < card:
@@ -404,13 +401,12 @@ class _Match:
                 if group is Group.GOALKEEPER or pid in me.came_on:
                     continue
                 pl = me.player(pid)
-                w = {Group.DEFENDER: 0.5, Group.MIDFIELDER: 1.0, Group.ATTACKING_MID: 1.3,
-                     Group.FORWARD: 1.3}[group]
-                w *= (22 - _attr(pl, "stamina")) / 10
+                w = line_weight(p.weights.substitution, group)
+                w *= (p.subs.stamina_pivot - _attr(pl, "stamina")) / 10
                 if me.yellows.get(pid):
-                    w *= 2.0
+                    w *= p.subs.booked_factor
                 if chasing and group is Group.DEFENDER:
-                    w *= 1.5
+                    w *= p.subs.chasing_defender_factor
                 weights.append((pid, w))
             out = _weighted(self.rng, weights)
             if out is None:
@@ -440,7 +436,8 @@ class _Match:
         home, away = self.sides[HOME], self.sides[AWAY]
         c_diff = (home.ratings.control - away.ratings.control) / 5
         home_edge = 0.0 if self.neutral else self.params.home.possession
-        home_poss = round(50 + 50 * math.tanh(POSSESSION_SLOPE * c_diff + home_edge))
+        slope = self.params.home.possession_slope
+        home_poss = round(50 + 50 * math.tanh(slope * c_diff + home_edge))
         home_poss = max(20, min(80, home_poss))
 
         def stats(s: _Side, possession: int) -> SideStats:
@@ -466,6 +463,12 @@ class _Match:
 
 def _id(player: Player | None) -> str | None:
     return player.id if player is not None else None
+
+
+def line_weight(weights: LineWeights, group: Group) -> float:
+    return {Group.GOALKEEPER: weights.goalkeeper, Group.DEFENDER: weights.defender,
+            Group.MIDFIELDER: weights.midfielder, Group.ATTACKING_MID: weights.attacking_mid,
+            Group.FORWARD: weights.forward}[group]
 
 
 def _fit(player: Player, position: Position) -> int:

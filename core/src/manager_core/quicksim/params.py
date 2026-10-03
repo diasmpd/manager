@@ -47,6 +47,7 @@ class Home:
     shot: float  # multiplier on the home side's shot rate
     away_shot: float  # multiplier on the away side's shot rate (home advantage is two-sided)
     possession: float
+    possession_slope: float  # possession share slope per 5 points of control difference
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +89,9 @@ class Subs:
     max: int
     window_chance: float  # chance a side uses each in-play window
     per_window: tuple[int, int]
+    stamina_pivot: float  # who comes off ~ (pivot - stamina) / 10
+    booked_factor: float  # booked players are likelier to come off
+    chasing_defender_factor: float  # a chasing side takes off defenders
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,6 +109,43 @@ class Scorers:
     header_share: float
     header_defender_weight: float
     assist_share: float
+
+
+@dataclass(frozen=True, slots=True)
+class Shots:
+    xg_min: float
+    xg_max: float
+    on_target_base: float  # p(on target) = base + slope * xG, capped
+    on_target_slope: float
+    on_target_max: float
+    goal_max: float  # cap on the goal probability of an on-target shot
+
+
+@dataclass(frozen=True, slots=True)
+class Penalties:
+    xg: float
+    conversion: float  # mean in-play conversion; scaled by taker and keeper
+    conversion_max: float
+    miss_saved: float  # share of missed penalties that are saved (on target)
+
+
+@dataclass(frozen=True, slots=True)
+class Fouls:
+    pressure: float  # foul-rate slope per 5 points of opposing attack - own defence
+    fouler_exponent: float  # fouler weight ~ (discipline / 10) ** this
+    card_exponent: float  # card probability ~ (discipline / 10) ** this
+    card_minute_start: float  # card probability ramps from start to start + span over 90'
+    card_minute_span: float
+
+
+@dataclass(frozen=True, slots=True)
+class Weights:
+    """Line weights for who is involved in an event (besides scorers)."""
+
+    own_goal: LineWeights
+    assist: LineWeights
+    fouler: LineWeights
+    substitution: LineWeights  # who comes off (goalkeepers never do)
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +170,10 @@ class ModelParams:
     stoppage: Stoppage
     subs: Subs
     scorers: Scorers
+    shots: Shots
+    penalties: Penalties
+    fouls: Fouls
+    weights: Weights
     shootout: ShootoutParams
 
     @property
