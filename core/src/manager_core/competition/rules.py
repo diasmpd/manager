@@ -586,6 +586,18 @@ def load_ruleset(ruleset_id: str) -> Ruleset:
     return _load(lambda: entry.read_text("utf-8"), f"{ruleset_id}.toml")
 
 
+def ruleset_text(ruleset_id: str) -> str:
+    """The bundled ruleset's TOML text (careers store it, so a save survives later edits)."""
+    entry = _bundled().joinpath(f"{ruleset_id}.toml")
+    if not entry.is_file():
+        raise RulesetNotFoundError(ruleset_id)
+    return str(entry.read_text("utf-8"))
+
+
+def load_ruleset_text(text: str, source: str = "<save>") -> Ruleset:
+    return _load(lambda: text, source)
+
+
 def load_ruleset_file(path: Path) -> Ruleset:
     return _load(lambda: path.read_text("utf-8"), str(path))
 

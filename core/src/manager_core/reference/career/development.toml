@@ -1,0 +1,34 @@
+# Desenvolvimento entre temporadas (spec 004, research R8). Curva provisória: mudança média de
+# CA por ano segundo a idade, com desvio padrão. O crescimento é limitado pelo potencial.
+# Será substituída pelo sistema de desenvolvimento da v1 (calibrado, Constituição I).
+format_version = 1
+sigma = 4.0
+
+# idade máxima da faixa -> mudança média de CA no ano
+[[bands]]
+max_age = 20
+mean = 8.0
+
+[[bands]]
+max_age = 23
+mean = 5.0
+
+[[bands]]
+max_age = 27
+mean = 2.0
+
+[[bands]]
+max_age = 30
+mean = 0.0
+
+[[bands]]
+max_age = 32
+mean = -3.0
+
+[[bands]]
+max_age = 34
+mean = -6.0
+
+[[bands]]
+max_age = 99
+mean = -9.0

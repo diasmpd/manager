@@ -15,6 +15,7 @@ import random
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+from typing import Protocol
 
 from manager_core.competition.calendar import SeasonCalendar
 from manager_core.competition.draw import Group, draw_groups
@@ -80,6 +81,14 @@ class Match:
     tie_id: str | None = None
 
 
+class DisciplineHook(Protocol):
+    """Who may not play a match, and what a played match changes (spec 004 suspensions)."""
+
+    def unavailable(self, match: Match) -> frozenset[str]: ...
+
+    def record(self, match: Match, result: Result) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class SeasonEvent:
     day: date
@@ -122,6 +131,7 @@ class Season:
     relegated: list[str] = field(default_factory=list)
     titles: dict[str, str] = field(default_factory=dict)  # track -> winner
     runner_up: str | None = None
+    discipline: DisciplineHook | None = None  # spec 004: suspensions; None = nobody suspended
 
     # ---- creation ------------------------------------------------------------------------
 
@@ -195,8 +205,12 @@ class Season:
         for m in todays:
             rng = random.Random(sub_seed(self.seed, f"match:{m.id}"))
             ctx = self._context(m)
+            if self.discipline is not None:
+                ctx = dataclasses.replace(ctx, unavailable=self.discipline.unavailable(m))
             self.results[m.id] = self.provider.play(
                 m.id, self.dataset.club(m.home_id), self.dataset.club(m.away_id), ctx, rng)
+            if self.discipline is not None:
+                self.discipline.record(m, self.results[m.id])
             if m.tie_id is not None:
                 self._maybe_resolve_tie(m.tie_id)
 

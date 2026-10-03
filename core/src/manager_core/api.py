@@ -15,6 +15,11 @@ from typing import Literal
 
 from manager_core.calibration import harness
 from manager_core.calibration.harness import CalibrationReport
+from manager_core.career import career as career_mod
+from manager_core.career import rollover, store
+from manager_core.career.career import Career, SeasonRecord, Stop
+from manager_core.career.discipline import Discipline
+from manager_core.career.store import SaveSummary
 from manager_core.competition import rules
 from manager_core.competition.calendar import CalendarDay
 from manager_core.competition.results import Result, ResultProvider
@@ -529,3 +534,94 @@ def run_calibration(dataset: Dataset, gate: str = "pr",
                     baseline: Path | None = None) -> CalibrationReport:
     """Run a calibration gate (deterministic; writes nothing)."""
     return harness.run(dataset, gate, baseline=baseline)
+
+
+# ---- careers (spec 004) ----------------------------------------------------------------------
+
+
+def new_career(dataset: Dataset, name: str, club_id: str, master_seed: int | None = None,
+               ruleset_id: str = DEFAULT_RULESET, year: int = 2027) -> Career:
+    store.check_name(name)
+    try:
+        return career_mod.new_career(dataset, name, club_id, master_seed, ruleset_id, year)
+    except career_mod.UnknownClubError:
+        raise NotFoundError("club", club_id) from None
+
+
+def load_career(saves: Path, name: str) -> Career:
+    try:
+        return store.load(saves, name)
+    except store.SaveNotFoundError:
+        raise NotFoundError("save", name) from None
+
+
+def save_career(career: Career, saves: Path, name: str | None = None) -> Path:
+    return store.save(career, saves, name)
+
+
+def list_saves(saves: Path) -> list[SaveSummary]:
+    return store.list_saves(saves)
+
+
+def delete_save(saves: Path, name: str) -> None:
+    try:
+        store.delete(saves, name)
+    except store.SaveNotFoundError:
+        raise NotFoundError("save", name) from None
+
+
+def continue_career(career: Career, saves: Path, *, to_season_end: bool = False) -> Stop:
+    """Play to the next stop, autosaving weekly; the career is saved under its name."""
+
+    def autosave(c: Career) -> None:
+        store.save(c, saves, store.AUTOSAVE, allow_autosave=True)
+
+    stop = career_mod.continue_(career, autosave, rollover.next_season)
+    while to_season_end and stop.kind != career_mod.SEASON_END:
+        stop = career_mod.continue_(career, autosave, rollover.next_season)
+    store.save(career, saves)
+    return stop
+
+
+@dataclass(frozen=True, slots=True)
+class SuspensionView:
+    player_id: str
+    player_name: str
+    matches: int
+
+
+@dataclass(frozen=True, slots=True)
+class CareerStatus:
+    name: str
+    club_id: str
+    club_name: str
+    current_date: date
+    year: int
+    next_match: MatchView | None
+    position: int | None  # place in the overall table (None before the first match)
+    suspended: tuple[SuspensionView, ...]
+    pending: Stop | None
+
+
+def suspended_players(career: Career, club_id: str) -> list[SuspensionView]:
+    ledger = career.season.discipline
+    if not isinstance(ledger, Discipline):
+        return []
+    return [SuspensionView(pid, career.world.player(pid).display_name, ledger.bans(pid))
+            for pid in sorted(ledger.suspended(club_id))]
+
+
+def career_status(career: Career) -> CareerStatus:
+    season = career.season
+    club = career.user_club_id
+    upcoming = [m for m in season.sorted_matches()
+                if m.id not in season.results and club in (m.home_id, m.away_id)]
+    rows = season_table(season) if season.results else []
+    place = next((r.place for r in rows if r.club_id == club), None)
+    return CareerStatus(career.name, club, season.club_name(club), career.current_date,
+                        season.year, _match_view(season, upcoming[0]) if upcoming else None,
+                        place, tuple(suspended_players(career, club)), career.pending)
+
+
+def career_history(career: Career) -> list[SeasonRecord]:
+    return list(career.history)

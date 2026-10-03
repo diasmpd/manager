@@ -1,0 +1,22 @@
+# Clubes que sobem do Módulo II (spec 004, research R7). Gerados a partir de cidades fictícias
+# de Minas; nenhum clube real. Cada temporada usa as próximas cidades da lista; ao acabar a
+# lista, recomeça com o sufixo da geração ("Vale Verde II").
+format_version = 1
+reputation = 5
+founded_from = 1910
+founded_to = 1985
+
+prefixes = ["Esporte Clube", "Associação Atlética", "Clube Atlético", "Grêmio Esportivo",
+            "Sociedade Esportiva", "Associação Esportiva", "Clube Recreativo", "Atlético Clube"]
+
+towns = ["Vale Verde", "Cachoeira Alta", "Serra Azul", "Ponte Nova do Sul", "Ribeirão Claro",
+         "Campos Altos", "Lagoa Dourada", "Pedra Azul", "Santa Rita do Norte", "Rio das Velhas",
+         "Bom Jardim", "São Tomé das Letras", "Monte Alegre", "Paraíso", "Areado",
+         "Boa Esperança", "Três Cachoeiras", "Morro Grande", "Cristais", "Ipuiúna",
+         "Jacutinga", "Alto Belo", "Coqueiral", "Ouro Fino do Sul"]
+
+# pares (primária, secundária)
+colours = [["#1B7F3B", "#FFFFFF"], ["#0B3D91", "#F2C500"], ["#2E6DB4", "#FFFFFF"],
+           ["#8B0000", "#000000"], ["#FF6600", "#000000"], ["#006400", "#FFD700"],
+           ["#DAA520", "#1C1C1C"], ["#4169E1", "#C0C0C0"], ["#800080", "#FFFFFF"],
+           ["#B22222", "#FFFFFF"]]

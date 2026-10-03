@@ -10,6 +10,8 @@ from datetime import date, datetime
 from pathlib import Path
 
 from manager_core import api
+from manager_core.career.career import Career, Stop
+from manager_core.career.store import SaveError
 from manager_core.competition.calendar import CalendarDay
 from manager_core.competition.results import PLACEHOLDER
 from manager_core.competition.rules import RulesetError, RulesetReport
@@ -246,8 +248,10 @@ def _fmt_kickoff(when: datetime) -> str:
 
 
 def _season(args: argparse.Namespace, play: bool = False) -> Season | None:
-    """Rebuild the season deterministically (no saves until spec 004) and, for result views,
-    replay it up to --date (default: the end of the year)."""
+    """The career's season (--career), or a season rebuilt deterministically from the seed
+    and, for result views, replayed up to --date (default: the end of the year)."""
+    if getattr(args, "career", None):
+        return api.load_career(args.saves, args.career).season
     dataset = _load(args.data)
     if dataset is None:
         return None
@@ -549,6 +553,114 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
     return EXIT_INVALID
 
 
+def _default_saves_dir() -> Path:
+    return Path(__file__).resolve().parents[3] / "saves"
+
+
+def _print_stop(career: Career, stop: Stop) -> None:
+    season = career.season
+    if stop.kind == "user_match" and stop.match_id:
+        print(t("career.stop.user_match"))
+        print(_match_line(api.match_view(season, stop.match_id)))
+    elif stop.kind == "event":
+        print(t("career.stop.event", date=_fmt_date(stop.day)))
+        for e in stop.events:
+            print(f"  * {_event_text(season, e)}")
+    else:
+        out = api.season_outcomes(season)
+        print(t("career.stop.season_end", year=season.year))
+        if out is not None:
+            print(f"  {season.ruleset.track_title('main')}: {season.club_name(out.champion)}")
+            order = out.final_classification
+            if career.user_club_id in order:
+                place = order.index(career.user_club_id) + 1
+                print("  " + t("career.user_place", club=season.club_name(career.user_club_id),
+                               place=place))
+            relegated = ", ".join(season.club_name(c) for c in out.relegated)
+            print(f"  {t('outcome.relegated')}: {relegated}")
+        print("  " + t("career.next_season_hint"))
+
+
+def _cmd_career_new(args: argparse.Namespace) -> int:
+    dataset = _load(args.data)
+    if dataset is None:
+        return EXIT_INVALID
+    career = api.new_career(dataset, args.name, args.club, args.seed)
+    api.save_career(career, args.saves)
+    season = career.season
+    print(t("career.created", name=career.name, club=season.club_name(career.user_club_id),
+            year=season.year))
+    for g in api.season_groups(season):
+        print(f"  {t('season.group', label=g.label)}: {', '.join(g.club_names)}")
+    status = api.career_status(career)
+    if status.next_match is not None:
+        print(t("career.next_match"))
+        print(_match_line(status.next_match))
+    return EXIT_OK
+
+
+def _cmd_career_list(args: argparse.Namespace) -> int:
+    _print_table([t(f"career.col.{k}") for k in ("name", "club", "date", "season", "saved")],
+                 [[s.name, s.user_club_id, _fmt_date(s.current_date), s.year, s.saved_at]
+                  for s in api.list_saves(args.saves)])
+    return EXIT_OK
+
+
+def _cmd_career_status(args: argparse.Namespace) -> int:
+    career = api.load_career(args.saves, args.name)
+    status = api.career_status(career)
+    print(t("career.status", name=status.name, club=status.club_name,
+            date=_fmt_date(status.current_date), year=status.year))
+    if status.position is not None:
+        print("  " + t("career.position", place=status.position))
+    if status.next_match is not None:
+        print("  " + t("career.next_match"))
+        print("  " + _match_line(status.next_match))
+    if status.suspended:
+        print("  " + t("career.suspended"))
+        for s in status.suspended:
+            print(f"    {s.player_name} ({t('career.matches_left', n=s.matches)})")
+    else:
+        print("  " + t("career.no_suspensions"))
+    return EXIT_OK
+
+
+def _cmd_career_continue(args: argparse.Namespace) -> int:
+    career = api.load_career(args.saves, args.name)
+    stop = api.continue_career(career, args.saves, to_season_end=args.to_season_end)
+    _print_stop(career, stop)
+    return EXIT_OK
+
+
+def _cmd_career_save(args: argparse.Namespace) -> int:
+    career = api.load_career(args.saves, args.name)
+    api.save_career(career, args.saves, args.as_name)
+    print(t("career.saved_as", name=args.as_name))
+    return EXIT_OK
+
+
+def _cmd_career_delete(args: argparse.Namespace) -> int:
+    api.delete_save(args.saves, args.name)
+    print(t("career.deleted", name=args.name))
+    return EXIT_OK
+
+
+def _cmd_career_history(args: argparse.Namespace) -> int:
+    career = api.load_career(args.saves, args.name)
+    world = career.world
+
+    def name(club_id: str) -> str:
+        return world.club(club_id).short_name if club_id in world.clubs else club_id
+
+    _print_table([t(f"career.hist.{k}") for k in ("year", "champion", "place", "relegated",
+                                                   "promoted")],
+                 [[r.year, name(r.champion), r.user_place or "-",
+                   ", ".join(name(c) for c in r.relegated),
+                   ", ".join(name(c) for c in r.promoted)]
+                  for r in api.career_history(career)])
+    return EXIT_OK
+
+
 def _print_ruleset_report(report: RulesetReport) -> None:
     for issue in report.issues:
         print(f"{issue.code}  {issue.message}")
@@ -619,6 +731,7 @@ def _sub_date(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="manager_core", description=t("cli.description"))
     parser.add_argument("--data", type=Path, default=_default_data_dir())
+    parser.add_argument("--saves", type=Path, default=_default_saves_dir())
     groups = parser.add_subparsers(dest="group", required=True)
 
     data = groups.add_parser("data").add_subparsers(dest="command", required=True)
@@ -666,6 +779,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     season = groups.add_parser("season")
     _add_season_options(season)
+    season.add_argument("--career", help="show this career's current season")
     season_cmds = season.add_subparsers(dest="command", required=True)
     _sub_date(season_cmds.add_parser("groups")).set_defaults(func=_cmd_season_groups)
     cmd = _sub_date(season_cmds.add_parser("fixtures"))
@@ -691,6 +805,27 @@ def _build_parser() -> argparse.ArgumentParser:
     cmd = season_cmds.add_parser("rules")
     cmd.add_argument("--validate", type=Path, metavar="PATH")
     cmd.set_defaults(func=_cmd_season_rules)
+    career = groups.add_parser("career").add_subparsers(dest="command", required=True)
+    cmd = career.add_parser("new")
+    cmd.add_argument("name")
+    cmd.add_argument("--club", required=True)
+    cmd.add_argument("--seed", type=int)
+    cmd.set_defaults(func=_cmd_career_new)
+    career.add_parser("list").set_defaults(func=_cmd_career_list)
+    for command, func in (("status", _cmd_career_status), ("delete", _cmd_career_delete),
+                          ("history", _cmd_career_history)):
+        cmd = career.add_parser(command)
+        cmd.add_argument("name")
+        cmd.set_defaults(func=func)
+    cmd = career.add_parser("continue")
+    cmd.add_argument("name")
+    cmd.add_argument("--to-season-end", action="store_true")
+    cmd.set_defaults(func=_cmd_career_continue)
+    cmd = career.add_parser("save")
+    cmd.add_argument("name")
+    cmd.add_argument("--as", dest="as_name", required=True)
+    cmd.set_defaults(func=_cmd_career_save)
+
     cmd = groups.add_parser("calibrate")
     cmd.add_argument("--gate", choices=["pr", "milestone"], default="pr")
     cmd.add_argument("--baseline", type=Path)
@@ -712,6 +847,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(t(f"cli.not_found.{exc.kind}", id=exc.id), file=sys.stderr)
         return EXIT_NOT_FOUND
     except SeasonError as exc:
+        print(exc.message, file=sys.stderr)
+        return EXIT_INVALID
+    except SaveError as exc:
         print(exc.message, file=sys.stderr)
         return EXIT_INVALID
     except RulesetError as exc:
