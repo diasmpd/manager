@@ -65,7 +65,7 @@ class State:
     exposed: float
     protect: float
     man_up: float
-    short_handed: float  # own shot rate lost per missing player (red cards)
+    short_handed: float  # own shot rate lost per player of numerical disadvantage
 
 
 @dataclass(frozen=True, slots=True)

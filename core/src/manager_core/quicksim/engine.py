@@ -190,11 +190,12 @@ class _Match:
         if diff == 1 and base >= 70:
             rate_mult *= 1 - p.protect
             conceded_quality *= 1 - p.protect / 2
+        # numbers on the pitch, as in real football: 10 v 11 favours the eleven, 10 v 10 is even
         man_diff = len(me.on) - len(opp.on)
         if man_diff > 0:
             rate_mult *= 1 + p.man_up * man_diff
-        if me.sent_off:
-            rate_mult *= (1 - p.short_handed) ** me.sent_off
+        elif man_diff < 0:
+            rate_mult *= (1 - p.short_handed) ** -man_diff
         return rate_mult, conceded_quality
 
     def _minute(self, side: str, minute: Minute) -> None:
