@@ -17,6 +17,7 @@ from typing import Any, get_args, get_origin, get_type_hints
 
 from manager_core.i18n import t
 
+
 @dataclass(frozen=True, slots=True)
 class Rates:
     """Per side per minute, unless stated otherwise."""
