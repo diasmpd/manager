@@ -32,5 +32,5 @@ jobs:
         run: ruff check .
       - name: Type check
         run: mypy
-      - name: Tests
-        run: pytest -q
+      - name: Tests (includes the quick-sim PR calibration gate)
+        run: pytest -q -m "not milestone"

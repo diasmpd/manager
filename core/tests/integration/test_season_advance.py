@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from manager_core import api
+from manager_core.competition.results import PlaceholderProvider
 from manager_core.competition.season import SeasonError
 from manager_core.domain.dataset import Dataset
 
@@ -20,7 +21,8 @@ def world() -> Dataset:
 
 
 def test_day_without_matches_only_moves_date(world: Dataset) -> None:
-    season = api.start_season(world, "mg-modulo-i-2026", 2027, 5)
+    season = api.start_season(world, "mg-modulo-i-2026", 2027, 5,
+        result_provider=PlaceholderProvider(world))
     events = api.advance_to(season, date(2027, 1, 5))
     assert season.current_date == date(2027, 1, 5)
     assert not season.results
@@ -28,15 +30,18 @@ def test_day_without_matches_only_moves_date(world: Dataset) -> None:
 
 
 def test_first_matchday_updates_tables(world: Dataset) -> None:
-    season = api.start_season(world, "mg-modulo-i-2026", 2027, 5)
+    season = api.start_season(world, "mg-modulo-i-2026", 2027, 5,
+        result_provider=PlaceholderProvider(world))
     api.advance_to(season, date(2027, 1, 10))
     assert len(season.results) == 6
     assert sum(r.played for r in api.season_table(season)) == 12
 
 
 def test_daily_steps_equal_one_jump(world: Dataset) -> None:
-    a = api.start_season(world, "mg-modulo-i-2026", 2027, 9)
-    b = api.start_season(world, "mg-modulo-i-2026", 2027, 9)
+    a = api.start_season(world, "mg-modulo-i-2026", 2027, 9,
+        result_provider=PlaceholderProvider(world))
+    b = api.start_season(world, "mg-modulo-i-2026", 2027, 9,
+        result_provider=PlaceholderProvider(world))
     day = date(2027, 1, 1)
     while day < date(2027, 4, 1):
         day += timedelta(days=1)
@@ -47,14 +52,16 @@ def test_daily_steps_equal_one_jump(world: Dataset) -> None:
 
 
 def test_cannot_go_past_year_end(world: Dataset) -> None:
-    season = api.start_season(world, "mg-modulo-i-2026", 2027, 1)
+    season = api.start_season(world, "mg-modulo-i-2026", 2027, 1,
+        result_provider=PlaceholderProvider(world))
     with pytest.raises(SeasonError) as err:
         api.advance_to(season, date(2028, 1, 1))
     assert err.value.code == "S004"
 
 
 def test_events_in_date_order(world: Dataset) -> None:
-    season = api.start_season(world, "mg-modulo-i-2026", 2027, 2)
+    season = api.start_season(world, "mg-modulo-i-2026", 2027, 2,
+        result_provider=PlaceholderProvider(world))
     api.advance_to(season, date(2027, 12, 31))
     days = [e.day for e in season.events]
     assert days == sorted(days)

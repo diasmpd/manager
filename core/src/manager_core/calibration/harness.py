@@ -1,0 +1,135 @@
+"""The calibration harness (FR-014..FR-018, research R10).
+
+`run` simulates the gate's fixed samples, measures every target and returns a report. The
+report is canonical JSON (sorted keys, 4-decimal floats), so the same code and inputs give
+byte-identical files (SC-003).
+"""
+
+from __future__ import annotations
+
+import json
+import platform
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from manager_core import __version__
+from manager_core.calibration.metrics import caution_check, league_metrics, mineiro_metrics
+from manager_core.calibration.samples import (
+    GATES,
+    SampleSpec,
+    league_sample,
+    mineiro_sample,
+)
+from manager_core.calibration.targets import CalibrationTarget, load_targets
+from manager_core.domain.dataset import Dataset
+from manager_core.quicksim.params import ModelParams, load_params
+from manager_core.quicksim.provider import QuickSimProvider
+
+CAUTION_SEASONS = 10  # league seasons replayed with the caution behaviour off
+
+
+@dataclass(frozen=True, slots=True)
+class MetricResult:
+    target: CalibrationTarget
+    value: float
+    verdict: str  # pass / fail / warn
+    before: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class CautionCheck:
+    second_yellow_rate_on: float
+    second_yellow_rate_off: float
+    conceded_on: float
+    conceded_off: float
+
+
+@dataclass(frozen=True, slots=True)
+class CalibrationReport:
+    core_version: str
+    python_version: str
+    model_version: str
+    params_hash: str
+    gate: str
+    league_matches: int
+    state_matches: int
+    results: tuple[MetricResult, ...]
+    caution: CautionCheck | None
+
+    @property
+    def passed(self) -> bool:
+        return all(r.verdict != "fail" for r in self.results)
+
+    @property
+    def failures(self) -> list[str]:
+        return [r.target.id for r in self.results if r.verdict == "fail"]
+
+    def to_json(self) -> str:
+        def num(x: float | None) -> float | None:
+            return None if x is None else round(x, 4)
+
+        doc: dict[str, Any] = {
+            "core_version": self.core_version,
+            "python_version": self.python_version,
+            "model_version": self.model_version,
+            "params_hash": self.params_hash,
+            "gate": self.gate,
+            "league_matches": self.league_matches,
+            "state_matches": self.state_matches,
+            "passed": self.passed,
+            "metrics": {r.target.id: {"value": num(r.value), "target": r.target.target,
+                                      "low": r.target.low, "high": r.target.high,
+                                      "kind": r.target.kind, "verdict": r.verdict}
+                        for r in self.results},
+        }
+        if self.caution is not None:
+            doc["caution"] = {k: num(getattr(self.caution, k)) for k in (
+                "second_yellow_rate_on", "second_yellow_rate_off", "conceded_on",
+                "conceded_off")}
+        return json.dumps(doc, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
+
+
+def _baseline_values(path: Path | None) -> dict[str, float]:
+    if path is None or not path.is_file():
+        return {}
+    doc = json.loads(path.read_text("utf-8"))
+    return {k: v["value"] for k, v in doc.get("metrics", {}).items() if v.get("value") is not None}
+
+
+def measure(dataset: Dataset, spec: SampleSpec, params: ModelParams, caution: bool = True,
+            provider: QuickSimProvider | None = None,
+            ) -> tuple[dict[str, float], int, int, CautionCheck | None]:
+    provider = provider.with_params(params) if provider else QuickSimProvider(dataset, params)
+    league = league_sample(dataset, provider, spec.league_seasons)
+    seasons = mineiro_sample(dataset, provider, spec.mineiro_seasons)
+    values = league_metrics(league) | mineiro_metrics(seasons)
+    check = None
+    if caution:
+        off = params.with_values(**{"caution.enabled": not params.caution.enabled})
+        off_league = league_sample(dataset, provider.with_params(off), CAUTION_SEASONS)
+        on_rate, on_cost = caution_check(
+            [m for m in league if m.season < CAUTION_SEASONS])
+        off_rate, off_cost = caution_check(off_league)
+        if not params.caution.enabled:
+            on_rate, off_rate, on_cost, off_cost = off_rate, on_rate, off_cost, on_cost
+        check = CautionCheck(on_rate, off_rate, on_cost, off_cost)
+    state_matches = sum(len(s.results) for s in seasons)
+    return values, len(league), state_matches, check
+
+
+def run(dataset: Dataset, gate: str = "pr", params: ModelParams | None = None,
+        baseline: Path | None = None) -> CalibrationReport:
+    if gate not in GATES:
+        raise ValueError(f"unknown gate {gate!r}")
+    params = params or load_params()
+    values, n_league, n_mineiro, check = measure(dataset, GATES[gate], params)
+    before = _baseline_values(baseline)
+    results = []
+    for target in load_targets():
+        value = values[target.id]
+        verdict = "pass" if target.contains(value) else ("fail" if target.primary else "warn")
+        results.append(MetricResult(target, value, verdict, before.get(target.id)))
+    return CalibrationReport(__version__, platform.python_version(), params.model_version,
+                             params.params_hash[:12], gate, n_league, n_mineiro,
+                             tuple(results), check)

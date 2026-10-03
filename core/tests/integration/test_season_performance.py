@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from manager_core import api
+from manager_core.competition.results import PlaceholderProvider
 
 
 @pytest.mark.slow
@@ -18,7 +19,8 @@ def test_full_season_is_fast(sample_dir: Path) -> None:
     timings = []
     for seed in range(3):  # best of 3: robust to a busy machine
         start = time.perf_counter()
-        season = api.start_season(dataset, "mg-modulo-i-2026", 2027, seed)
+        season = api.start_season(dataset, "mg-modulo-i-2026", 2027, seed,
+        result_provider=PlaceholderProvider(dataset))
         api.advance_to(season, date(2027, 12, 31))
         timings.append(time.perf_counter() - start)
         assert api.season_outcomes(season) is not None
