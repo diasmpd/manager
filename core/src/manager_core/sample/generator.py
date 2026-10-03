@@ -180,9 +180,13 @@ def _potential(rng: random.Random, ca: int, age: int) -> int:
     return min(200, ca + headroom)
 
 
-def _player(rng: random.Random, pid: str, position: Position, quality: float) -> Player:
-    age = _age(rng)
-    born = REFERENCE_DATE - timedelta(days=age * 365 + rng.randint(30, 330) + age // 4)
+def make_player(rng: random.Random, pid: str, position: Position, quality: float,
+                reference_date: date = REFERENCE_DATE, age: int | None = None) -> Player:
+    """One generated player. With the defaults this is exactly the sample world's player
+    (same RNG consumption); careers pass their own date and an age (e.g. youngsters, spec 004)."""
+    if age is None:
+        age = _age(rng)
+    born = reference_date - timedelta(days=age * 365 + rng.randint(30, 330) + age // 4)
     height_mu, height_sd = HEIGHT_BY_POSITION[position]
     height = _clamp(rng.gauss(height_mu, height_sd), 160, 205)
     weight = _clamp(height - 104 + rng.gauss(0, 4), 55, 100)
@@ -207,14 +211,22 @@ def _player(rng: random.Random, pid: str, position: Position, quality: float) ->
     )
 
 
-def _club(identity: ClubIdentity) -> Club:
+def _player(rng: random.Random, pid: str, position: Position, quality: float) -> Player:
+    return make_player(rng, pid, position, quality)
+
+
+def make_club(identity: ClubIdentity, state: str = "MG") -> Club:
+    return _club(identity, state)
+
+
+def _club(identity: ClubIdentity, state: str = "MG") -> Club:
     return Club(
         id=identity.id,
         name=identity.name,
         short_name=identity.short_name,
         abbreviation=identity.abbreviation,
         city=identity.city,
-        state="MG",
+        state=state,
         country="BRA",
         color_primary=identity.color_primary,
         color_secondary=identity.color_secondary,
@@ -241,6 +253,11 @@ PREFERRED_NUMBERS: dict[Position, tuple[int, ...]] = {
     Position.AMC: (10, 22),
     Position.ST: (9, 19, 24, 26),
 }
+
+
+def assign_shirt_numbers(squad: list[tuple[Position, Player]]) -> list[int]:
+    """Brazilian shirt numbers for a new squad (used by careers for promoted clubs)."""
+    return _shirt_numbers(squad)
 
 
 def _shirt_numbers(squad: list[tuple[Position, Player]]) -> list[int]:

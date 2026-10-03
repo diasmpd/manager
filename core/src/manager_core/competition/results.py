@@ -98,6 +98,7 @@ class MatchContext:
     season_seed: int
     stage_id: str
     neutral: bool = False  # no home advantage (e.g. a final at a neutral venue)
+    unavailable: frozenset[str] = frozenset()  # suspended players of both clubs (spec 004)
 
 
 @runtime_checkable

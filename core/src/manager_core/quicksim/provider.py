@@ -12,7 +12,7 @@ from manager_core.quicksim.engine import simulate_match
 from manager_core.quicksim.params import ModelParams, load_params
 from manager_core.quicksim.report import keeper_at_end
 from manager_core.quicksim.shootout import play_shootout
-from manager_core.quicksim.squad import TeamSheet, build_team_sheet
+from manager_core.quicksim.squad import TeamSheet, build_team_sheet, repair_team_sheet
 
 # Team sheets per dataset, shared by every provider built on the same dataset object: picking
 # 001's exact best XI costs about 0.1 s per club. Keyed by identity; the entry keeps the dataset
@@ -47,15 +47,25 @@ class QuickSimProvider:
         twin._sheets = self._sheets
         return twin
 
-    def team_sheet(self, club_id: str) -> TeamSheet:
+    def team_sheet(self, club_id: str, unavailable: frozenset[str] = frozenset()) -> TeamSheet:
+        """The club's sheet without its unavailable (suspended) players, cached per set."""
         if club_id not in self._sheets:
             squad = sorted(self.dataset.squad(club_id), key=lambda p: p.id)
             self._sheets[club_id] = build_team_sheet(club_id, squad)
-        return self._sheets[club_id]
+        base = self._sheets[club_id]
+        if not unavailable & ({pid for _, pid in base.starters} | set(base.bench)):
+            return base  # nobody in the sheet is missing
+        squad = sorted(self.dataset.squad(club_id), key=lambda p: p.id)
+        out = frozenset(unavailable & {p.id for p in squad})  # replacements exclude all of them
+        key = f"{club_id}|{','.join(sorted(out))}"
+        if key not in self._sheets:
+            self._sheets[key] = repair_team_sheet(base, squad, out)
+        return self._sheets[key]
 
     def play(self, match_id: str, home: Club, away: Club, context: MatchContext,
              rng: random.Random) -> Result:
-        result, _ = simulate_match(self.team_sheet(home.id), self.team_sheet(away.id),
+        out = context.unavailable
+        result, _ = simulate_match(self.team_sheet(home.id, out), self.team_sheet(away.id, out),
                                    self.dataset.players, self.params, rng, context.neutral)
         return result
 

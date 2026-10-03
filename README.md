@@ -5,7 +5,7 @@ the game is built around Brazilian football. The simulation core is in Python an
 client is in Godot.
 
 > Status: Milestone 0 in progress. Specs 001 (core domain model), 002 (competitions and
-> calendar) and 003 (quick sim) are implemented. See [docs/roadmap.md](docs/roadmap.md).
+> calendar), 003 (quick sim) and 004 (career save and game loop) are implemented. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Quick start (Windows, PowerShell)
 
@@ -29,12 +29,20 @@ python -m manager_core season rules                     # bundled competition ru
 python -m manager_core season match primeira-fase-r01-01 # a match report (stats, goals, cards)
 python -m manager_core season scorers                   # top scorers
 python -m manager_core calibrate                        # quick-sim calibration vs real data
+
+# a career (saved in saves/, autosaved weekly)
+python -m manager_core career new minha --club alvorada  # choose your club
+python -m manager_core career continue minha            # play to the next stop
+python -m manager_core career status minha              # date, next match, suspensions
+python -m manager_core season --career minha table      # any season view, on the career
+python -m manager_core career history minha             # past seasons
 ```
 
 Checks: `cd core; ruff check .; mypy; pytest -q`. Validation guides:
 [001](specs/001-core-domain-model/quickstart.md),
 [002](specs/002-competitions-calendar/quickstart.md),
-[003](specs/003-quick-sim/quickstart.md).
+[003](specs/003-quick-sim/quickstart.md),
+[004](specs/004-career-save/quickstart.md).
 
 ## Docs
 - [Product vision](docs/vision.md): what the game is and the decisions behind it
