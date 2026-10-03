@@ -13,6 +13,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
+from manager_core.calibration import harness
+from manager_core.calibration.harness import CalibrationReport
 from manager_core.competition import rules
 from manager_core.competition.calendar import CalendarDay
 from manager_core.competition.results import Result, ResultProvider
@@ -32,6 +34,8 @@ from manager_core.io import reader, writer
 from manager_core.io.reader import LoadResult
 from manager_core.io.validate import ValidationReport
 from manager_core.io.writer import ExportSummary
+from manager_core.quicksim.provider import QuickSimProvider
+from manager_core.quicksim.report import MatchReport
 from manager_core.ratings import lineup
 from manager_core.ratings.ability import best_position, current_ability, is_goalkeeper
 from manager_core.ratings.lineup import Lineup
@@ -360,8 +364,9 @@ def start_season(dataset: Dataset, ruleset_id: str, year: int, master_seed: int,
     for club_id in participants or ():
         if club_id not in dataset.clubs:
             raise NotFoundError("club", club_id)
+    provider = result_provider or QuickSimProvider(dataset)
     return Season.start(dataset, load_ruleset(ruleset_id), year, master_seed, participants,
-                        result_provider)
+                        provider)
 
 
 def season_groups(season: Season) -> list[GroupView]:
@@ -463,3 +468,64 @@ def season_calendar(season: Season, month: int | None = None) -> list[CalendarDa
     if not 1 <= month <= 12:
         raise NotFoundError("month", str(month))
     return list(calendar.month(month))
+
+
+# ---- quick sim (spec 003) --------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class MatchReportView:
+    match: MatchView
+    report: MatchReport | None  # None until played (or for placeholder results)
+
+
+@dataclass(frozen=True, slots=True)
+class ScorerRow:
+    player_id: str
+    player_name: str
+    club_id: str
+    club_name: str
+    goals: int
+    penalties: int
+    assists: int
+
+
+def match_report(season: Season, match_id: str) -> MatchReportView:
+    view = match_view(season, match_id)
+    return MatchReportView(view, view.result.report if view.result else None)
+
+
+def season_scorers(season: Season, limit: int | None = None) -> list[ScorerRow]:
+    """Top scorers: goals, then assists, then fewer penalties, then player id."""
+    goals: dict[str, int] = {}
+    penalties: dict[str, int] = {}
+    assists: dict[str, int] = {}
+    club_of: dict[str, str] = {}
+    for match_id in sorted(season.results):
+        report = season.results[match_id].report
+        if report is None:
+            continue
+        match = season.matches[match_id]
+        clubs = {"home": match.home_id, "away": match.away_id}
+        for e in report.events:
+            if e.kind in ("goal", "penalty_goal"):
+                goals[e.player_id] = goals.get(e.player_id, 0) + 1
+                club_of[e.player_id] = clubs[e.side]
+                if e.kind == "penalty_goal":
+                    penalties[e.player_id] = penalties.get(e.player_id, 0) + 1
+                if e.other_player_id:
+                    assists[e.other_player_id] = assists.get(e.other_player_id, 0) + 1
+                    club_of.setdefault(e.other_player_id, clubs[e.side])
+    ids = sorted(set(goals) | set(assists), key=lambda pid: (
+        -goals.get(pid, 0), -assists.get(pid, 0), penalties.get(pid, 0), pid))
+    rows = [ScorerRow(pid, season.dataset.player(pid).display_name, club_of[pid],
+                      season.club_name(club_of[pid]), goals.get(pid, 0),
+                      penalties.get(pid, 0), assists.get(pid, 0))
+            for pid in ids if goals.get(pid, 0) > 0]
+    return rows[:limit] if limit is not None else rows
+
+
+def run_calibration(dataset: Dataset, gate: str = "pr",
+                    baseline: Path | None = None) -> CalibrationReport:
+    """Run a calibration gate (deterministic; writes nothing)."""
+    return harness.run(dataset, gate, baseline=baseline)

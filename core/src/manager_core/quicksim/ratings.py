@@ -7,7 +7,7 @@ contributed to. Contributions are scaled by the player's familiarity with his sl
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -72,10 +72,11 @@ def _mean(player: Player, names: Sequence[str]) -> float:
 
 
 def discipline_score(player: Player) -> float:
-    """Foul and card proneness on the 1-20 scale (research R5)."""
+    """Foul and card proneness on the 1-20 scale (research R5). Aggression is the main driver,
+    as in FM; poor tackling adds clumsy fouls."""
     a = player.attributes
-    return (a.get("aggression") + a.get("dirtiness") + (21 - a.get("temperament"))
-            + (21 - a.get("tackling"))) / 4
+    return (0.45 * a.get("aggression") + 0.25 * a.get("dirtiness")
+            + 0.2 * (21 - a.get("temperament")) + 0.1 * (21 - a.get("tackling")))
 
 
 def player_composites(player: Player) -> dict[str, float]:
@@ -89,12 +90,17 @@ def player_composites(player: Player) -> dict[str, float]:
     }
 
 
-def contribution(player: Player, slot: Position, composite: str) -> float:
-    """What one player adds to a composite from a slot (before dividing by the full XI)."""
+Composites = Mapping[str, float]
+
+
+def contribution(player: Player, slot: Position, composite: str,
+                 composites: Composites | None = None) -> float:
+    """What one player adds to a composite from a slot (before dividing by the full XI).
+    `composites` are the player's precomputed `player_composites` (a speed-up)."""
     weight = _WEIGHTS[composite][_GROUP_INDEX[POSITION_GROUP[slot]]]
     if weight == 0:
         return 0.0
-    value = player_composites(player)[composite]
+    value = (composites or player_composites(player))[composite]
     if composite != "discipline":  # an unfamiliar slot hurts quality, not temperament
         value *= familiarity_factor(player.positions[slot])
     if slot is Position.GK and player.positions[slot] < NATURAL_THRESHOLD:
@@ -106,22 +112,41 @@ def full_weight(slots: Sequence[Position], composite: str) -> float:
     return sum(_WEIGHTS[composite][_GROUP_INDEX[POSITION_GROUP[s]]] for s in slots)
 
 
-def rate(on_pitch: Sequence[tuple[Position, Player]], formation_slots: Sequence[Position],
-         defence_penalty: float = 0.0) -> TeamRatings:
-    """Ratings of the players on the pitch. `defence_penalty` is subtracted from the defence
-    sum (the caution behaviour's cost, research R5)."""
+def slot_contributions(player: Player, slot: Position,
+                       composites: Composites | None = None) -> tuple[float, ...]:
+    """The player's contribution to every composite from a slot, in `COMPOSITES` order."""
+    comps = composites or player_composites(player)
+    return tuple(contribution(player, slot, c, comps) for c in COMPOSITES)
+
+
+COMPOSITES = tuple(_WEIGHTS)
+
+
+def combine(contributions: Sequence[tuple[Position, tuple[float, ...]]],
+            formation_slots: Sequence[Position], defence_penalty: float = 0.0) -> TeamRatings:
+    """Ratings from per-player slot contributions (see `rate`)."""
     values = {}
-    for composite in _WEIGHTS:
-        total = sum(contribution(p, slot, composite)
-                    for slot, p in sorted(on_pitch, key=lambda sp: sp[1].id))
+    for k, composite in enumerate(COMPOSITES):
+        total = sum(c[k] for _, c in contributions)
         if composite == "defence":
             total -= defence_penalty
-        full = full_weight(formation_slots, composite)
-        # discipline is a mean (fewer players do not mean fewer fouls per player)
         if composite == "discipline":
+            # a mean: fewer players do not mean fewer fouls per player
             denominator = sum(_WEIGHTS[composite][_GROUP_INDEX[POSITION_GROUP[s]]]
-                              for s, _ in on_pitch) or 1.0
+                              for s, _ in contributions) or 1.0
             values[composite] = total / denominator
         else:
+            full = full_weight(formation_slots, composite)
             values[composite] = max(1.0, total / full) if full else 1.0
     return TeamRatings(**values)
+
+
+def rate(on_pitch: Sequence[tuple[Position, Player]], formation_slots: Sequence[Position],
+         defence_penalty: float = 0.0,
+         composites: Mapping[str, Composites] | None = None) -> TeamRatings:
+    """Ratings of the players on the pitch. `defence_penalty` is subtracted from the defence
+    sum (the caution behaviour's cost, research R5)."""
+    ordered = sorted(on_pitch, key=lambda sp: sp[1].id)
+    return combine([(slot, slot_contributions(p, slot, composites.get(p.id) if composites
+                                              else None)) for slot, p in ordered],
+                   formation_slots, defence_penalty)

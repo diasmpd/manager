@@ -4,8 +4,8 @@ A personal football management game for Windows. Football Manager is the realism
 the game is built around Brazilian football. The simulation core is in Python and the desktop
 client is in Godot.
 
-> Status: Milestone 0 in progress. Specs 001 (core domain model) and 002 (competitions and
-> calendar) are implemented. See [docs/roadmap.md](docs/roadmap.md).
+> Status: Milestone 0 in progress. Specs 001 (core domain model), 002 (competitions and
+> calendar) and 003 (quick sim) are implemented. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Quick start (Windows, PowerShell)
 
@@ -18,7 +18,7 @@ python -m manager_core player show p-000026             # an FM-style player pro
 python -m manager_core lineup suggest vale-do-ouro --formation 4-3-3
 python -m manager_core data validate data/sample        # import validation report
 
-# a Campeonato Mineiro season (results are provisional until the quick sim, spec 003)
+# a Campeonato Mineiro season, played by the quick sim (spec 003)
 python -m manager_core season groups                    # the draw
 python -m manager_core season fixtures --club alvorada  # one club's dates
 python -m manager_core season --date 2027-02-01 table   # overall classification on a date
@@ -26,11 +26,15 @@ python -m manager_core season bracket                   # semifinals, final, Tro
 python -m manager_core season outcomes                  # champion, relegated, final order
 python -m manager_core season calendar --month 2        # February day by day
 python -m manager_core season rules                     # bundled competition rulesets
+python -m manager_core season match primeira-fase-r01-01 # a match report (stats, goals, cards)
+python -m manager_core season scorers                   # top scorers
+python -m manager_core calibrate                        # quick-sim calibration vs real data
 ```
 
 Checks: `cd core; ruff check .; mypy; pytest -q`. Validation guides:
 [001](specs/001-core-domain-model/quickstart.md),
-[002](specs/002-competitions-calendar/quickstart.md).
+[002](specs/002-competitions-calendar/quickstart.md),
+[003](specs/003-quick-sim/quickstart.md).
 
 ## Docs
 - [Product vision](docs/vision.md): what the game is and the decisions behind it
@@ -48,7 +52,7 @@ This repo only contains code and a fictional sample dataset.
 
 ## Layout
 - `core/`: headless Python simulation core (`manager_core`): domain model, ratings, CSV I/O,
-  competitions (rulesets as TOML data, season engine, calendar), CLI
+  competitions (rulesets as TOML data, season engine, calendar), quick sim and calibration, CLI
 - `data/sample/`: committed fictional sample world (generated, deterministic)
 - `specs/`, `docs/`, `.specify/`: specifications and project governance
 

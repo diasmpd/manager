@@ -23,7 +23,7 @@ def test_february_day_by_day(capsys: pytest.CaptureFixture[str], sample_dir: Pat
     for day in range(1, 29):
         assert f"{day:02d}/02/2027" in out
     assert "[Carnaval" in out
-    assert t("season.provisional") in out
+    assert t("season.provisional") not in out  # quick-sim results are final (003)
 
 
 def test_held_dates_before_pairing(capsys: pytest.CaptureFixture[str], sample_dir: Path) -> None:

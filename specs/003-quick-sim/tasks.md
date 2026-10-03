@@ -19,8 +19,8 @@ description: "Task list for 003 Quick Sim"
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the packages `core/src/manager_core/quicksim/__init__.py` and `core/src/manager_core/calibration/__init__.py`, and the reference folders `reference/quicksim/` and `reference/calibration/` (each with `__init__.py`). Add `reference/quicksim/*.toml` and `reference/calibration/*.toml` to the package data in `core/pyproject.toml`.
-- [ ] T002 [P] Create `core/tools/` (dev-only, not packaged) and `core/calibration/` (committed reports).
+- [X] T001 Create the packages `core/src/manager_core/quicksim/__init__.py` and `core/src/manager_core/calibration/__init__.py`, and the reference folders `reference/quicksim/` and `reference/calibration/` (each with `__init__.py`). Add `reference/quicksim/*.toml` and `reference/calibration/*.toml` to the package data in `core/pyproject.toml`.
+- [X] T002 [P] Create `core/tools/` (dev-only, not packaged) and `core/calibration/` (committed reports).
 
 ---
 
@@ -28,11 +28,11 @@ description: "Task list for 003 Quick Sim"
 
 ### Tests first
 
-- [ ] T003 [P] Unit tests `core/tests/unit/test_quicksim_params.py`:
+- [X] T003 [P] Unit tests `core/tests/unit/test_quicksim_params.py`:
   - the bundled `model.toml` loads and has a stable `params_hash` (it changes when any value changes);
   - a missing key or a rate outside (0, 1) raises `ModelParamsError` with code `Q001` and the key path;
   - ranges must be ordered.
-- [ ] T004 [P] Unit tests `core/tests/unit/test_quicksim_report.py` for `Minute`, `MatchEvent`, `SideStats`, `MatchReport` and `check_invariants(report, result)`. Hand-built reports that violate each invariant in data-model.md are rejected, with one test per invariant:
+- [X] T004 [P] Unit tests `core/tests/unit/test_quicksim_report.py` for `Minute`, `MatchEvent`, `SideStats`, `MatchReport` and `check_invariants(report, result)`. Hand-built reports that violate each invariant in data-model.md are rejected, with one test per invariant:
   - goals > shots on target;
   - possession ≠ 100;
   - an event by a player not on the pitch;
@@ -43,33 +43,33 @@ description: "Task list for 003 Quick Sim"
   - a returning player.
 
   Also: `Minute(90, 4)` formats as "90+4", and minutes order by (base, added).
-- [ ] T005 [P] Unit tests `core/tests/unit/test_quicksim_ratings.py`:
+- [X] T005 [P] Unit tests `core/tests/unit/test_quicksim_ratings.py`:
   - composites are on the 1–20 scale;
   - raising a forward's finishing raises attack and not defence;
   - raising a centre-back's tackling raises defence;
   - removing a player (red card) lowers each composite he contributed to;
   - a GK-less XI gets a low goalkeeping rating;
   - the result is deterministic and independent of player order.
-- [ ] T006 [P] Contract test `core/tests/contract/test_calibration_targets.py`:
+- [X] T006 [P] Contract test `core/tests/contract/test_calibration_targets.py`:
   - the bundled `quicksim-targets.toml` loads with every metric id from contracts/calibration-targets.md, each with a source and a retrieved date;
   - the values match the spec's table (goals 2.50 in 2.30–2.70; H/D/A 48.6/26.1/25.3 ±4 pp; yellows 5.2 in 4.5–6.0; reds 0.25 in 0.17–0.33; Mineiro draw 29% in 22–36%);
   - an unknown id, or `target` outside `low..high`, is rejected with code `C001` and the key path.
 
 ### Implementation
 
-- [ ] T007 [P] Implement `core/src/manager_core/quicksim/params.py`: `ModelParams` (frozen), `load_params()` and `load_params_file(path)`, `ModelParamsError` (Q001), and `params_hash` (SHA-256 of the canonical serialisation).
-- [ ] T008 [P] Write `core/src/manager_core/reference/quicksim/model.toml` with the initial values from research R3–R8 and R11. Every group gets a comment naming the research entry. `model_version = "0.1"`.
-- [ ] T009 [P] Implement `core/src/manager_core/quicksim/report.py`: `Minute`, `MatchEvent` (kinds `goal`, `own_goal`, `penalty_goal`, `penalty_miss`, `yellow`, `second_yellow`, `red`, `sub`), `SideStats`, `MatchReport` and `check_invariants`.
-- [ ] T010 [P] Implement `core/src/manager_core/quicksim/ratings.py`: `TeamRatings` and `rate(on_pitch, formation, dataset)`, per research R2 (weights table; contributions scaled by `suitability`; divided by a full XI's weight).
-- [ ] T011 [P] Implement `core/src/manager_core/calibration/targets.py` (loader, C001) and write `core/src/manager_core/reference/calibration/quicksim-targets.toml` with every row of the spec's calibration table: sources verbatim, `retrieved = 2026-10-02`.
-- [ ] T012 Extend 002 in `core/src/manager_core/competition/results.py` and `competition/season.py`:
+- [X] T007 [P] Implement `core/src/manager_core/quicksim/params.py`: `ModelParams` (frozen), `load_params()` and `load_params_file(path)`, `ModelParamsError` (Q001), and `params_hash` (SHA-256 of the canonical serialisation).
+- [X] T008 [P] Write `core/src/manager_core/reference/quicksim/model.toml` with the initial values from research R3–R8 and R11. Every group gets a comment naming the research entry. `model_version = "0.1"`.
+- [X] T009 [P] Implement `core/src/manager_core/quicksim/report.py`: `Minute`, `MatchEvent` (kinds `goal`, `own_goal`, `penalty_goal`, `penalty_miss`, `yellow`, `second_yellow`, `red`, `sub`), `SideStats`, `MatchReport` and `check_invariants`.
+- [X] T010 [P] Implement `core/src/manager_core/quicksim/ratings.py`: `TeamRatings` and `rate(on_pitch, formation, dataset)`, per research R2 (weights table; contributions scaled by `suitability`; divided by a full XI's weight).
+- [X] T011 [P] Implement `core/src/manager_core/calibration/targets.py` (loader, C001) and write `core/src/manager_core/reference/calibration/quicksim-targets.toml` with every row of the spec's calibration table: sources verbatim, `retrieved = 2026-10-02`.
+- [X] T012 Extend 002 in `core/src/manager_core/competition/results.py` and `competition/season.py`:
   - `Result.report: MatchReport | None = None` (type imported under TYPE_CHECKING to keep `competition` independent);
   - `MatchContext.neutral: bool = False`, set by `Season` for `venue = "neutral"` stages;
   - `ResultProvider.shootout(..., *, last_result: Result | None = None)`, with `Season` passing the last leg's result;
   - `PlaceholderProvider` accepts and ignores `last_result`.
 
   Run the 002 suite: it must stay green.
-- [ ] T013 Add the 003 strings to `core/src/manager_core/i18n/pt_BR.py`:
+- [X] T013 Add the 003 strings to `core/src/manager_core/i18n/pt_BR.py`:
   - stat labels (Finalizações, No alvo, xG, Posse, Escanteios, Faltas, Amarelos, Vermelhos);
   - event texts (gol, gol contra, pênalti, pênalti perdido, amarelo, segundo amarelo, vermelho, substituição);
   - "Ainda não disputado";
@@ -91,31 +91,31 @@ pass.
 
 ### Tests (first)
 
-- [ ] T014 [P] [US1] Unit tests `core/tests/unit/test_quicksim_squad.py`:
+- [X] T014 [P] [US1] Unit tests `core/tests/unit/test_quicksim_squad.py`:
   - `MatchSquad` picks 001's best XI for 4-4-2 and a bench of ≤ 9 that includes a second goalkeeper when the squad has one;
   - the XI and bench are cached per club (a second call costs no assignment);
   - a squad of 10 players still produces an XI (an outfield player in goal), with a flag set.
-- [ ] T015 [P] [US1] Unit tests `core/tests/unit/test_quicksim_engine.py`:
+- [X] T015 [P] [US1] Unit tests `core/tests/unit/test_quicksim_engine.py`:
   - `simulate_match` is deterministic for the same RNG seed;
   - results differ across seeds;
   - `check_invariants` holds on 2,000 matches between random sample clubs (SC-005);
   - with `neutral=True`, home and away goal means over 2,000 mirrored matches are within noise of each other;
   - a much stronger side wins more often than it loses.
-- [ ] T016 [P] [US1] Integration test `core/tests/integration/test_quicksim_season.py`:
+- [X] T016 [P] [US1] Integration test `core/tests/integration/test_quicksim_season.py`:
   - `start_season` now defaults to the quick sim (`source == "quick_sim"`, every result has a report);
   - 200 Mineiro seasons complete with 002's invariants (the 1,000-season version is `slow`);
   - a match replayed alone (same season seed and match id) equals the in-season result (SC-003);
   - no table row is `decided_by == "draw"` because cards were missing (SC-007: card totals are present on every result).
-- [ ] T017 [P] [US1] Update 002's tests that assert placeholder behaviour (`test_placeholder.py`, `test_season_play.py`, CLI "(provisório)" checks) to pass `result_provider=PlaceholderProvider(dataset)` explicitly, or to expect no "(provisório)" mark with the quick sim.
-- [ ] T018 [P] [US1] Performance test `core/tests/integration/test_quicksim_performance.py` (`slow`, limit from `MANAGER_PERF_LIMIT_S`):
+- [X] T017 [P] [US1] Update 002's tests that assert placeholder behaviour (`test_placeholder.py`, `test_season_play.py`, CLI "(provisório)" checks) to pass `result_provider=PlaceholderProvider(dataset)` explicitly, or to expect no "(provisório)" mark with the quick sim.
+- [X] T018 [P] [US1] Performance test `core/tests/integration/test_quicksim_performance.py` (`slow`, limit from `MANAGER_PERF_LIMIT_S`):
   - a Mineiro matchday takes < 0.5 s once lineups are cached;
   - a full season takes < 3 s from a cold provider;
   - a 10-match league matchday takes < 1 s.
 
 ### Implementation
 
-- [ ] T019 [US1] Implement `core/src/manager_core/quicksim/squad.py`: `MatchSquad` (XI per research R7, bench of 9 by CA with a second GK), the per-club cache, and an `on_pitch` slot map.
-- [ ] T020 [US1] Implement `core/src/manager_core/quicksim/engine.py` `simulate_match(home_squad, away_squad, params, rng, neutral) -> (Result, MatchReport)`:
+- [X] T019 [US1] Implement `core/src/manager_core/quicksim/squad.py`: `MatchSquad` (XI per research R7, bench of 9 by CA with a second GK), the per-club cache, and an `on_pitch` slot map.
+- [X] T020 [US1] Implement `core/src/manager_core/quicksim/engine.py` `simulate_match(home_squad, away_squad, params, rng, neutral) -> (Result, MatchReport)`:
   - the minute loop with stoppage time (R8);
   - shots/xG/on-target/goals with keeper factor (R3);
   - penalties and own goals;
@@ -124,10 +124,10 @@ pass.
   - the time trend (R4).
 
   Scorers and assisters, cards per player and substitutions are delegated to helpers added in US2/US3. US1 uses minimal stand-ins: the scorer is the best finisher on the pitch; there are no substitutions; card totals come from per-side counts. The `Result` card totals are always filled.
-- [ ] T021 [US1] Implement `core/src/manager_core/quicksim/provider.py` `QuickSimProvider(dataset, params=None)`: `play` (source `quick_sim`) and a temporary `shootout` at 0.752 (replaced in US4). Make it the default in `api.start_season`.
-- [ ] T022 [US1] Implement the calibration core: `core/src/manager_core/calibration/samples.py` (league sample = 12 clubs double round-robin via 002's `build_group_fixtures`; Mineiro sample = full seasons; fixed seed labels per research R10), `metrics.py` (every metric id) and `harness.py` (`run(dataset, gate, params=None, baseline=None) -> CalibrationReport`, canonical JSON).
-- [ ] T023 [US1] Write `core/tools/tune_quicksim.py`: coordinate descent on the primary targets over the PR sample, printing each step and writing `model.toml`. Run it and commit the fitted parameters (`model_version = "1.0"`).
-- [ ] T024 [US1] Gate test `core/tests/integration/test_calibration_gate.py`:
+- [X] T021 [US1] Implement `core/src/manager_core/quicksim/provider.py` `QuickSimProvider(dataset, params=None)`: `play` (source `quick_sim`) and a temporary `shootout` at 0.752 (replaced in US4). Make it the default in `api.start_season`.
+- [X] T022 [US1] Implement the calibration core: `core/src/manager_core/calibration/samples.py` (league sample = 12 clubs double round-robin via 002's `build_group_fixtures`; Mineiro sample = full seasons; fixed seed labels per research R10), `metrics.py` (every metric id) and `harness.py` (`run(dataset, gate, params=None, baseline=None) -> CalibrationReport`, canonical JSON).
+- [X] T023 [US1] Write `core/tools/tune_quicksim.py`: coordinate descent on the primary targets over the PR sample, printing each step and writing `model.toml`. Run it and commit the fitted parameters (`model_version = "1.0"`).
+- [X] T024 [US1] Gate test `core/tests/integration/test_calibration_gate.py`:
   - the PR gate passes every primary target (SC-001);
   - two runs produce byte-identical JSON (SC-003);
   - a deliberately broken parameter (shot rate × 2) makes the gate fail and name `goals_per_match`;
@@ -141,13 +141,13 @@ pass.
 
 ### Tests (first)
 
-- [ ] T025 [P] [US2] Unit tests `core/tests/unit/test_quicksim_players.py`, over 5,000 matches:
+- [X] T025 [P] [US2] Unit tests `core/tests/unit/test_quicksim_players.py`, over 5,000 matches:
   - forwards score the largest share of goals, then attacking midfielders, then defenders, and goalkeepers never score;
   - an assister is never the scorer;
   - the assist rate on open-play goals is 70–80%;
   - the penalty taker is the on-pitch player with the best penalty_taking;
   - cards go mostly to defenders and midfielders, and a player with aggression 20 is booked more often than one with 5.
-- [ ] T026 [P] [US2] Contract test `core/tests/contract/test_cli_season_match.py`:
+- [X] T026 [P] [US2] Contract test `core/tests/contract/test_cli_season_match.py`:
   - `season match <id>` exits 0, prints every stat label, and every goal line has a minute and a scorer;
   - an unknown id exits 3;
   - with `--date` before the match, it prints "Ainda não disputado";
@@ -156,8 +156,8 @@ pass.
 
 ### Implementation
 
-- [ ] T027 [US2] In `core/src/manager_core/quicksim/engine.py`, add scorer, assister and penalty-taker selection (research R7) and per-player cards with second yellow → red (R5). The `Result` card totals follow the counting rule in data-model.md.
-- [ ] T028 [US2] Facade `match_report`, `season_scorers` (`ScorerRow`, order per contracts/facade.md) and the CLI `season match` and `season scorers`, plus match ids in the `season fixtures`/`day`/`bracket` lines (contracts/cli.md), in `core/src/manager_core/api.py` and `cli.py`.
+- [X] T027 [US2] In `core/src/manager_core/quicksim/engine.py`, add scorer, assister and penalty-taker selection (research R7) and per-player cards with second yellow → red (R5). The `Result` card totals follow the counting rule in data-model.md.
+- [X] T028 [US2] Facade `match_report`, `season_scorers` (`ScorerRow`, order per contracts/facade.md) and the CLI `season match` and `season scorers`, plus match ids in the `season fixtures`/`day`/`bracket` lines (contracts/cli.md), in `core/src/manager_core/api.py` and `cli.py`.
 
 **Checkpoint**: any match can be inspected; the top-scorer list exists.
 
@@ -167,7 +167,7 @@ pass.
 
 ### Tests (first)
 
-- [ ] T029 [P] [US3] Behaviour tests `core/tests/unit/test_quicksim_game_state.py`, statistical, with fixed seeds and bands:
+- [X] T029 [P] [US3] Behaviour tests `core/tests/unit/test_quicksim_game_state.py`, statistical, with fixed seeds and bands:
   - goals by 15-minute period: 76–90+ is the highest and 1–15 the lowest;
   - after minute 75, a side trailing by 1 has a higher shot rate and concedes more than in level games of the same strength gap;
   - a side down to 10 men takes fewer points than matched games without a red;
@@ -176,8 +176,8 @@ pass.
 
 ### Implementation
 
-- [ ] T030 [US3] In `core/src/manager_core/quicksim/engine.py`, add game state per research R4 (chasing, protecting a lead, red-card rating recomputation, man-up bonus), the caution behaviour per R5 (on/off by parameter) and substitutions per R7. Re-run `tune_quicksim.py` and commit the refit parameters (`model_version = "1.1"`).
-- [ ] T031 [US3] Add the behaviour check to the harness report (second-yellow rate and goals conceded, caution on vs off), in `core/src/manager_core/calibration/harness.py`.
+- [X] T030 [US3] In `core/src/manager_core/quicksim/engine.py`, add game state per research R4 (chasing, protecting a lead, red-card rating recomputation, man-up bonus), the caution behaviour per R5 (on/off by parameter) and substitutions per R7. Re-run `tune_quicksim.py` and commit the refit parameters (`model_version = "1.1"`).
+- [X] T031 [US3] Add the behaviour check to the harness report (second-yellow rate and goals conceded, caution on vs off), in `core/src/manager_core/calibration/harness.py`.
 
 **Checkpoint**: late goals, comebacks, red cards and caution exist, and the gate still passes.
 
@@ -187,7 +187,7 @@ pass.
 
 ### Tests (first)
 
-- [ ] T032 [P] [US4] Unit tests `core/tests/unit/test_quicksim_shootout.py`:
+- [X] T032 [P] [US4] Unit tests `core/tests/unit/test_quicksim_shootout.py`:
   - only the finishers (from `last_result.report`) kick;
   - the order is by penalty_taking, then composure, then id, and it restarts after every eligible player has kicked;
   - 5 kicks each plus sudden death, consistent with 002's `Shootout` validation;
@@ -198,7 +198,7 @@ pass.
 
 ### Implementation
 
-- [ ] T033 [US4] Implement `core/src/manager_core/quicksim/shootout.py` per research R11 and wire it into `QuickSimProvider.shootout`. Show the kicks with their takers in `season match` for the last leg.
+- [X] T033 [US4] Implement `core/src/manager_core/quicksim/shootout.py` per research R11 and wire it into `QuickSimProvider.shootout`. Show the kicks with their takers in `season match` for the last leg.
 
 ---
 
@@ -206,20 +206,20 @@ pass.
 
 ### Tests (first)
 
-- [ ] T034 [P] [US5] Contract test `core/tests/contract/test_cli_calibrate.py`:
+- [X] T034 [P] [US5] Contract test `core/tests/contract/test_cli_calibrate.py`:
   - `calibrate` exits 0 and prints every target id's description with value, target, band, verdict and source, plus the versions and model hash;
   - `--write PATH` writes the JSON, and `--baseline PATH` adds the "antes" column;
   - with a targets file where goals must be 9–10 (test hook: `MANAGER_CALIBRATION_TARGETS`), it exits 1 and names the metric.
 
 ### Implementation
 
-- [ ] T035 [US5] Implement the `calibrate` command and the `run_calibration` facade in `core/src/manager_core/cli.py` and `api.py`. Generate and commit `core/calibration/quicksim-baseline.json` from the PR gate.
+- [X] T035 [US5] Implement the `calibrate` command and the `run_calibration` facade in `core/src/manager_core/cli.py` and `api.py`. Generate and commit `core/calibration/quicksim-baseline.json` from the PR gate.
 
 ---
 
 ## Phase 8: Polish
 
-- [ ] T036 [P] Update `docs/roadmap.md` (003 done, 004 next; a note for 007: cross-validate against the quick sim using the same targets file) and the `README.md` quick start (`season match`, `season scorers`, `calibrate`).
+- [X] T036 [P] Update `docs/roadmap.md` (003 done, 004 next; a note for 007: cross-validate against the quick sim using the same targets file) and the `README.md` quick start (`season match`, `season scorers`, `calibrate`).
 - [ ] T037 Make sure `ruff check .`, `mypy` (strict) and the full pytest suite pass, including `slow` (milestone gate and 1,000 seasons).
 - [ ] T038 Run [quickstart.md](quickstart.md) on Windows and note any deviations.
 - [ ] T039 Open the PR `003-quick-sim` with the PR-gate calibration report (before = placeholder metrics, after = quick sim), the test results and the quickstart check.

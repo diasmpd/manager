@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from manager_core.domain.positions import Position
@@ -72,13 +72,6 @@ class SideLineup:
 
 
 @dataclass(frozen=True, slots=True)
-class ShootoutKick:
-    side: str
-    player_id: str
-    scored: bool
-
-
-@dataclass(frozen=True, slots=True)
 class MatchReport:
     home: SideStats
     away: SideStats
@@ -89,7 +82,6 @@ class MatchReport:
     away_finishers: tuple[str, ...]
     stoppage: tuple[int, int]
     model_version: str
-    shootout_kicks: tuple[ShootoutKick, ...] = field(default=())
 
     def stats(self, side: str) -> SideStats:
         return self.home if side == HOME else self.away
@@ -189,3 +181,17 @@ def _check_players(report: MatchReport) -> list[str]:
         if set(report.finishers(side)) != on[side]:
             problems.append(f"finishers:{side}")
     return problems
+
+
+def keeper_at_end(report: MatchReport, side: str) -> str | None:
+    """The player in goal at the final whistle: the starting keeper if he finished, otherwise
+    the reserve keeper who came on (the last substitute still on the pitch)."""
+    lineup = report.lineup(side)
+    finishers = set(report.finishers(side))
+    keeper = next((pid for pos, pid in lineup.starters if pos is Position.GK), None)
+    if keeper in finishers:
+        return keeper
+    for e in reversed(report.events):
+        if e.kind == "sub" and e.side == side and e.other_player_id in finishers:
+            return e.other_player_id
+    return None

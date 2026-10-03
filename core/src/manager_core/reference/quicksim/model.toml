@@ -1,57 +1,55 @@
 # Quick-sim model parameters (spec 003, research R9). Fitted by core/tools/tune_quicksim.py
-# against reference/calibration/quicksim-targets.toml; hand-set values are commented.
-model_version = "0.1"
+# against reference/calibration/quicksim-targets.toml. Do not edit by hand without re-running
+# the calibration gate.
+model_version = "1.0"
 
-# R3, R5, R6: per side per minute unless noted.
 [rates]
-shot = 0.13
+shot = 0.104
 foul = 0.135
-corner_per_shot = 0.25
+corner_per_shot = 0.219723
 corner_base = 0.02
 penalty = 0.0013
-own_goal_share = 0.03
-yellow_per_foul = 0.19
-direct_red_per_foul = 0.004
+own_goal_share = 0.041527
+yellow_per_foul = 0.256603
+direct_red_per_foul = 0.000815
 
-# R2, R3: rating differences are scaled per 5 points of the 1-20 attribute scale.
 [strength]
-attack = 0.35
-control = 0.20
+attack = 0.114728
+control = 0.100517
 keeper = 0.25
-xg_median = 0.06
+xg_median = 0.053023
 xg_sigma = 1.0
-xg_attack = 0.25
+xg_attack = 0.097396
 
-# R3, R6
 [home]
-shot = 1.18
+shot = 1.3
+away_shot = 0.800136
 possession = 0.04
 
-# R4: the time trend rises linearly over 90 minutes.
 [time]
-trend_start = 0.85
-trend_end = 1.15
+trend_start = 0.939144
+trend_end = 1.2742
+second_half = 1.1
 
-# R4: game state.
 [state]
-chase = 0.25
-exposed = 0.15
-protect = 0.15
-man_up = 0.20
+chase = 0.5
+level = 0.208859
+settled = 0.15
+exposed = 0.7
+protect = 0.1
+man_up = 0.2
+short_handed = 0.2
 
-# R5: booked-player caution (owner's pain point) and its defensive cost.
 [caution]
 enabled = true
 foul = 0.5
 card = 0.7
 cost = 0.15
 
-# R8: stoppage time, minutes (inclusive ranges).
 [stoppage]
 first = [1, 5]
 second = [4, 10]
 
-# R7: substitutions.
 [subs]
 halftime_chance = 0.35
 windows = [[55, 65], [66, 75], [76, 85]]
@@ -59,7 +57,6 @@ max = 5
 window_chance = 0.85
 per_window = [1, 2]
 
-# R7: scorers and assisters.
 [scorers]
 header_share = 0.2
 header_defender_weight = 0.4
@@ -72,9 +69,8 @@ midfielder = 0.35
 attacking_mid = 0.7
 forward = 1.0
 
-# R11: shootout kick probability.
 [shootout]
-base = 0.752
+base = 0.798136
 taker = 0.012
 composure = 0.008
 keeper = 0.01

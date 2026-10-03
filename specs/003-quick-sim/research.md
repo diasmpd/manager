@@ -73,15 +73,44 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
 ## R4. Game state and time
 
 - **Decision**:
-  - **Time trend.** It rises linearly from 0.85 at minute 1 to 1.15 at minute 90 and stays
-    there in stoppage time (fatigue and open play).
+  - **Time trend.** A linear multiplier from `trend_start` to `trend_end` *within each half*.
+    It restarts at half-time, because teams settle, then open up and tire. Implementation
+    tried two other shapes:
+    - **Rising over the whole match:** on top of game state, this put 32% of goals after
+      minute 75 (target 26%) and made 0–0 too common.
+    - **Falling over the whole match:** the fit converged here, but it made the first 15
+      minutes the busiest, which is unrealistic.
+
+    The per-half shape is bounded so that `trend_start ≤ 1 ≤ trend_end`. A fitted
+    `second_half` multiplier sets the second-half tempo: substitutions, tiredness and tactical
+    changes make it a more open game (56% of Brasileirão 2019 goals came in the second half). With it, 1–15 is
+    the quietest period and 76–90+ the busiest.
   - **Trailing side.** From minute 60, its attacking intent rises by
-    `δ_chase · min(deficit, 2) · (t − 60)/30`. Its shot rate goes up, and so does the quality
+    `δ_chase · (t − 60)/30`, whatever the deficit. Implementation found that scaling by the
+    deficit inflated 5+-goal games. Real totals are slightly under-dispersed: variance about
+    2.25 at a mean of 2.5.
+  - **Settled match** (added during implementation). When the margin is 2 or more, both
+    sides' shot rate drops by `δ_settled`. The game is decided, so the leader eases off and
+    the trailing side loses heart. Its shot rate goes up, and so does the quality
     of the counter-chances it concedes (`δ_exposed`).
   - **Leading side.** From minute 70, a side ahead by one goal lowers its own shot rate by
     `δ_protect` and the opponent's chance quality by `δ_protect/2`.
+  - **Level game** (added during implementation). From minute 60, both sides raise their
+    shot rate by `δ_level · (t − 60)/30`: they push for a winner. Without it, the model gave
+    10% goalless draws against the real 6.6%. `δ_level` stays below `δ_chase`, so a side one
+    goal down always pushes harder than a level side.
+  - **Fitted values.** Implementation tests on a club against itself (so strength is equal)
+    fixed `δ_chase` = 0.5, `δ_exposed` = 0.7 and `δ_protect` = 0.1. With these, late on
+    (after minute 75):
+    - a side one goal down scores more per minute than a level side;
+    - its opponent also scores more (counter-attacks).
+
+    With a stronger `δ_protect`, the lead-protecting side cancelled the exposure, so a chasing
+    side did not concede more.
   - **Red card.** Ratings are recomputed without the player (R2), and the opponent's shot rate
-    gains `δ_man_up`.
+    gains `δ_man_up`. The side's own shot rate also drops by `δ_short_handed` (20%) per missing
+    player. Losing one player moves the composites by only about 1 point, and without this
+    term ten men took *more* points than eleven in the tests.
 - **Rationale**: the spec requires that the last 15-minute period has the most goals (26.1% of
   Brasileirão 2025 goals came after minute 75, and 56% of Brasileirão 2019 goals came in the
   second half), and that comebacks and protecting leads both exist. Protecting a lead also
@@ -95,8 +124,12 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
 - **Decision**:
   - **Fouls.** Each side commits fouls at a per-minute rate scaled by its discipline composite
     and the opponent's attacking pressure (target 26 per match).
+  - **Discipline score.** `0.45·aggression + 0.25·dirtiness + 0.2·(21 − temperament)
+    + 0.1·(21 − tackling)`. Aggression is the main driver, as in FM. An equal-weight mean
+    diluted it: in the sample, aggressive players are often good tacklers.
   - **Who fouls.** The fouler is drawn from the players on the pitch, weighted by line
-    (DEF 1.0, MID 0.8, ATT 0.4, GK 0.05) × aggression × dirtiness.
+    (DEF 1.0, MID 0.8, ATT 0.4, GK 0.05) × (discipline/10)^1.5.
+  - **Card proneness.** It scales with (discipline/10)².
   - **Cards.** A foul is a yellow with probability `y_base · f(aggression, dirtiness, temperament, minute)`.
     It is a direct red with a small fixed probability. A second yellow is a red.
   - **Caution behaviour** (Constitution V and the owner's pain point, on by default). A booked
@@ -132,14 +165,18 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
     weight 0.4. This applies to 20% of non-penalty goals.
   - **Assists.** 75% of open-play goals have one. The assister is weighted by line (AM and
     wide players high) × (passing + vision + crossing)/3, and is never the scorer.
-  - **Penalty taker.** The on-pitch player with the best penalty_taking (ties by composure,
-    then id).
+  - **Penalty taker.** The outfield player on the pitch with the best penalty_taking (ties by
+    composure, then id). Goalkeepers do not take penalties during a match; Rogério Ceni was
+    the exception. In a shootout they kick last, after the others.
   - **Substitution windows.** Half-time (35% chance per side) and three windows drawn from
     55–65, 66–75 and 76–85, for 3–5 substitutions per side.
   - **Who goes off.** Weighted toward attacking players and low stamina, and toward attackers
     when chasing.
   - **Who comes on.** The bench player with the best suitability for the vacated slot.
   - **Booked players.** Weighted to come off (another FM-like assistant behaviour).
+  - **No re-substitution.** A substitute is never withdrawn again. The one exception is the
+    reserve goalkeeper coming on after a keeper is sent off, and even then a starter is
+    preferred.
 - **Bench.** The 9 best remaining players by CA, including a second goalkeeper if the squad
   has one.
 - **Rationale**: FM's goal distribution has strikers well ahead, then attacking midfielders.

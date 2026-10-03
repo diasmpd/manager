@@ -17,7 +17,7 @@ The mutable state lives only inside the simulation of one match.
 
 | Entity | Fields |
 |---|---|
-| ModelParams | model_version; base rates (shot, foul, corner, penalty, own-goal share, yellow per foul, direct red per foul); slopes (β_att, β_ctl, β_gk, xG median and spread); home factors (shot, possession); time trend (start, end); game state (δ_chase, δ_exposed, δ_protect, δ_man_up); caution (enabled, κ_foul, κ_card, κ_cost); stoppage ranges; substitution windows; scorer/assister line weights; shootout coefficients. `params_hash` = SHA-256 of the canonical TOML. |
+| ModelParams | model_version; base rates (shot, foul, corner, penalty, own-goal share, yellow per foul, direct red per foul); slopes (β_att, β_ctl, β_gk, xG median and spread); home factors (home shot, away shot, possession); time trend (start, end); game state (δ_chase, δ_level, δ_exposed, δ_protect, δ_man_up); caution (enabled, κ_foul, κ_card, κ_cost); stoppage ranges; substitution windows; scorer/assister line weights; shootout coefficients. `params_hash` = SHA-256 of the canonical TOML. |
 
 Validation: every value present and of the right type; rates in (0, 1); ranges ordered. A bad
 file raises `ModelParamsError` with the key path (same style as 002's R-codes, code `Q001` for

@@ -45,6 +45,7 @@ class Strength:
 @dataclass(frozen=True, slots=True)
 class Home:
     shot: float  # multiplier on the home side's shot rate
+    away_shot: float  # multiplier on the away side's shot rate (home advantage is two-sided)
     possession: float
 
 
@@ -52,14 +53,18 @@ class Home:
 class Time:
     trend_start: float
     trend_end: float
+    second_half: float  # second-half tempo relative to the first (56% of goals, Brasileirão)
 
 
 @dataclass(frozen=True, slots=True)
 class State:
     chase: float
+    level: float  # both sides push for a winner in a level game late on
+    settled: float  # a match decided by 2+ goals calms down for both sides
     exposed: float
     protect: float
     man_up: float
+    short_handed: float  # own shot rate lost per missing player (red cards)
 
 
 @dataclass(frozen=True, slots=True)
