@@ -108,8 +108,9 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
     With a stronger `δ_protect`, the lead-protecting side cancelled the exposure, so a chasing
     side did not concede more.
   - **Red card.** Ratings are recomputed without the player (R2), and the opponent's shot rate
-    gains `δ_man_up`. The side's own shot rate also drops by `δ_short_handed` (20%) per missing
-    player. Losing one player moves the composites by only about 1 point, and without this
+    gains `δ_man_up`. The side's own shot rate also drops by `δ_short_handed` (20%) per player of
+    *numerical disadvantage* (owner decision, 2026-10-03: real football rules). 10 v 11 favours
+    the eleven, 10 v 10 is even again, and 9 v 10 is one player down. Losing one player moves the composites by only about 1 point, and without this
     term ten men took *more* points than eleven in the tests.
 - **Rationale**: the spec requires that the last 15-minute period has the most goals (26.1% of
   Brasileirão 2025 goals came after minute 75, and 56% of Brasileirão 2019 goals came in the
@@ -237,8 +238,12 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
     with `gk` the mean of reflexes, agility, one_on_ones and anticipation. This is refit by
     the tuning tool.
   - **Takers.** The players on the pitch at the final whistle (from the last leg's report),
-    ordered by penalty_taking, then composure, then id. The order repeats after all eligible
-    players have kicked.
+    ordered by penalty_taking, then composure, then id, with the goalkeeper last. The order
+    repeats after all eligible players have kicked.
+  - **Reduce to equate** (IFAB Law 10; owner decision, 2026-10-03). If one team has more
+    players at the end of the match, it reduces to the opponents' number before the kicks.
+    It leaves out its worst takers and never its goalkeeper, and the excluded players take
+    no part.
 - **Source**: 75.2% of 343 shootout kicks in major tournaments (PMC11627389, retrieved
   2026-10-02).
 - **Protocol change**: `ResultProvider.shootout` gains a keyword `last_result: Result | None`.
@@ -253,6 +258,17 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
 - **Budget**:
   - A season is 12 lineups (about 1.4 s) plus 59 matches (about 0.1 s), inside SC-004's 3 s.
   - A matchday after the lineups are cached takes about 15 ms.
+
+## R12b. Every behavioural constant is a parameter
+
+- **Decision** (owner, 2026-10-03): the engine holds no unnamed numbers. Shots, penalties,
+  fouls and cards, the possession slope, substitution factors, and the line weights for own
+  goals, assists, fouls and substitutions all live in `model.toml`
+  (`[shots]`, `[penalties]`, `[fouls]`, `[weights.*]`).
+- **Verification**: the move was checked byte-identical with a fingerprint of 3,000 matches
+  plus shootouts.
+- **Kept in code**: the rating composites' attribute lists and line weights (R2) and the
+  stand-in keeper factor. They *define* the ratings, not behaviour to tune.
 
 ## R13. Integration with 002
 

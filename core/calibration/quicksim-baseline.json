@@ -1,8 +1,8 @@
 {
   "caution": {
-    "conceded_off": 0.8747,
-    "conceded_on": 0.8842,
-    "second_yellow_rate_off": 0.1193,
+    "conceded_off": 0.8801,
+    "conceded_on": 0.8834,
+    "second_yellow_rate_off": 0.1189,
     "second_yellow_rate_on": 0.0513
   },
   "core_version": "0.1.0",
@@ -14,7 +14,7 @@
       "kind": "primary",
       "low": 0.87,
       "target": 1.02,
-      "value": 0.9864,
+      "value": 0.9856,
       "verdict": "pass"
     },
     "away_win": {
@@ -30,7 +30,7 @@
       "kind": "secondary",
       "low": 8.5,
       "target": 9.8,
-      "value": 9.9125,
+      "value": 9.9152,
       "verdict": "pass"
     },
     "draw": {
@@ -38,7 +38,7 @@
       "kind": "primary",
       "low": 0.221,
       "target": 0.261,
-      "value": 0.2576,
+      "value": 0.2572,
       "verdict": "pass"
     },
     "fav_draw": {
@@ -70,7 +70,7 @@
       "kind": "secondary",
       "low": 0.39,
       "target": 0.438,
-      "value": 0.4219,
+      "value": 0.4218,
       "verdict": "pass"
     },
     "fouls_per_match": {
@@ -78,7 +78,7 @@
       "kind": "secondary",
       "low": 22.0,
       "target": 26.0,
-      "value": 23.8943,
+      "value": 23.8955,
       "verdict": "pass"
     },
     "goals_per_match": {
@@ -86,7 +86,7 @@
       "kind": "primary",
       "low": 2.3,
       "target": 2.5,
-      "value": 2.5182,
+      "value": 2.5197,
       "verdict": "pass"
     },
     "home_goals": {
@@ -94,7 +94,7 @@
       "kind": "primary",
       "low": 1.32,
       "target": 1.47,
-      "value": 1.5318,
+      "value": 1.5341,
       "verdict": "pass"
     },
     "home_win": {
@@ -102,7 +102,7 @@
       "kind": "primary",
       "low": 0.446,
       "target": 0.486,
-      "value": 0.4871,
+      "value": 0.4875,
       "verdict": "pass"
     },
     "late_goal_share": {
@@ -110,7 +110,7 @@
       "kind": "secondary",
       "low": 0.21,
       "target": 0.261,
-      "value": 0.2932,
+      "value": 0.2933,
       "verdict": "pass"
     },
     "mineiro_draw": {
@@ -126,7 +126,7 @@
       "kind": "primary",
       "low": 2.0,
       "target": 2.33,
-      "value": 2.4403,
+      "value": 2.4444,
       "verdict": "pass"
     },
     "nil_nil": {
@@ -142,7 +142,7 @@
       "kind": "secondary",
       "low": 0.015,
       "target": 0.03,
-      "value": 0.039,
+      "value": 0.0386,
       "verdict": "pass"
     },
     "reds_per_match": {
@@ -150,7 +150,7 @@
       "kind": "primary",
       "low": 0.17,
       "target": 0.25,
-      "value": 0.2841,
+      "value": 0.2833,
       "verdict": "pass"
     },
     "shootout_conversion": {
@@ -158,7 +158,7 @@
       "kind": "secondary",
       "low": 0.7,
       "target": 0.752,
-      "value": 0.7654,
+      "value": 0.7681,
       "verdict": "pass"
     },
     "shots_on_target_per_side": {
@@ -166,7 +166,7 @@
       "kind": "secondary",
       "low": 3.5,
       "target": 4.2,
-      "value": 4.664,
+      "value": 4.6678,
       "verdict": "pass"
     },
     "shots_per_match": {
@@ -174,7 +174,7 @@
       "kind": "secondary",
       "low": 21.0,
       "target": 25.0,
-      "value": 27.2091,
+      "value": 27.2235,
       "verdict": "pass"
     },
     "total_goals_0": {
@@ -190,7 +190,7 @@
       "kind": "primary",
       "low": 0.164,
       "target": 0.204,
-      "value": 0.192,
+      "value": 0.1917,
       "verdict": "pass"
     },
     "total_goals_2": {
@@ -198,7 +198,7 @@
       "kind": "primary",
       "low": 0.213,
       "target": 0.253,
-      "value": 0.2568,
+      "value": 0.2572,
       "verdict": "pass"
     },
     "total_goals_3": {
@@ -230,7 +230,7 @@
       "kind": "secondary",
       "low": -0.3,
       "target": 0.0,
-      "value": 0.2485,
+      "value": 0.2494,
       "verdict": "pass"
     },
     "yellows_per_match": {
@@ -238,12 +238,12 @@
       "kind": "primary",
       "low": 4.5,
       "target": 5.2,
-      "value": 5.2564,
+      "value": 5.2595,
       "verdict": "pass"
     }
   },
   "model_version": "1.0",
-  "params_hash": "575a4d726241",
+  "params_hash": "e9832179ae0d",
   "passed": true,
   "python_version": "3.14.4",
   "state_matches": 1770
