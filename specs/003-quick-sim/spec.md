@@ -312,9 +312,11 @@ variation seen in the data.
 | xG per match | ≈ goals per match | ±0.3 of simulated goals | secondary | definition (xG totals track goals over a season) |
 | Corners per match | 9.8 | 8.5–11 | secondary | Série A 2025 club totals 8.8–11.0 |
 | Fouls per match | 26 | 22–30 | secondary | provider figure 25.8 (2026); to be sourced |
-| Goals by 15-minute period | last period highest, first lowest | shape | secondary | to be sourced in plan research |
-| Shootout kick conversion | 75% | 70–80% | secondary | 002 placeholder value; to be sourced |
-| Own goals share of goals | 3% | 1.5–4.5% | secondary | to be sourced |
+| Share of goals after minute 75 | 26.1% | 21–31% | secondary | Goal.com, Brasileirão 2025 |
+| Share of goals in the first half | 43.8% | 39–49% | secondary | Rev. Bras. Futsal e Futebol, Brasileirão 2019 |
+| Goals by 15-minute period | last period highest, first lowest | shape | secondary | follows from the two rows above |
+| Shootout kick conversion | 75.2% | 70–80% | secondary | PMC11627389 (343 kicks, major tournaments) |
+| Own goals share of goals | 3% | 1.5–4.5% | secondary | Premier League 2023–25 (2.9–3.9%); no Brazilian source yet |
 
 ## Success Criteria *(mandatory)*
 
