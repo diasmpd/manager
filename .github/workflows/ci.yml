@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest]  # the game is played on Windows (owner, 2026-10-03)
         python: ["3.12", "3.14"]
     defaults:
       run:

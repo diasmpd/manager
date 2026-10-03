@@ -36,7 +36,7 @@ Details: [research.md](research.md).
 - core unit and contract tests for selection, feed and news;
 - tui pilot tests (scripted sessions) and render tests at 100×30.
 
-**Target Platform**: Windows Terminal and the classic Windows console, plus Linux in CI.
+**Target Platform**: Windows Terminal and the classic Windows console (CI on Windows only).
 
 **Performance Goals**:
 - screen switches under 0.5 s (SC-005);
