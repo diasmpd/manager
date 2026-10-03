@@ -37,13 +37,13 @@ def test_bracket(capsys: pytest.CaptureFixture[str], sample_dir: Path) -> None:
     assert "Semifinal" in out and "Final" in out
     assert "Troféu Inconfidência – final" in out
     assert "Arena Estadual das Gerais" in out
-    assert t("season.provisional") in out
+    assert t("season.provisional") not in out  # quick-sim results are final (003)
 
 
 def test_day(capsys: pytest.CaptureFixture[str], sample_dir: Path) -> None:
     code, out = _run(capsys, "--data", str(sample_dir), "season", "day", "--date", "2027-01-10")
     assert code == EXIT_OK
-    assert t("season.provisional") in out
+    assert t("season.provisional") not in out  # quick-sim results are final (003)
 
 
 def test_outcomes(capsys: pytest.CaptureFixture[str], sample_dir: Path) -> None:

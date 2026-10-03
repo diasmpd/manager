@@ -16,7 +16,8 @@ dev = ["pytest>=8", "hypothesis>=6", "ruff>=0.6", "mypy>=1.11"]
 where = ["src"]
 
 [tool.setuptools.package-data]
-manager_core = ["reference/*.csv", "reference/competitions/*.toml", "reference/calendar/*.toml"]
+manager_core = ["reference/*.csv", "reference/competitions/*.toml", "reference/calendar/*.toml",
+                "reference/quicksim/*.toml", "reference/calibration/*.toml"]
 
 [tool.ruff]
 line-length = 100
@@ -38,4 +39,7 @@ files = ["src/manager_core"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
-markers = ["slow: slower checks (performance); still run in CI"]
+markers = [
+    "slow: slower checks (performance); still run in CI",
+    "milestone: milestone-gate checks (Constitution I), run before closing a milestone, not in CI",
+]

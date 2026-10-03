@@ -11,11 +11,14 @@ import math
 import random
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from manager_core.domain.club import Club
 from manager_core.domain.dataset import Dataset
 from manager_core.ratings.ability import current_ability, is_goalkeeper
+
+if TYPE_CHECKING:  # the competition engine does not depend on the quick sim at runtime
+    from manager_core.quicksim.report import MatchReport
 
 PLACEHOLDER = "placeholder"
 SHOOTOUT_ROUNDS = 5
@@ -77,6 +80,7 @@ class Result:
     home_yellow: int | None = None
     away_yellow: int | None = None
     shootout: Shootout | None = None
+    report: MatchReport | None = None  # the quick sim's match report (spec 003)
 
     def __post_init__(self) -> None:
         if self.home_goals < 0 or self.away_goals < 0:
@@ -93,6 +97,7 @@ class Result:
 class MatchContext:
     season_seed: int
     stage_id: str
+    neutral: bool = False  # no home advantage (e.g. a final at a neutral venue)
 
 
 @runtime_checkable
@@ -101,7 +106,7 @@ class ResultProvider(Protocol):
              rng: random.Random) -> Result: ...
 
     def shootout(self, match_id: str, first: Club, second: Club, context: MatchContext,
-                 rng: random.Random) -> Shootout: ...
+                 rng: random.Random, *, last_result: Result | None = None) -> Shootout: ...
 
 
 class PlaceholderProvider:
@@ -135,7 +140,7 @@ class PlaceholderProvider:
         return Result(home_goals, away_goals, PLACEHOLDER)
 
     def shootout(self, match_id: str, first: Club, second: Club, context: MatchContext,
-                 rng: random.Random) -> Shootout:
+                 rng: random.Random, *, last_result: Result | None = None) -> Shootout:
         kicks: list[tuple[str, bool]] = []
         goals = {first.id: 0, second.id: 0}
         taken = {first.id: 0, second.id: 0}

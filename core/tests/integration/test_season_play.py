@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from manager_core import api
+from manager_core.competition.results import PlaceholderProvider
 from manager_core.competition.season import Season
 from manager_core.domain.dataset import Dataset
 
@@ -22,7 +23,8 @@ def world() -> Dataset:
 
 
 def _play(world: Dataset, seed: int) -> Season:
-    season = api.start_season(world, "mg-modulo-i-2026", 2027, seed)
+    season = api.start_season(world, "mg-modulo-i-2026", 2027, seed,
+        result_provider=PlaceholderProvider(world))
     api.advance_to(season, END)
     return season
 

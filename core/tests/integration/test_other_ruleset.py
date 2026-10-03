@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from manager_core import api
-from manager_core.competition.results import Result
+from manager_core.competition.results import PlaceholderProvider, Result
 from manager_core.competition.season import Season
 from manager_core.competition.standings import PlayedMatch, build_table
 from manager_core.domain.dataset import Dataset
@@ -25,7 +25,8 @@ def dataset() -> Dataset:
 
 def _played(dataset: Dataset, master_seed: int) -> Season:
     participants = sorted(dataset.clubs)[:8]
-    season = api.start_season(dataset, RULESET, 2027, master_seed, participants)
+    season = api.start_season(dataset, RULESET, 2027, master_seed, participants,
+        result_provider=PlaceholderProvider(dataset))
     api.advance_to(season, date(2027, 12, 31))
     return season
 

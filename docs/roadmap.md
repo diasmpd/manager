@@ -17,8 +17,8 @@ working game.
 |---|---|---|
 | 001 | Core domain model: clubs, players with FM attributes (incl. hidden), positions, and the data **import format** (format only: no SoFIFA→FM conversion), plus a fictional sample dataset. [Spec](../specs/001-core-domain-model/spec.md) | ✅ done (PR) |
 | 002 | Competitions and calendar: Campeonato Mineiro format as data (rulesets), draw, fixtures, dates, tables and tiebreakers, knockouts, Troféu Inconfidência, outcomes, day-by-day calendar with reserved windows. [Spec](../specs/002-competitions-calendar/spec.md) | ✅ done (PR) |
-| 003 | Quick sim (statistical), calibrated independently against real-data targets. Replaces 002's placeholder results through the `result_provider=` argument of `start_season` | ⏳ next |
-| 004 | Career save (SQLite) and the day-by-day game loop | — |
+| 003 | Quick sim (statistical), calibrated independently against real-data targets: minute-by-minute events from FM attributes (xG, cards per player, substitutions, game state, booked-player caution), player-based shootouts, calibration harness with PR/milestone gates. [Spec](../specs/003-quick-sim/spec.md) | ✅ done (PR) |
+| 004 | Career save (SQLite) and the day-by-day game loop | ⏳ next |
 | 005 | **Playable Mineiro season from the terminal** (Python TUI): includes basic squad and lineup selection (and formation choice, if 001 models it), so the user makes real decisions before 006 | — |
 | 006 | Tactics model: roles and duties, team and individual instructions, set pieces; custom formations with separate attacking/defending shapes and free player placement (owner request) | — |
 | 007 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003 | — |
@@ -36,9 +36,12 @@ working game.
   Brasileirão windows in `reference/calendar/`. Refine when those competitions are specified.
 
 ### Notes for specific specs
-- **003 (quick sim)**: 002 already gives each match its own seed (`sub_seed(season, "match:{id}")`),
-  a `MatchContext` and an optional cards field on `Result` (card tiebreakers fall through to lots
-  while cards are missing). The quick sim should fill cards so those tiebreakers become real.
+- **003 → 004/005**: the quick sim records cards per player, so suspensions (3 yellows, reds)
+  can be built in the career loop. Team sheets are cached per dataset, and 004 must
+  invalidate them when squads change (transfers, injuries). Calibration secondary targets
+  (shots, fouls) still need a strong source.
+- **007 (positional engine)**: cross-validate against the quick sim with the same targets file
+  (`reference/calibration/quicksim-targets.toml`) and the same harness samples.
 - **004 (career save)**: a season's participants come from the previous season's outcomes
   (relegated clubs leave, promoted clubs from Módulo II enter). 002 picks participants by state
   or an explicit list. 004 also persists `Season` (today the CLI rebuilds it from the seed).

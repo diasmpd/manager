@@ -18,6 +18,8 @@ from manager_core.domain.dataset import Dataset
 from manager_core.domain.positions import Position
 from manager_core.i18n import t
 from manager_core.io.validate import Issue, ValidationReport
+from manager_core.quicksim.report import SideStats, keeper_at_end
+from manager_core.quicksim.shootout import kick_takers
 
 EXIT_OK = 0
 EXIT_INVALID = 1
@@ -267,7 +269,7 @@ def _match_line(m: api.MatchView, *, with_date: bool = True) -> str:
             note = f" {t('season.provisional')}"
     when = _fmt_kickoff(m.kickoff) if with_date else f"{m.kickoff:%H:%M}"
     return (f"  {when}  {m.home_name} {score} {m.away_name}"
-            f"  ({m.venue}){note}")
+            f"  ({m.venue}){note}  [{m.id}]")
 
 
 def _cmd_season_groups(args: argparse.Namespace) -> int:
@@ -370,7 +372,8 @@ def _cmd_season_outcomes(args: argparse.Namespace) -> int:
     print(f"{t('outcome.classification')}:")
     for place, club in enumerate(out.final_classification, start=1):
         print(f"  {place:>2}. {name(club)}")
-    print(t("season.provisional_note"))
+    if any(r.source == PLACEHOLDER for r in season.results.values()):
+        print(t("season.provisional_note"))
     return EXIT_OK
 
 
@@ -420,6 +423,130 @@ def _fmt_span(days: Sequence[date]) -> str:
         else:
             runs.append((d, d))
     return ", ".join(f"{a:%d/%m}" if a == b else f"{a:%d/%m}–{b:%d/%m}" for a, b in runs)
+
+
+def _cmd_season_match(args: argparse.Namespace) -> int:
+    season = _season(args, play=True)
+    if season is None:
+        return EXIT_INVALID
+    view = api.match_report(season, args.match_id)
+    m = view.match
+    print(_match_line(m).strip())
+    report = view.report
+    if report is None:
+        if m.result is None:
+            print(t("match.not_played"))
+        return EXIT_OK
+    names = {pid: season.dataset.player(pid).display_name
+             for lineup in (report.home_lineup, report.away_lineup)
+             for pid in (*[p for _, p in lineup.starters], *lineup.bench)}
+    stat_keys = ("shots", "shots_on_target", "xg", "possession", "corners", "fouls",
+                 "yellows", "reds")
+    _print_table(["", m.home_name, m.away_name],
+                 [[t(f"stat.{k}"), _stat(report.home, k), _stat(report.away, k)]
+                  for k in stat_keys])
+    goals = [e for e in report.events if e.kind in ("goal", "own_goal", "penalty_goal")]
+    if goals:
+        print(t("match.goals"))
+        for e in goals:
+            club = m.home_name if e.side == "home" else m.away_name
+            note = {"own_goal": f" {t('match.own_goal')}",
+                    "penalty_goal": f" {t('match.penalty')}"}.get(e.kind, "")
+            assist = (f" ({t('match.assist', name=names[e.other_player_id])})"
+                      if e.other_player_id else "")
+            print(f"  {e.minute!s:>5}'  {names[e.player_id]}{note}{assist} – {club}")
+    others = [e for e in report.events if e.kind not in ("goal", "own_goal", "penalty_goal")]
+    for title, kinds in (("match.cards", ("yellow", "second_yellow", "red", "penalty_miss")),
+                         ("match.subs", ("sub",))):
+        chosen = [e for e in others if e.kind in kinds]
+        if not chosen:
+            continue
+        print(t(title))
+        for e in chosen:
+            club = m.home_name if e.side == "home" else m.away_name
+            if e.kind == "sub":
+                text = t("event.sub", out=names[e.player_id], inn=names[e.other_player_id or ""])
+            else:
+                text = f"{names[e.player_id]}: {t(f'event.{e.kind}')}"
+            print(f"  {e.minute!s:>5}'  {text} – {club}")
+    shootout = m.result.shootout if m.result else None
+    if shootout is not None:
+        print(t("match.shootout"))
+        players = season.dataset.player
+        first = [players(p) for p in sorted(report.home_finishers)]
+        second = [players(p) for p in sorted(report.away_finishers)]
+        keepers = [keeper_at_end(report, side) for side in ("home", "away")]
+        takers = kick_takers(shootout, first, players(keepers[0]) if keepers[0] else None,
+                             second, players(keepers[1]) if keepers[1] else None)
+        for (club, scored), taker in zip(shootout.kicks, takers, strict=True):
+            mark = t("match.scored") if scored else t("match.missed")
+            print(f"  {season.club_name(club)}: {names[taker]} – {mark}")
+    for lineup in (report.home_lineup, report.away_lineup):
+        if "no_goalkeeper" in lineup.flags:
+            print(t("match.flag.no_goalkeeper", club=season.club_name(lineup.club_id)))
+    return EXIT_OK
+
+
+def _stat(stats: SideStats, key: str) -> str:
+    value = getattr(stats, key)
+    if key == "possession":
+        return f"{value}%"
+    if key == "xg":
+        return f"{value:.2f}"
+    return str(value)
+
+
+def _cmd_season_scorers(args: argparse.Namespace) -> int:
+    season = _season(args, play=True)
+    if season is None:
+        return EXIT_INVALID
+    rows = api.season_scorers(season, args.limit)
+    _print_table([t(f"scorers.{k}") for k in ("pos", "player", "club", "goals", "penalties",
+                                              "assists")],
+                 [[i, r.player_name, r.club_name, r.goals, r.penalties, r.assists]
+                  for i, r in enumerate(rows, start=1)])
+    return EXIT_OK
+
+
+def _cmd_calibrate(args: argparse.Namespace) -> int:
+    dataset = _load(args.data)
+    if dataset is None:
+        return EXIT_INVALID
+    report = api.run_calibration(dataset, args.gate, args.baseline)
+    print(t("calibration.title", gate=args.gate))
+    with_before = args.baseline is not None
+    headers = ["metric", "value", *(["before"] if with_before else []), "target", "band",
+               "verdict", "source"]
+
+    def fmt(value: float | None, unit: str) -> str:
+        if value is None:
+            return "–"
+        return f"{value * 100:.1f}%" if unit == "ratio" else f"{value:.2f}"
+
+    rows = []
+    for r in report.results:
+        target = r.target
+        band = f"{fmt(target.low, target.unit)}–{fmt(target.high, target.unit)}"
+        rows.append([t(f"metric.{target.id}"), fmt(r.value, target.unit),
+                     *([fmt(r.before, target.unit)] if with_before else []),
+                     fmt(target.target, target.unit), band, t(f"calibration.{r.verdict}"),
+                     target.source])
+    _print_table([t(f"calibration.{h}") for h in headers], rows)
+    print(t("calibration.matches", league=report.league_matches, state=report.state_matches))
+    if report.caution is not None:
+        c = report.caution
+        print(t("calibration.caution", on=f"{c.second_yellow_rate_on:.3f}",
+                off=f"{c.second_yellow_rate_off:.3f}", cost_on=f"{c.conceded_on:.3f}",
+                cost_off=f"{c.conceded_off:.3f}"))
+    print(t("calibration.versions", core=report.core_version, python=report.python_version,
+            model=report.model_version, hash=report.params_hash))
+    if args.write is not None:
+        args.write.write_text(report.to_json(), "utf-8")
+    if report.passed:
+        print(t("calibration.passed"))
+        return EXIT_OK
+    print(t("calibration.failed", metrics=", ".join(report.failures)))
+    return EXIT_INVALID
 
 
 def _print_ruleset_report(report: RulesetReport) -> None:
@@ -555,9 +682,20 @@ def _build_parser() -> argparse.ArgumentParser:
     cmd = _sub_date(season_cmds.add_parser("calendar"))
     cmd.add_argument("--month", type=int)
     cmd.set_defaults(func=_cmd_season_calendar)
+    cmd = _sub_date(season_cmds.add_parser("match"))
+    cmd.add_argument("match_id")
+    cmd.set_defaults(func=_cmd_season_match)
+    cmd = _sub_date(season_cmds.add_parser("scorers"))
+    cmd.add_argument("--limit", type=int, default=10)
+    cmd.set_defaults(func=_cmd_season_scorers)
     cmd = season_cmds.add_parser("rules")
     cmd.add_argument("--validate", type=Path, metavar="PATH")
     cmd.set_defaults(func=_cmd_season_rules)
+    cmd = groups.add_parser("calibrate")
+    cmd.add_argument("--gate", choices=["pr", "milestone"], default="pr")
+    cmd.add_argument("--baseline", type=Path)
+    cmd.add_argument("--write", type=Path)
+    cmd.set_defaults(func=_cmd_calibrate)
     return parser
 
 
