@@ -51,8 +51,8 @@ number of participants; `S003` the window cannot fit the rounds (`SchedulingErro
 | SeasonEvent | date, kind (`draw`, `stage_complete`, `qualified`, `paired`, `relegated`, `champion`, `side_champion`), payload |
 | Outcome | champion, runner_up, main_entrants (entrants of the main track's first knockout stage), side titles (track → winner), relegated (list), final classification (list of club ids) |
 | SeasonCalendar | year, days (date → `CalendarDay`) |
-| CalendarDay | date, matches (ids), events, windows (labels) |
-| ReservedWindow | label, name, kind (`fixed` month-day range / `year` specific dates / `easter` offsets), blocks (e.g. `state`) |
+| CalendarDay | date, match_ids, events, windows (`ReservedWindow`s), reserved_stages (knockout stages whose dates are held but not yet paired) |
+| ReservedWindow | label, name, start, end, blocks (e.g. `state`). Sources: fixed month-day ranges; a per-year file whose windows replace the fixed ones with the same label; Easter offsets |
 
 **State transitions** (driven by `advance_to(date)`):
 

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Literal
 
 from manager_core.competition import rules
+from manager_core.competition.calendar import CalendarDay
 from manager_core.competition.results import Result, ResultProvider
 from manager_core.competition.rules import Ruleset, RulesetReport, RulesetSummary
 from manager_core.competition.season import Match, Outcome, Season, SeasonEvent
@@ -373,6 +374,12 @@ def _match_view(season: Season, m: Match) -> MatchView:
                      m.away_id, season.club_name(m.away_id), m.venue, season.results.get(m.id))
 
 
+def match_view(season: Season, match_id: str) -> MatchView:
+    if match_id not in season.matches:
+        raise NotFoundError("match", match_id)
+    return _match_view(season, season.matches[match_id])
+
+
 def season_fixtures(season: Season, club_id: str | None = None,
                     round: int | None = None) -> list[MatchView]:
     if club_id is not None and club_id not in season.participants:
@@ -446,3 +453,13 @@ def season_day(season: Season, day: date) -> DayView:
 
 def season_outcomes(season: Season) -> Outcome | None:
     return season.outcome()
+
+
+def season_calendar(season: Season, month: int | None = None) -> list[CalendarDay]:
+    """Every day of the season's year, or of one month (1-12)."""
+    calendar = season.calendar()
+    if month is None:
+        return list(calendar.days)
+    if not 1 <= month <= 12:
+        raise NotFoundError("month", str(month))
+    return list(calendar.month(month))

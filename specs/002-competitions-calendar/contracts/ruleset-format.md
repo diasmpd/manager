@@ -139,7 +139,8 @@ blocks = ["state"]
 ```
 
 Fixed windows apply to every year. An optional `brazil-<year>.toml` adds that year's specific
-dates (e.g. FIFA windows). Easter-based windows are computed:
+dates (e.g. FIFA windows) and replaces the fixed windows that share a label with them, so
+`brazil.toml` can hold default FIFA dates for years without their own file. Easter-based windows are computed:
 
 ```toml
 [[easter_windows]]

@@ -10,6 +10,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from manager_core import api
+from manager_core.competition.calendar import CalendarDay
 from manager_core.competition.results import PLACEHOLDER
 from manager_core.competition.rules import RulesetError, RulesetReport
 from manager_core.competition.season import Season, SeasonError, SeasonEvent
@@ -255,7 +256,7 @@ def _season(args: argparse.Namespace, play: bool = False) -> Season | None:
     return season
 
 
-def _match_line(m: api.MatchView) -> str:
+def _match_line(m: api.MatchView, *, with_date: bool = True) -> str:
     score, note = "x", ""
     if m.result is not None:
         score = f"{m.result.home_goals} x {m.result.away_goals}"
@@ -264,7 +265,8 @@ def _match_line(m: api.MatchView) -> str:
             score += f" ({t('season.pens')} {pens[m.home_id]}–{pens[m.away_id]})"
         if m.result.source == PLACEHOLDER:
             note = f" {t('season.provisional')}"
-    return (f"  {_fmt_kickoff(m.kickoff)}  {m.home_name} {score} {m.away_name}"
+    when = _fmt_kickoff(m.kickoff) if with_date else f"{m.kickoff:%H:%M}"
+    return (f"  {when}  {m.home_name} {score} {m.away_name}"
             f"  ({m.venue}){note}")
 
 
@@ -370,6 +372,54 @@ def _cmd_season_outcomes(args: argparse.Namespace) -> int:
         print(f"  {place:>2}. {name(club)}")
     print(t("season.provisional_note"))
     return EXIT_OK
+
+
+def _cmd_season_calendar(args: argparse.Namespace) -> int:
+    season = _season(args, play=True)
+    if season is None:
+        return EXIT_INVALID
+    days = api.season_calendar(season, args.month)
+    if args.month is None:
+        for month in range(1, 13):
+            _print_month_summary([d for d in days if d.day.month == month], month)
+        return EXIT_OK
+    print(f"{t(f'month.{args.month}').capitalize()} {season.year}")
+    for d in days:
+        windows = ", ".join(dict.fromkeys(w.name for w in d.windows))
+        print(f"{_fmt_date(d.day)}{f'  [{windows}]' if windows else ''}")
+        for match_id in d.match_ids:
+            print(f"  {_match_line(api.match_view(season, match_id), with_date=False)}")
+        for stage_id in d.reserved_stages:
+            print(f"    {t('calendar.reserved', stage=season.ruleset.stage_name(stage_id))}")
+        for e in d.events:
+            print(f"    * {_event_text(season, e)}")
+    return EXIT_OK
+
+
+def _print_month_summary(days: Sequence[CalendarDay], month: int) -> None:
+    matches = sum(len(d.match_ids) for d in days)
+    match_days = sum(1 for d in days if d.match_ids)
+    line = t("calendar.month_summary", month=t(f"month.{month}").capitalize(), matches=matches,
+             days=match_days)
+    spans: dict[str, list[date]] = {}  # window name -> its days in this month
+    for d in days:
+        for w in d.windows:
+            spans.setdefault(w.name, []).append(d.day)
+    if spans:
+        parts = [f"{name} {_fmt_span(ds)}" for name, ds in spans.items()]
+        line += f"; {t('calendar.windows', windows='; '.join(parts))}"
+    print(line)
+
+
+def _fmt_span(days: Sequence[date]) -> str:
+    """Contiguous runs of days, e.g. '06/02–10/02'."""
+    runs: list[tuple[date, date]] = []
+    for d in sorted(days):
+        if runs and (d - runs[-1][1]).days == 1:
+            runs[-1] = (runs[-1][0], d)
+        else:
+            runs.append((d, d))
+    return ", ".join(f"{a:%d/%m}" if a == b else f"{a:%d/%m}–{b:%d/%m}" for a, b in runs)
 
 
 def _print_ruleset_report(report: RulesetReport) -> None:
@@ -502,6 +552,9 @@ def _build_parser() -> argparse.ArgumentParser:
     _sub_date(season_cmds.add_parser("bracket")).set_defaults(func=_cmd_season_bracket)
     _sub_date(season_cmds.add_parser("day")).set_defaults(func=_cmd_season_day)
     _sub_date(season_cmds.add_parser("outcomes")).set_defaults(func=_cmd_season_outcomes)
+    cmd = _sub_date(season_cmds.add_parser("calendar"))
+    cmd.add_argument("--month", type=int)
+    cmd.set_defaults(func=_cmd_season_calendar)
     cmd = season_cmds.add_parser("rules")
     cmd.add_argument("--validate", type=Path, metavar="PATH")
     cmd.set_defaults(func=_cmd_season_rules)

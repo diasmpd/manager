@@ -16,6 +16,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
+from manager_core.competition.calendar import SeasonCalendar
 from manager_core.competition.draw import Group, draw_groups
 from manager_core.competition.fixtures import build_group_fixtures
 from manager_core.competition.knockout import (
@@ -371,6 +372,17 @@ class Season:
         )
 
     # ---- views ---------------------------------------------------------------------------
+
+    def calendar(self) -> SeasonCalendar:
+        """The year with its matches, events, reserved windows and the dates held for knockout
+        stages that are not paired yet."""
+        paired = set(self.stage_entrants)
+        held = [(day, stage_id) for stage_id, slots in sorted(self.stage_slots.items())
+                if stage_id not in paired and stage_id != self.ruleset.group_stage.id
+                for slot in slots for day in slot.days]
+        return SeasonCalendar.build(
+            self.year, ((m.kickoff.date(), m.id) for m in self.sorted_matches()), self.events,
+            sorted(held))
 
     def club_name(self, club_id: str) -> str:
         return self.dataset.club(club_id).short_name

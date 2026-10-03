@@ -255,17 +255,17 @@ description: "Task list for 002 Competitions and Calendar"
 
 ### Tests (first)
 
-- [ ] T042 [P] [US4] Unit tests `core/tests/unit/test_calendar.py`:
+- [X] T042 [P] [US4] Unit tests `core/tests/unit/test_calendar.py`:
   - `SeasonCalendar(year)` covers every day (365 or 366 days);
   - reserved windows are labelled on their days (fixed, per-year and Easter-based);
   - Carnival 2027 is labelled 6–10 February, with no state matches on 8–9 February;
   - Mineiro matchdays carry their match ids and stage events;
   - no Mineiro match falls on a `blocks = ["state"]` day.
-- [ ] T043 [P] [US4] Contract test `core/tests/contract/test_cli_season_calendar.py`: `season calendar` prints 12 month summaries; `season calendar --month 2` lists every February day with matches and windows; `--month 13` exits 3.
+- [X] T043 [P] [US4] Contract test `core/tests/contract/test_cli_season_calendar.py`: `season calendar` prints 12 month summaries; `season calendar --month 2` lists every February day with matches and windows; `--month 13` exits 3.
 
 ### Implementation
 
-- [ ] T044 [US4] Implement in `core/src/manager_core/competition/calendar.py`: reserved windows from `brazil.toml` (fixed and Easter-based) and the optional per-year file, `SeasonCalendar` and `CalendarDay`. Then the `season_calendar` facade function and the `season calendar` CLI. Note: the Easter computation and blocking windows are needed earlier by the scheduler (T020), so `easter(year)` and window resolution are written in T020 and reused here.
+- [X] T044 [US4] Implement in `core/src/manager_core/competition/calendar.py`: reserved windows from `brazil.toml` (fixed and Easter-based) and the optional per-year file, `SeasonCalendar` and `CalendarDay`. Then the `season_calendar` facade function and the `season calendar` CLI. Note: the Easter computation and blocking windows are needed earlier by the scheduler (T020), so `easter(year)` and window resolution are written in T020 and reused here.
 
 ---
 
