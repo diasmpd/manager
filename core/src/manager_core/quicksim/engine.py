@@ -82,8 +82,8 @@ class _Side:
         slots = self.sheet.slot_positions
         cost = 0.0
         if params.caution.enabled:
-            cost = sum(params.caution.cost * contribution(self.player(pid), slots[i], "defence",
-                                                          self.composites[pid])
+            cost = sum(params.caution.cost * caution_strength(self.player(pid), params)
+                       * contribution(self.player(pid), slots[i], "defence", self.composites[pid])
                        for i, pid in self.on.items() if self.yellows.get(pid))
         self.ratings = combine([(slots[i], self._slot_contrib(pid, i))
                                 for i, pid in sorted(self.on.items(), key=lambda x: x[1])],
@@ -260,7 +260,7 @@ class _Match:
                     if me.group_of(i) is not Group.GOALKEEPER]
         if not outfield:
             return
-        taker = penalty_order(outfield)[0]
+        taker = penalty_taker(outfield, goalkeeper_on(me), self.params)
         keeper = goalkeeper_on(opp)
         pen = self.params.penalties
         probability = (pen.conversion * kick_factor(self.params, taker, keeper)
@@ -324,8 +324,8 @@ class _Match:
         for i, pid in me.on_pitch():
             line = line_weight(p.weights.fouler, me.group_of(i))
             w = line * (me.discipline(pid) / 10) ** p.fouls.fouler_exponent
-            if p.caution.enabled and me.yellows.get(pid):
-                w *= p.caution.foul
+            if me.yellows.get(pid):
+                w *= 1 - (1 - p.caution.foul) * caution_strength(me.player(pid), p)
             weights.append((pid, w))
         fouler = _weighted(self.rng, weights)
         if fouler is None:
@@ -336,8 +336,8 @@ class _Match:
             return
         ramp = p.fouls.card_minute_start + p.fouls.card_minute_span * min(minute.base, 90) / 90
         card = p.rates.yellow_per_foul * proneness * ramp
-        if p.caution.enabled and me.yellows.get(fouler):
-            card *= p.caution.card
+        if me.yellows.get(fouler):
+            card *= 1 - (1 - p.caution.card) * caution_strength(me.player(fouler), p)
         if self.rng.random() < card:
             if me.yellows.get(fouler):
                 me.yellows[fouler] = 2
@@ -492,6 +492,26 @@ def penalty_order(players: Sequence[Player]) -> list[Player]:
     """Best penalty takers first (penalty taking, then composure, then id)."""
     return sorted(players, key=lambda p: (-_attr(p, "penalty_taking"), -_attr(p, "composure"),
                                           p.id))
+
+
+def penalty_taker(outfield: Sequence[Player], keeper: Player | None,
+                  params: ModelParams) -> Player:
+    """The in-play penalty taker: the best outfield taker, or the goalkeeper if he is a
+    specialist (penalty taking at least `keeper_specialist`) and better than all of them."""
+    best = penalty_order(outfield)[0]
+    if keeper is None or _attr(keeper, "penalty_taking") < params.penalties.keeper_specialist:
+        return best
+    return penalty_order([best, keeper])[0]
+
+
+def caution_strength(player: Player, params: ModelParams) -> float:
+    """How much a booked player eases off, 0-1, from temperament and decisions (owner
+    decision 2026-10-03): calm, smart players ease off; hot-heads keep flying in."""
+    c = params.caution
+    if not c.enabled:
+        return 0.0
+    mind = (_attr(player, "temperament") + _attr(player, "decisions")) / 2
+    return min(1.0, max(0.0, (mind - c.attribute_low) / (c.attribute_high - c.attribute_low)))
 
 
 def keeper_skill(keeper: Player | None) -> float:

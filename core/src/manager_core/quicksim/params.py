@@ -71,9 +71,11 @@ class State:
 @dataclass(frozen=True, slots=True)
 class Caution:
     enabled: bool
-    foul: float
-    card: float
-    cost: float
+    foul: float  # foul weight of a booked player who fully eases off
+    card: float  # card probability of a booked player who fully eases off
+    cost: float  # share of his defence contribution lost by easing off
+    attribute_low: float  # mean of temperament and decisions at or below: does not ease off
+    attribute_high: float  # at or above: eases off fully (linear in between)
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +129,7 @@ class Penalties:
     conversion: float  # mean in-play conversion; scaled by taker and keeper
     conversion_max: float
     miss_saved: float  # share of missed penalties that are saved (on target)
+    keeper_specialist: int  # a keeper takes in-play penalties only with this penalty taking
 
 
 @dataclass(frozen=True, slots=True)

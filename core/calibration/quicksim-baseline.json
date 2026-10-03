@@ -1,9 +1,9 @@
 {
   "caution": {
-    "conceded_off": 0.8801,
-    "conceded_on": 0.8834,
-    "second_yellow_rate_off": 0.1189,
-    "second_yellow_rate_on": 0.0513
+    "conceded_off": 0.8759,
+    "conceded_on": 0.8784,
+    "second_yellow_rate_off": 0.111,
+    "second_yellow_rate_on": 0.06
   },
   "core_version": "0.1.0",
   "gate": "pr",
@@ -14,7 +14,7 @@
       "kind": "primary",
       "low": 0.87,
       "target": 1.02,
-      "value": 0.9856,
+      "value": 0.9777,
       "verdict": "pass"
     },
     "away_win": {
@@ -22,7 +22,7 @@
       "kind": "primary",
       "low": 0.213,
       "target": 0.253,
-      "value": 0.2553,
+      "value": 0.2496,
       "verdict": "pass"
     },
     "corners_per_match": {
@@ -30,7 +30,7 @@
       "kind": "secondary",
       "low": 8.5,
       "target": 9.8,
-      "value": 9.9152,
+      "value": 9.9227,
       "verdict": "pass"
     },
     "draw": {
@@ -38,7 +38,7 @@
       "kind": "primary",
       "low": 0.221,
       "target": 0.261,
-      "value": 0.2572,
+      "value": 0.2557,
       "verdict": "pass"
     },
     "fav_draw": {
@@ -46,7 +46,7 @@
       "kind": "primary",
       "low": 0.14,
       "target": 0.24,
-      "value": 0.2056,
+      "value": 0.2333,
       "verdict": "pass"
     },
     "fav_loss": {
@@ -54,7 +54,7 @@
       "kind": "primary",
       "low": 0.01,
       "target": 0.11,
-      "value": 0.1056,
+      "value": 0.0889,
       "verdict": "pass"
     },
     "fav_win": {
@@ -62,7 +62,7 @@
       "kind": "primary",
       "low": 0.55,
       "target": 0.65,
-      "value": 0.6889,
+      "value": 0.6778,
       "verdict": "pass"
     },
     "first_half_goal_share": {
@@ -70,7 +70,7 @@
       "kind": "secondary",
       "low": 0.39,
       "target": 0.438,
-      "value": 0.4218,
+      "value": 0.4224,
       "verdict": "pass"
     },
     "fouls_per_match": {
@@ -78,7 +78,7 @@
       "kind": "secondary",
       "low": 22.0,
       "target": 26.0,
-      "value": 23.8955,
+      "value": 23.8117,
       "verdict": "pass"
     },
     "goals_per_match": {
@@ -86,7 +86,7 @@
       "kind": "primary",
       "low": 2.3,
       "target": 2.5,
-      "value": 2.5197,
+      "value": 2.5235,
       "verdict": "pass"
     },
     "home_goals": {
@@ -94,7 +94,7 @@
       "kind": "primary",
       "low": 1.32,
       "target": 1.47,
-      "value": 1.5341,
+      "value": 1.5458,
       "verdict": "pass"
     },
     "home_win": {
@@ -102,7 +102,7 @@
       "kind": "primary",
       "low": 0.446,
       "target": 0.486,
-      "value": 0.4875,
+      "value": 0.4947,
       "verdict": "pass"
     },
     "late_goal_share": {
@@ -110,7 +110,7 @@
       "kind": "secondary",
       "low": 0.21,
       "target": 0.261,
-      "value": 0.2933,
+      "value": 0.2923,
       "verdict": "pass"
     },
     "mineiro_draw": {
@@ -118,7 +118,7 @@
       "kind": "primary",
       "low": 0.22,
       "target": 0.29,
-      "value": 0.2861,
+      "value": 0.2896,
       "verdict": "pass"
     },
     "mineiro_goals_per_match": {
@@ -126,7 +126,7 @@
       "kind": "primary",
       "low": 2.0,
       "target": 2.33,
-      "value": 2.4444,
+      "value": 2.459,
       "verdict": "pass"
     },
     "nil_nil": {
@@ -134,7 +134,7 @@
       "kind": "primary",
       "low": 0.045,
       "target": 0.066,
-      "value": 0.0833,
+      "value": 0.0788,
       "verdict": "pass"
     },
     "own_goal_share": {
@@ -142,7 +142,7 @@
       "kind": "secondary",
       "low": 0.015,
       "target": 0.03,
-      "value": 0.0386,
+      "value": 0.03,
       "verdict": "pass"
     },
     "reds_per_match": {
@@ -150,7 +150,7 @@
       "kind": "primary",
       "low": 0.17,
       "target": 0.25,
-      "value": 0.2833,
+      "value": 0.2939,
       "verdict": "pass"
     },
     "shootout_conversion": {
@@ -158,7 +158,7 @@
       "kind": "secondary",
       "low": 0.7,
       "target": 0.752,
-      "value": 0.7681,
+      "value": 0.7534,
       "verdict": "pass"
     },
     "shots_on_target_per_side": {
@@ -166,7 +166,7 @@
       "kind": "secondary",
       "low": 3.5,
       "target": 4.2,
-      "value": 4.6678,
+      "value": 4.6661,
       "verdict": "pass"
     },
     "shots_per_match": {
@@ -174,7 +174,7 @@
       "kind": "secondary",
       "low": 21.0,
       "target": 25.0,
-      "value": 27.2235,
+      "value": 27.2167,
       "verdict": "pass"
     },
     "total_goals_0": {
@@ -182,7 +182,7 @@
       "kind": "primary",
       "low": 0.026,
       "target": 0.066,
-      "value": 0.0833,
+      "value": 0.0788,
       "verdict": "pass"
     },
     "total_goals_1": {
@@ -190,7 +190,7 @@
       "kind": "primary",
       "low": 0.164,
       "target": 0.204,
-      "value": 0.1917,
+      "value": 0.1886,
       "verdict": "pass"
     },
     "total_goals_2": {
@@ -198,7 +198,7 @@
       "kind": "primary",
       "low": 0.213,
       "target": 0.253,
-      "value": 0.2572,
+      "value": 0.2701,
       "verdict": "pass"
     },
     "total_goals_3": {
@@ -206,7 +206,7 @@
       "kind": "primary",
       "low": 0.213,
       "target": 0.253,
-      "value": 0.2235,
+      "value": 0.222,
       "verdict": "pass"
     },
     "total_goals_4": {
@@ -214,7 +214,7 @@
       "kind": "primary",
       "low": 0.092,
       "target": 0.132,
-      "value": 0.1413,
+      "value": 0.1337,
       "verdict": "pass"
     },
     "total_goals_5plus": {
@@ -222,7 +222,7 @@
       "kind": "primary",
       "low": 0.052,
       "target": 0.092,
-      "value": 0.103,
+      "value": 0.1068,
       "verdict": "pass"
     },
     "xg_minus_goals": {
@@ -230,7 +230,7 @@
       "kind": "secondary",
       "low": -0.3,
       "target": 0.0,
-      "value": 0.2494,
+      "value": 0.2678,
       "verdict": "pass"
     },
     "yellows_per_match": {
@@ -238,12 +238,12 @@
       "kind": "primary",
       "low": 4.5,
       "target": 5.2,
-      "value": 5.2595,
+      "value": 4.8871,
       "verdict": "pass"
     }
   },
-  "model_version": "1.0",
-  "params_hash": "e9832179ae0d",
+  "model_version": "1.1",
+  "params_hash": "1c5d4f55af87",
   "passed": true,
   "python_version": "3.14.4",
   "state_matches": 1770
