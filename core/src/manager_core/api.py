@@ -16,12 +16,13 @@ from typing import Literal
 from manager_core.calibration import harness
 from manager_core.calibration.harness import CalibrationReport
 from manager_core.career import career as career_mod
-from manager_core.career import rollover, store
+from manager_core.career import rollover, store, views
 from manager_core.career import selection as selection_mod
 from manager_core.career.career import Career, SeasonRecord, Stop
 from manager_core.career.discipline import Discipline
 from manager_core.career.selection import Selection, SelectionIssue
 from manager_core.career.store import SaveSummary
+from manager_core.career.views import FeedLine, NewsItem, SquadRow
 from manager_core.competition import rules
 from manager_core.competition.calendar import CalendarDay
 from manager_core.competition.results import Result, ResultProvider
@@ -676,3 +677,28 @@ def confirm_selection(career: Career, selection: Selection) -> list[SelectionIss
     career.selection = selection
     apply_selection(career)
     return issues
+
+
+# ---- views for clients (spec 005) ------------------------------------------------------------
+
+
+def match_feed(season: Season, match_id: str) -> list[FeedLine]:
+    if match_id not in season.matches:
+        raise NotFoundError("match", match_id)
+    return views.match_feed(season, match_id)
+
+
+def career_news(career: Career) -> list[NewsItem]:
+    return views.career_news(career)
+
+
+def squad_view(career: Career) -> list[SquadRow]:
+    return views.squad_view(career)
+
+
+def last_user_match(career: Career) -> str | None:
+    """The user club's most recently played match, or None."""
+    season = career.season
+    played = [m for m in season.sorted_matches() if m.id in season.results
+              and career.user_club_id in (m.home_id, m.away_id)]
+    return played[-1].id if played else None
