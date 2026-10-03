@@ -252,7 +252,17 @@ class Season:
         return bool(tie_ids) and all(t in self.tie_outcomes for t in tie_ids)
 
     def _sources_done(self, stage: KnockoutStageRule) -> bool:
-        return all(e.source in self.stages_done for e in stage.entrants)
+        """A knockout stage can be created once its source stages are finished and, for an
+        entrant rule with `exclude_tracks`, once every stage of those tracks drawing from the
+        same source has its entrants (so they can be excluded whatever the declaration order)."""
+        if not all(e.source in self.stages_done for e in stage.entrants):
+            return False
+        for rule in stage.entrants:
+            for other in self.ruleset.knockout_stages:
+                if (other.track in rule.exclude_tracks and other.id not in self.stage_entrants
+                        and any(o.source == rule.source for o in other.entrants)):
+                    return False
+        return True
 
     def group_matches(self) -> list[PlayedMatch]:
         gid = self.ruleset.group_stage.id
