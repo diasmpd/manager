@@ -27,9 +27,9 @@ description: "Task list for 006 Tactics"
 
 ## Phase 3: US2 - Effects in the quick sim (P2, built before US1's UI because the UI needs it)
 
-- [ ] T006 [P] Write `reference/tactics/effects.toml`: option → setting → lever multipliers, plus the interaction rules (research R2, R3). Every option has a cost lever.
-- [ ] T007 Tests then `tactics/effects.py`: `levers(own, opponent, state)`. Neutral against neutral gives all 1.0. Each documented direction holds per option in a statistical engine test, with fixed seeds and bands.
-- [ ] T008 Engine: apply levers (shot rate and quality, allowed, possession, fouls and cards, fatigue after minute 60, set pieces, counter chances, error chances) and role scaling in the ratings. The quick sim reads both sides' tactics. Reports record tactic summaries.
+- [x] T006 [P] Write `reference/tactics/effects.toml`: option → setting → lever multipliers, plus the interaction rules (research R2, R3). Every option has a cost lever.
+- [x] T007 Tests then `tactics/effects.py`: `levers(own, opponent, flank_balance)` (game state, minute and score, comes in with T008/T010 when needed). Neutral against neutral gives all 1.0. Each documented direction holds per option in a statistical engine test, with fixed seeds and bands.
+- [x] T008 Engine: apply levers (shot rate and quality, allowed, possession, fouls and cards, fatigue after minute 60, set pieces, counter chances, error chances) and role scaling in the ratings. The quick sim reads both sides' tactics. Reports record tactic summaries.
 
 ## Phase 4: US4 - AI styles (P4, needed before calibration)
 

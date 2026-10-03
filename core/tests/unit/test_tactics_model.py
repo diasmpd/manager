@@ -13,7 +13,13 @@ from manager_core.tactics.catalogue import (
     suggest_oop,
     valid_roles,
 )
-from manager_core.tactics.model import SlotTactic, Tactic, default_tactic, validate
+from manager_core.tactics.model import (
+    SlotTactic,
+    Tactic,
+    TacticIssue,
+    default_tactic,
+    validate,
+)
 from tests.helpers import attrs, player
 
 
@@ -104,3 +110,11 @@ def test_default_roles_follow_positions(formation: str) -> None:
     defaults = load_roles().defaults
     for slot, pos in zip(tactic.slots, positions, strict=True):
         assert (slot.ip_role, slot.oop_role) == defaults[pos]
+
+
+def test_missing_or_duplicate_team_instruction_is_t001() -> None:
+    base = default_tactic("4-4-2")
+    missing = dataclasses.replace(base, team=base.team[1:])
+    assert TacticIssue("T001", f"team.{base.team[0][0]}") in validate(missing)
+    duplicate = dataclasses.replace(base, team=(*base.team, base.team[0]))
+    assert TacticIssue("T001", f"team.{base.team[0][0]}") in validate(duplicate)

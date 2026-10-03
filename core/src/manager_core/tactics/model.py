@@ -7,8 +7,9 @@ and set-piece takers and setups. There are no duties (FM26).
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Set
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 from manager_core.domain.formation import load_catalogue
 from manager_core.tactics.catalogue import IP, OOP, load_options, load_roles, suggest_oop
@@ -76,6 +77,10 @@ def validate(tactic: Tactic, squad: Set[str] | None = None) -> list[TacticIssue]
             issues.append(TacticIssue("T005", path))
     if tactic.mentality not in options.mentality.settings:
         issues.append(TacticIssue("T001", "mentality"))
+    given = [option_id for option_id, _ in tactic.team]
+    for required in options.team:
+        if given.count(required.id) != 1:  # every team instruction exactly once
+            issues.append(TacticIssue("T001", f"team.{required.id}"))
     for option_id, setting in tactic.team:
         option = options.team_option(option_id)
         if option is None or setting not in option.settings:
@@ -113,3 +118,8 @@ def validate(tactic: Tactic, squad: Set[str] | None = None) -> list[TacticIssue]
         if option is None or setting not in option.settings:
             issues.append(TacticIssue("T001", f"set_pieces.{setup}"))
     return issues
+
+
+def tactic_digest(tactic: Tactic) -> str:
+    """A short, stable hash of the full tactic (recorded in match reports)."""
+    return hashlib.sha256(repr(asdict(tactic)).encode("utf-8")).hexdigest()[:12]

@@ -35,10 +35,16 @@ from manager_core.quicksim.report import (
     Minute,
     SideLineup,
     SideStats,
+    TacticSummary,
     card_counts,
     other,
 )
 from manager_core.quicksim.squad import TeamSheet
+from manager_core.ratings.suitability import base as position_base
+from manager_core.tactics.catalogue import load_roles, role_suitability
+from manager_core.tactics.effects import NEUTRAL, Levers
+from manager_core.tactics.effects import levers as tactic_levers
+from manager_core.tactics.model import Tactic, default_tactic, tactic_digest
 
 SOURCE = "quick_sim"
 
@@ -58,6 +64,8 @@ class _Side:
     bench: list[str]
     ratings: TeamRatings = field(init=False)
     composites: dict[str, dict[str, float]] = field(default_factory=dict)
+    tactic: Tactic | None = None
+    lv: Levers = NEUTRAL
     _contrib: dict[tuple[str, int], tuple[float, ...]] = field(default_factory=dict)
     goals: int = 0
     shots: int = 0
@@ -92,9 +100,48 @@ class _Side:
     def _slot_contrib(self, pid: str, slot: int) -> tuple[float, ...]:
         key = (pid, slot)
         if key not in self._contrib:
-            self._contrib[key] = slot_contributions(
-                self.player(pid), self.sheet.slot_position(slot), self.composites[pid])
+            player = self.player(pid)
+            position = self.sheet.slot_position(slot)
+            values = list(slot_contributions(player, position, self.composites[pid]))
+            ip, oop = self.role_factors(player, position, slot)
+            for k in (0, 1, 4):  # attack, control, set pieces: the in-possession role
+                values[k] *= ip
+            for k in (2, 3):  # defence, goalkeeping: the out-of-possession role
+                values[k] *= oop
+            self._contrib[key] = tuple(values)
         return self._contrib[key]
+
+    def role_factors(self, player: Player, position: Position, slot: int) -> tuple[float, float]:
+        """How well the player fits his IP and OOP roles, relative to the position (spec 006
+        FR-006): 0.85 + 0.15 * role suitability / position base, capped to 0.8-1.1."""
+        if self.tactic is None:
+            return 1.0, 1.0
+        slot_tactic = next((s for s in self.tactic.slots if s.slot == slot), None)
+        if slot_tactic is None:
+            return 1.0, 1.0
+        roles = load_roles().roles
+        base = max(1.0, position_base(player, position))
+        factors = []
+        for role_id in (slot_tactic.ip_role, slot_tactic.oop_role):
+            role = roles.get(role_id)
+            if role is None:
+                factors.append(1.0)
+                continue
+            factor = 0.85 + 0.15 * role_suitability(player, role) / base
+            factors.append(min(1.1, max(0.8, factor)))
+        return factors[0], factors[1]
+
+    def flank_defence(self) -> tuple[float, float]:
+        """Defensive contribution of the left and right flanks (for `progress_through`)."""
+        left = right = 0.0
+        for i, pid in self.on.items():
+            position = self.sheet.slot_position(i).value
+            value = self._slot_contrib(pid, i)[2]
+            if position.endswith("L"):
+                left += value
+            elif position.endswith("R"):
+                right += value
+        return left, right
 
     def discipline(self, pid: str) -> float:
         return self.composites[pid]["discipline"]
@@ -117,7 +164,8 @@ def _weighted(rng: random.Random, items: Sequence[tuple[str, float]]) -> str | N
 
 class _Match:
     def __init__(self, home: TeamSheet, away: TeamSheet, players: Mapping[str, Player],
-                 params: ModelParams, rng: random.Random, neutral: bool) -> None:
+                 params: ModelParams, rng: random.Random, neutral: bool,
+                 home_tactic: Tactic | None = None, away_tactic: Tactic | None = None) -> None:
         self.params = params
         self.rng = rng
         self.neutral = neutral
@@ -126,11 +174,38 @@ class _Match:
             HOME: _Side(HOME, home, players, dict(home.starters), list(home.bench)),
             AWAY: _Side(AWAY, away, players, dict(away.starters), list(away.bench)),
         }
+        for side, tactic in ((self.sides[HOME], home_tactic), (self.sides[AWAY], away_tactic)):
+            side.tactic = _fit_tactic(tactic, side.sheet)
         for s in self.sides.values():
             s.played = set(s.on.values())
             s.composites = {pid: player_composites(players[pid])
                             for pid in sorted({*s.on.values(), *s.bench})}
             s.refresh(params)
+        self.update_levers()
+        self.home_possession = self._possession()
+
+    def update_levers(self) -> None:
+        """Each side's tactical levers against the other's tactic (spec 006)."""
+        home, away = self.sides[HOME], self.sides[AWAY]
+        for me, opp in ((home, away), (away, home)):
+            left, right = opp.flank_defence()
+            balance = max(-1.0, min(1.0, 3 * (left - right) / max(1.0, left + right)))
+            assert me.tactic is not None
+            me.lv = tactic_levers(me.tactic, opp.tactic, balance)
+
+    def _possession(self) -> int:
+        home, away = self.sides[HOME], self.sides[AWAY]
+        c_diff = (home.ratings.control - away.ratings.control) / 5
+        home_edge = 0.0 if self.neutral else self.params.home.possession
+        slope = self.params.home.possession_slope
+        share = 50 + 50 * math.tanh(slope * c_diff + home_edge)
+        share += (home.lv.possession - away.lv.possession) / 2
+        return max(20, min(80, round(share)))
+
+    def _fatigue(self, side: _Side, base: int) -> float:
+        if base <= 60:
+            return 1.0
+        return 1 + (side.lv.fatigue - 1) * (min(base, 90) - 60) / 30
 
     # ---- helpers -------------------------------------------------------------------------
 
@@ -220,20 +295,26 @@ class _Match:
         edge = p.strength.attack * (r.attack - o.defence) / 5
         control = p.strength.control * (r.control - o.control) / 5
         pressure = math.exp(edge + control) * home * trend * own_mult
+        tired_me, tired_opp = self._fatigue(me, base), self._fatigue(opp, base)
+        pressure *= me.lv.shot_rate * opp.lv.allow_rate * opp.lv.error_risk / tired_me
+        opp_possession = (100 - self.home_possession) if side == HOME else self.home_possession
+        counter = me.lv.counter ** max(0.0, (opp_possession - 50) / 25)
+        quality = me.lv.chance_quality * opp.lv.allow_quality * counter * tired_opp
         rng = self.rng
 
         if rng.random() < p.rates.shot * pressure:
             median = p.strength.xg_median * math.exp(
                 p.strength.xg_attack * (r.attack - o.defence) / 5)
-            xg = median * opp_conceded_quality * math.exp(p.strength.xg_sigma * rng.gauss(0, 1))
+            xg = (median * opp_conceded_quality * quality
+                  * math.exp(p.strength.xg_sigma * rng.gauss(0, 1)))
             self._shot(side, minute, min(p.shots.xg_max, max(p.shots.xg_min, xg)))
-            if rng.random() < p.rates.corner_per_shot:
+            if rng.random() < p.rates.corner_per_shot * me.lv.set_piece:
                 me.corners += 1
         if rng.random() < p.rates.penalty * pressure:
             self._penalty(side, minute)
-        if rng.random() < p.rates.corner_base:
+        if rng.random() < p.rates.corner_base * me.lv.set_piece:
             me.corners += 1
-        foul_rate = p.rates.foul * r.discipline / 10
+        foul_rate = p.rates.foul * r.discipline / 10 * me.lv.foul_rate
         foul_rate *= math.exp(p.fouls.pressure * (o.attack - r.defence) / 5)
         if rng.random() < foul_rate:
             self._foul(side, minute)
@@ -331,11 +412,11 @@ class _Match:
         if fouler is None:
             return
         proneness = (me.discipline(fouler) / 10) ** p.fouls.card_exponent  # rises steeply
-        if self.rng.random() < p.rates.direct_red_per_foul * proneness:
+        if self.rng.random() < p.rates.direct_red_per_foul * proneness * me.lv.card_rate:
             self._send_off(side, minute, fouler, "red")
             return
         ramp = p.fouls.card_minute_start + p.fouls.card_minute_span * min(minute.base, 90) / 90
-        card = p.rates.yellow_per_foul * proneness * ramp
+        card = p.rates.yellow_per_foul * proneness * ramp * me.lv.card_rate
         if me.yellows.get(fouler):
             card *= 1 - (1 - p.caution.card) * caution_strength(me.player(fouler), p)
         if self.rng.random() < card:
@@ -435,11 +516,7 @@ class _Match:
 
     def report(self, stoppage: tuple[int, int]) -> MatchReport:
         home, away = self.sides[HOME], self.sides[AWAY]
-        c_diff = (home.ratings.control - away.ratings.control) / 5
-        home_edge = 0.0 if self.neutral else self.params.home.possession
-        slope = self.params.home.possession_slope
-        home_poss = round(50 + 50 * math.tanh(slope * c_diff + home_edge))
-        home_poss = max(20, min(80, home_poss))
+        home_poss = self.home_possession
 
         def stats(s: _Side, possession: int) -> SideStats:
             yellows, reds = card_counts(self.events, s.name)
@@ -459,7 +536,28 @@ class _Match:
             away_finishers=tuple(pid for _, pid in away.on_pitch()),
             stoppage=stoppage, model_version=self.params.model_version,
             home_keeper=_id(goalkeeper_on(home)), away_keeper=_id(goalkeeper_on(away)),
+            home_tactic=_summary(home.tactic), away_tactic=_summary(away.tactic),
         )
+
+
+def _fit_tactic(tactic: Tactic | None, sheet: TeamSheet) -> Tactic:
+    """The tactic for this sheet: the default one, or the given one with default roles if its
+    formation no longer matches the sheet (spec 006 edge case)."""
+    formation = sheet.formation.name
+    if tactic is None:
+        return default_tactic(formation)
+    if tactic.ip_formation == formation:
+        return tactic
+    base = default_tactic(formation)
+    return Tactic(formation, base.oop_formation, tactic.mentality, tactic.team, base.slots,
+                  tactic.set_pieces, tactic.style)
+
+
+def _summary(tactic: Tactic | None) -> TacticSummary | None:
+    if tactic is None:
+        return None
+    return TacticSummary(tactic.ip_formation, tactic.oop_formation, tactic.mentality,
+                         tactic.style, tactic_digest(tactic))
 
 
 def _id(player: Player | None) -> str | None:
@@ -531,9 +629,10 @@ def kick_factor(params: ModelParams, taker: Player, keeper: Player | None) -> fl
 
 
 def simulate_match(home: TeamSheet, away: TeamSheet, players: Mapping[str, Player],
-                   params: ModelParams, rng: random.Random,
-                   neutral: bool = False) -> tuple[Result, MatchReport]:
-    match = _Match(home, away, players, params, rng, neutral)
+                   params: ModelParams, rng: random.Random, neutral: bool = False,
+                   home_tactic: Tactic | None = None,
+                   away_tactic: Tactic | None = None) -> tuple[Result, MatchReport]:
+    match = _Match(home, away, players, params, rng, neutral, home_tactic, away_tactic)
     stoppage = match.play()
     report = match.report(stoppage)
     result = Result(report.home.goals, report.away.goals, SOURCE,

@@ -304,6 +304,7 @@ id = "dribbling_frequency"
 phase = "ip"
 label = "Frequência do drible"
 settings = ["less", "standard", "more"]
+default = "standard"
 labels = ["Menos", "Normal", "Mais"]
 
 [[player]]
@@ -311,6 +312,7 @@ id = "forward_runs"
 phase = "ip"
 label = "Infiltrações"
 settings = ["more", "standard", "fewer"]
+default = "standard"
 labels = ["Mais", "Normal", "Menos"]
 
 [[player]]
@@ -332,6 +334,7 @@ id = "passing_risk"
 phase = "ip"
 label = "Risco no passe"
 settings = ["fewer", "standard", "more"]
+default = "standard"
 labels = ["Menos riscos", "Normal", "Mais riscos"]
 
 [[player]]
@@ -339,6 +342,7 @@ id = "shoot"
 phase = "ip"
 label = "Finalizar"
 settings = ["less_often", "standard", "more_often"]
+default = "standard"
 labels = ["Menos", "Normal", "Mais"]
 
 [[player]]
@@ -360,6 +364,7 @@ id = "pressing"
 phase = "oop"
 label = "Pressão"
 settings = ["less_often", "standard", "more_often"]
+default = "standard"
 labels = ["Menos", "Normal", "Mais"]
 
 [[player]]
@@ -367,6 +372,7 @@ id = "tackling"
 phase = "oop"
 label = "Desarmes"
 settings = ["ease_off", "standard", "harder"]
+default = "standard"
 labels = ["Mais leves", "Normais", "Mais duros"]
 
 # ---- bola parada --------------------------------------------------------------------------------

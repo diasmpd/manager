@@ -69,6 +69,11 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
     - the **exploit check**: the maximum gain over neutral is ≤ 0.20 points per match, and no
       tactic is best against every style.
   - The positional engine (007) will replace many levers with real positioning.
+- **Owner decision (review of 006)**: role levers count per player, with the same 1/11 share as
+  player instructions. A role's main effect is player fit (role suitability scales the player's
+  contribution); its team levers are small. A test keeps role-only stacking (the best role for a
+  lever in every slot) inside one option's ±15% budget. The exploit check (T012) may retune the
+  role values.
 
 ## R4. Roles
 

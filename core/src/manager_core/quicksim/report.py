@@ -72,6 +72,17 @@ class SideLineup:
 
 
 @dataclass(frozen=True, slots=True)
+class TacticSummary:
+    """What a side played with (spec 006): formations, mentality, AI style, tactic digest."""
+
+    ip_formation: str
+    oop_formation: str
+    mentality: str
+    style: str | None
+    digest: str
+
+
+@dataclass(frozen=True, slots=True)
 class MatchReport:
     home: SideStats
     away: SideStats
@@ -84,6 +95,8 @@ class MatchReport:
     model_version: str
     home_keeper: str | None = None  # in the GK slot at the final whistle (engine-recorded)
     away_keeper: str | None = None
+    home_tactic: TacticSummary | None = None
+    away_tactic: TacticSummary | None = None
 
     def stats(self, side: str) -> SideStats:
         return self.home if side == HOME else self.away

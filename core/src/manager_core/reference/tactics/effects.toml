@@ -1,0 +1,274 @@
+# Efeitos táticos no quick sim (spec 006, research R2, R3): cada opção move "alavancas".
+# Multiplicadores (1.0 = neutro); "possession" é aditivo (pontos percentuais).
+# Direções da literatura (StatsBomb, PPDA, Lago et al.); tamanhos são estimativas limitadas
+# (±15% por opção), ajustadas pela calibração e pelo teste de exploração (exploit check).
+# Toda opção tem um custo (alavanca no sentido contrário).
+format_version = 1
+
+# Mentalidade: passos de -3 (muito defensiva) a +3 (muito ofensiva), por passo.
+[mentality_step]
+shot_rate = 0.06
+allow_rate = 0.05
+allow_quality = 0.025
+possession = 1.0
+foul_rate = -0.01
+
+# ---- com a bola -------------------------------------------------------------------------------
+[team.passing_directness]
+much_shorter = { possession = 4.0, shot_rate = 0.95, chance_quality = 1.04, error_risk = 1.04 }
+shorter = { possession = 2.0, shot_rate = 0.98, chance_quality = 1.02, error_risk = 1.02 }
+more_direct = { possession = -2.0, shot_rate = 1.03, chance_quality = 0.97, counter = 1.02 }
+much_more_direct = { possession = -4.0, shot_rate = 1.06, chance_quality = 0.94, counter = 1.04 }
+
+[team.tempo]
+lower = { possession = 1.5, shot_rate = 0.96, fatigue = 0.97, error_risk = 0.98 }
+higher = { possession = -1.0, shot_rate = 1.05, fatigue = 1.04, error_risk = 1.03 }
+
+[team.time_wasting]
+less_often = { fatigue = 1.01, shot_rate = 1.01, card_rate = 0.97 }
+more_often = { shot_rate = 0.97, card_rate = 1.08, fatigue = 0.98 }
+
+[team.attacking_transition]
+counter = { counter = 1.10, possession = -2.0, chance_quality = 1.02, shot_rate = 0.97 }
+patient = { counter = 0.92, possession = 2.0, chance_quality = 1.02, shot_rate = 0.96 }
+
+[team.attacking_width]
+much_narrower = { chance_quality = 1.02, set_piece = 0.94, shot_rate = 0.98 }
+narrower = { chance_quality = 1.01, set_piece = 0.97, shot_rate = 0.99 }
+wider = { set_piece = 1.03, chance_quality = 0.99, shot_rate = 1.01, fatigue = 1.01 }
+much_wider = { set_piece = 1.06, chance_quality = 0.98, shot_rate = 1.02, fatigue = 1.02 }
+
+[team.creative_freedom]
+disciplined = { error_risk = 0.97, chance_quality = 0.98 }
+expressive = { error_risk = 1.03, chance_quality = 1.03 }
+
+[team.play_for_set_pieces]
+keep_ball_in_play = { set_piece = 0.92, possession = 1.0, shot_rate = 1.01 }
+
+[team.build_up_strategy]
+play_through_press = { possession = 2.0, error_risk = 1.06, chance_quality = 1.02 }
+direct = { possession = -2.0, error_risk = 0.95, shot_rate = 1.02, chance_quality = 0.98 }
+
+[team.goal_kicks]
+short = { possession = 1.0, error_risk = 1.03 }
+long = { possession = -1.0, error_risk = 0.97 }
+
+[team.gk_distribution_speed]
+slower = { counter = 0.97, possession = 0.5 }
+faster = { counter = 1.03, error_risk = 1.01 }
+
+[team.gk_distribution_target]
+full_backs = { error_risk = 1.01, possession = 0.5 }
+midfielders = { error_risk = 1.02, possession = 1.0 }
+forwards = { possession = -1.5, error_risk = 0.97, counter = 1.02 }
+
+[team.pass_reception_progression]
+overlapped = { shot_rate = 1.02, allow_quality = 1.02, fatigue = 1.01 }
+
+[team.dribbling_progression]
+reduced = { error_risk = 0.98, chance_quality = 0.99 }
+encouraged = { error_risk = 1.02, chance_quality = 1.02, foul_rate = 0.98 }
+
+[team.supporting_runs]
+both_flanks = { shot_rate = 1.02, allow_quality = 1.02 }
+one_flank = { shot_rate = 0.99, allow_quality = 0.99 }
+
+# Progredir por um lado: depende do lado mais fraco do adversário (efeito contextual no código:
+# flank_bonus por ponto de desequilíbrio; atacar o lado forte custa qualidade).
+[team.progress_through]
+left = { fatigue = 1.01 }
+right = { fatigue = 1.01 }
+
+[team.dribbling_final_third]
+reduced = { chance_quality = 0.99, error_risk = 0.98 }
+encouraged = { chance_quality = 1.02, error_risk = 1.02, set_piece = 1.02 }
+
+[team.pass_reception_final_third]
+overlapped = { shot_rate = 1.02, allow_quality = 1.01 }
+
+[team.patience]
+work_ball_into_box = { shot_rate = 0.92, chance_quality = 1.07, possession = 1.0 }
+less_often = { shot_rate = 1.06, chance_quality = 0.95 }
+
+[team.shots_from_distance]
+reduced = { shot_rate = 0.93, chance_quality = 1.05 }
+encouraged = { shot_rate = 1.08, chance_quality = 0.92 }
+
+[team.crossing_style]
+low = { chance_quality = 1.01, set_piece = 0.98 }
+high = { set_piece = 1.03, chance_quality = 0.98 }
+
+# ---- sem a bola -----------------------------------------------------------------------------
+[team.line_of_engagement]
+high_press = { allow_rate = 0.92, allow_quality = 1.08, foul_rate = 1.08, fatigue = 1.06, shot_rate = 1.03 }
+low_block = { allow_rate = 1.08, allow_quality = 0.92, shot_rate = 0.95, fatigue = 0.96, counter = 1.04, possession = -2.0 }
+
+[team.defensive_line]
+deeper = { allow_quality = 0.96, allow_rate = 1.04, counter = 1.02 }
+higher = { allow_quality = 1.04, allow_rate = 0.97, possession = 1.0 }
+much_higher = { allow_quality = 1.08, allow_rate = 0.94, possession = 2.0 }
+
+[team.defensive_line_behaviour]
+offside_trap = { allow_rate = 0.96, allow_quality = 1.05 }
+step_up = { allow_rate = 0.98, allow_quality = 1.02, fatigue = 1.01 }
+
+[team.trigger_press]
+less_often = { allow_rate = 1.03, fatigue = 0.98, foul_rate = 0.97 }
+more_often = { allow_rate = 0.97, fatigue = 1.03, foul_rate = 1.04, allow_quality = 1.02 }
+
+[team.defensive_transition]
+counter_press = { allow_rate = 0.96, allow_quality = 1.03, fatigue = 1.04, foul_rate = 1.04 }
+regroup = { allow_rate = 1.03, allow_quality = 0.96, counter = 0.97 }
+
+[team.tackling]
+ease_off = { foul_rate = 0.88, card_rate = 0.85, allow_rate = 1.03 }
+aggressive = { foul_rate = 1.12, card_rate = 1.15, allow_rate = 0.97 }
+
+[team.pressing_trap_high]
+active = { allow_rate = 0.98, allow_quality = 1.02 }
+
+[team.prevent_short_gk_distribution]
+yes = { allow_rate = 0.98, fatigue = 1.02, allow_quality = 1.01 }
+
+[team.pressing_trap_mid]
+active = { allow_rate = 0.98, allow_quality = 1.02 }
+
+[team.cross_engagement_mid]
+hold_position = { allow_quality = 0.99, set_piece = 1.0, allow_rate = 1.02 }
+contest = { allow_rate = 0.98, allow_quality = 1.02 }
+
+[team.pressing_trap_low]
+active = { allow_rate = 0.98, allow_quality = 1.02 }
+
+[team.cross_engagement_low]
+hold_position = { allow_quality = 0.99, allow_rate = 1.02 }
+contest = { allow_rate = 0.98, allow_quality = 1.02 }
+
+# ---- instruções individuais (por jogador: efeito dividido por 11) ------------------------------
+[player.shoot]
+less_often = { shot_rate = 0.93, chance_quality = 1.04 }
+more_often = { shot_rate = 1.08, chance_quality = 0.94 }
+
+[player.dribbling_frequency]
+less = { error_risk = 0.98, chance_quality = 0.99 }
+more = { chance_quality = 1.03, error_risk = 1.03 }
+
+[player.forward_runs]
+more = { shot_rate = 1.04, allow_quality = 1.03, fatigue = 1.03 }
+fewer = { shot_rate = 0.97, allow_quality = 0.98 }
+
+[player.passing_risk]
+fewer = { error_risk = 0.95, chance_quality = 0.98 }
+more = { error_risk = 1.05, chance_quality = 1.04 }
+
+[player.pressing]
+less_often = { allow_rate = 1.03, fatigue = 0.97 }
+more_often = { allow_rate = 0.97, fatigue = 1.04, foul_rate = 1.04 }
+
+[player.tackling]
+ease_off = { foul_rate = 0.9, card_rate = 0.85, allow_rate = 1.02 }
+harder = { foul_rate = 1.1, card_rate = 1.15, allow_rate = 0.98 }
+
+[player.marking]
+tighter = { allow_quality = 0.98, foul_rate = 1.04 }
+
+[player.freedom_of_movement]
+roam = { chance_quality = 1.03, allow_quality = 1.02 }
+
+[player.hold_up_ball]
+yes = { possession = 2.0, counter = 0.98 }
+
+[player.attacking_width]
+stay_wider = { set_piece = 1.02, chance_quality = 0.99 }
+sit_narrower = { chance_quality = 1.01, set_piece = 0.98 }
+move_into_channels = { shot_rate = 1.02, fatigue = 1.01 }
+
+[player.cross_from]
+byline = { chance_quality = 1.02, shot_rate = 0.99 }
+deep = { chance_quality = 0.98, shot_rate = 1.01 }
+
+[player.crossing_strategy]
+target_forward = { set_piece = 1.01, chance_quality = 0.99 }
+near_post = { chance_quality = 1.01, shot_rate = 0.99 }
+centre = { shot_rate = 1.01, chance_quality = 0.99 }
+far_post = { set_piece = 1.01, chance_quality = 0.99 }
+
+[player.dribbling_direction]
+cut_inside = { shot_rate = 1.02, chance_quality = 0.99 }
+run_wide = { set_piece = 1.02, shot_rate = 0.99 }
+
+[player.marking_target]
+position = { allow_quality = 0.99, allow_rate = 1.01 }
+specific = { allow_quality = 0.98, fatigue = 1.02 }
+
+# ---- bola parada --------------------------------------------------------------------------------
+[setup.attacking_corners]
+near_post = { set_piece = 1.02, counter = 0.99 }
+far_post = { set_piece = 1.02, counter = 0.99 }
+short = { set_piece = 0.98, possession = 0.5, counter = 1.01 }
+
+[setup.defending_corners]
+zonal = { allow_quality = 0.99, allow_rate = 1.01 }
+man = { allow_quality = 1.01, allow_rate = 0.99 }
+
+[setup.attacking_free_kicks]
+direct = { shot_rate = 1.01, chance_quality = 0.99 }
+into_box = { set_piece = 1.02, counter = 0.99 }
+short = { possession = 0.5, set_piece = 0.98 }
+
+[setup.defending_free_kicks]
+zonal = { allow_quality = 0.99, allow_rate = 1.01 }
+man = { allow_quality = 1.01, allow_rate = 0.99 }
+
+# Contexto: atacar o lado mais fraco do adversário (por ponto de desequilíbrio 0-1).
+[context]
+flank_bonus = 0.04
+
+# ---- interações (pedra-papel-tesoura): minha opção x opção do adversário -----------------------
+[[interactions]]
+note = "Linha alta contra contra-ataque: espaço nas costas"
+own = { defensive_line = ["higher", "much_higher"] }
+opponent = { attacking_transition = ["counter"] }
+levers = { allow_quality = 1.10 }
+
+[[interactions]]
+note = "Pressão alta contra jogo direto: a pressão é pulada"
+own = { line_of_engagement = ["high_press"] }
+opponent = { passing_directness = ["more_direct", "much_more_direct"] }
+levers = { allow_rate = 1.06 }
+
+[[interactions]]
+note = "Pressão alta contra saída curta sob pressão: mais erros do adversário"
+own = { line_of_engagement = ["high_press"] }
+opponent = { build_up_strategy = ["play_through_press"] }
+levers = { shot_rate = 1.04, allow_rate = 0.97 }
+
+[[interactions]]
+note = "Bloco baixo contra chutes de longe: mais finalizações, de baixa qualidade"
+own = { line_of_engagement = ["low_block"] }
+opponent = { shots_from_distance = ["encouraged"] }
+levers = { allow_rate = 1.05, allow_quality = 0.95 }
+
+[[interactions]]
+note = "Bloco baixo contra posse paciente: o adversário roda a bola sem achar espaço"
+own = { line_of_engagement = ["low_block"] }
+opponent = { attacking_transition = ["patient"] }
+levers = { allow_quality = 0.95 }
+
+[[interactions]]
+note = "Contrapressão contra ritmo alto: bolas perdidas viram chances"
+own = { defensive_transition = ["counter_press"] }
+opponent = { tempo = ["higher"] }
+levers = { shot_rate = 1.03 }
+
+[[interactions]]
+note = "Linha de impedimento contra infiltrações e lançamentos"
+own = { defensive_line_behaviour = ["offside_trap"] }
+opponent = { passing_directness = ["more_direct", "much_more_direct"] }
+levers = { allow_quality = 1.05 }
+
+[[interactions]]
+note = "Cruzamentos altos contra bloco que disputa: menos efetivos"
+own = { crossing_style = ["high"] }
+opponent = { cross_engagement_low = ["contest"] }
+levers = { chance_quality = 0.95 }

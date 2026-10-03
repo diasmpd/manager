@@ -88,6 +88,11 @@ Features to place in later milestones once the core game is complete. Each will 
 - **Match-day events**: build-up, entrance ceremonies and city events for finals and derbies.
 - **Media and morale** reacting to the stakes (overlaps with v1's media and morale).
 
+### Deferred from 006
+
+- **OOP shape mapping**: map each IP slot to its OOP-formation position, validate OOP roles
+  against that position, and give the OOP shape its own effects. With 006b/007.
+
 ## Later
 
 2D match view → Libertadores and Sul-Americana → 3D match view → online leagues with friends.

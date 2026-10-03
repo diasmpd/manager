@@ -277,6 +277,11 @@ score: chasing late, it raises the mentality.
 - **Effect sizes** come from published tactical analytics where they exist (e.g. the effect of
   pressing intensity on turnovers and fouls, of possession style on shots). Otherwise they are
   bounded estimates, marked as such in `model.toml` and refined with the positional engine.
+- **OOP roles follow the IP slot (owner decision, M0 simplification)**: an OOP role is
+  validated against the slot's IP position, so the OOP formation does not change which OOP roles
+  are allowed (in FM26 a 4-3-3 winger defends as a wide midfielder in a 4-1-4-1). Mapping IP slots
+  to OOP-formation positions, and giving the OOP shape its own lever effects, is deferred (see the
+  roadmap). It needs an IP-to-OOP slot mapping, which is a design task of its own.
 - **Shapes before 007**: IP and OOP shapes, roles and positions act through ratings and rates.
   Real positioning arrives with the positional engine (007) and the formation editor (006b).
 - **The OOP formation catalogue** adds FM's common shapes (4-1-4-1, 4-5-1, 4-4-1-1, 5-4-1,
