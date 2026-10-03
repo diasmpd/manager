@@ -137,6 +137,12 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
     player's foul weight is multiplied by `κ_foul` (0.5) and his card-per-foul probability by
     `κ_card` (0.7). The trade-off: his side's defence composite loses `κ_cost` (15%) of his own
     defence contribution for the rest of the match.
+  - **Player-dependent** (owner decision, 2026-10-03). How much a booked player eases off is
+    a strength from 0 to 1, from the mean of temperament and decisions: 0 at 5 or below, 1 at
+    15 or above (`caution.attribute_low/high`). It scales all three effects. A hot-head keeps
+    flying in and pays no defensive cost; a calm, smart player eases off fully. Because booked
+    players are mostly the less disciplined ones, the full-strength factors were refitted
+    (`caution.card` 0.2, a higher `yellow_per_foul`) so the population averages stay on target.
   - **Harness switch.** The harness runs the PR sample with the behaviour on and off, and
     reports the second-yellow rate and the goals conceded by sides with a booked player
     (SC-006).
@@ -167,8 +173,9 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
   - **Assists.** 75% of open-play goals have one. The assister is weighted by line (AM and
     wide players high) × (passing + vision + crossing)/3, and is never the scorer.
   - **Penalty taker.** The outfield player on the pitch with the best penalty_taking (ties by
-    composure, then id). Goalkeepers do not take penalties during a match; Rogério Ceni was
-    the exception. In a shootout they kick last, after the others.
+    composure, then id). A goalkeeper takes a penalty during a match only as a specialist
+    (owner decision, 2026-10-03): penalty taking ≥ `penalties.keeper_specialist` (16) *and*
+    better than every outfield taker, Rogério Ceni style. In a shootout they kick last, after the others.
   - **Substitution windows.** Half-time (35% chance per side) and three windows drawn from
     55–65, 66–75 and 76–85, for 3–5 substitutions per side.
   - **Who goes off.** Weighted toward attacking players and low stamina, and toward attackers
