@@ -16,8 +16,8 @@ working game.
 | # | Feature | Status |
 |---|---|---|
 | 001 | Core domain model: clubs, players with FM attributes (incl. hidden), positions, and the data **import format** (format only: no SoFIFA→FM conversion), plus a fictional sample dataset. [Spec](../specs/001-core-domain-model/spec.md) | ✅ done (PR) |
-| 002 | Competitions and calendar: Campeonato Mineiro format, day-by-day calendar | ⏳ next |
-| 003 | Quick sim (statistical), calibrated independently against real-data targets | — |
+| 002 | Competitions and calendar: Campeonato Mineiro format as data (rulesets), draw, fixtures, dates, tables and tiebreakers, knockouts, Troféu Inconfidência, outcomes, day-by-day calendar with reserved windows. [Spec](../specs/002-competitions-calendar/spec.md) | ✅ done (PR) |
+| 003 | Quick sim (statistical), calibrated independently against real-data targets. Replaces 002's placeholder results through the `result_provider=` argument of `start_season` | ⏳ next |
 | 004 | Career save (SQLite) and the day-by-day game loop | — |
 | 005 | **Playable Mineiro season from the terminal** (Python TUI): includes basic squad and lineup selection (and formation choice, if 001 models it), so the user makes real decisions before 006 | — |
 | 006 | Tactics model: roles and duties, team and individual instructions, set pieces; custom formations with separate attacking/defending shapes and free player placement (owner request) | — |
@@ -27,7 +27,21 @@ working game.
 | 010 | Local API contract + Godot desktop client (text match view, squad, tactics, table) | — |
 | 011 | Real-data import for MG clubs (into `manager-data`), including an attribute-synthesis model. Also covers (moved from 001): tolerant reading of files re-saved by pt-BR Excel (format v1.1) and the manual-edit audit trail | — |
 
+### Open items
+- **Confirm in the official FMF 2026 regulation** (002 used press sources): tiebreaker order,
+  semifinal pairing, and the Troféu Inconfidência entrants and dates (5th–8th skipping
+  semifinalists vs. the best 4 outside the semifinals). Each one is a value in
+  `reference/competitions/mg-modulo-i-2026.toml`, so a fix is a data change.
+- **Calendar dates are approximate**: FIFA windows (default and 2027), Copa do Brasil and
+  Brasileirão windows in `reference/calendar/`. Refine when those competitions are specified.
+
 ### Notes for specific specs
+- **003 (quick sim)**: 002 already gives each match its own seed (`sub_seed(season, "match:{id}")`),
+  a `MatchContext` and an optional cards field on `Result` (card tiebreakers fall through to lots
+  while cards are missing). The quick sim should fill cards so those tiebreakers become real.
+- **004 (career save)**: a season's participants come from the previous season's outcomes
+  (relegated clubs leave, promoted clubs from Módulo II enter). 002 picks participants by state
+  or an explicit list. 004 also persists `Season` (today the CLI rebuilds it from the seed).
 - **007 (positional engine)**: in pure Python, 22 players plus the ball at 5–10 Hz over 90 minutes
   is about 27–54k ticks with decisions, which is tight for the 10 s budget. The plan must decide
   early between a coarse tick with "key moments" (closer to FM) and numpy for the movement maths.

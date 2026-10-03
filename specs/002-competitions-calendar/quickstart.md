@@ -57,11 +57,14 @@ draw and the champion differ.
 
 ```powershell
 python -m manager_core season rules
-python -m manager_core season --ruleset test-liga-unica outcomes
-python -m manager_core season rules --validate core/tests/fixtures/rulesets/R004_bad_participants.toml
+$liga = "alvorada,campo-florido,ferroviario,jequitiba,mineracao,pedra-branca,rio-turvo,serra-negra"
+python -m manager_core season --ruleset test-liga-unica --participants $liga outcomes
+python -m manager_core season rules --validate core/tests/fixtures/rulesets/R004_groups_vs_participants.toml
 ```
 
 Expected: the test ruleset plays a full season, and the broken file exits 1 with R004 explained.
+The Liga Única takes 8 clubs, so they are named with `--participants` (by default a season takes
+every club of the ruleset's state, and the sample world has 12).
 
 ## 6. The year (US4)
 

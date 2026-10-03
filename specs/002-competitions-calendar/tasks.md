@@ -271,10 +271,10 @@ description: "Task list for 002 Competitions and Calendar"
 
 ## Phase 7: Polish
 
-- [ ] T045 [P] Update `docs/roadmap.md`: mark 002 as done, and add to the open items "confirmar no regulamento oficial FMF 2026: critérios de desempate, chaveamento das semifinais, participantes e datas do Troféu Inconfidência (5º–8º pulando semifinalistas vs. melhores 4 fora das semifinais)". Also note for spec 004: participants come from the previous season's outcomes.
-- [ ] T046 [P] Update the `README.md` quick start with `season` commands.
-- [ ] T047 Make sure `ruff check .`, `mypy` (strict) and the full pytest suite pass, and that the 1,000-season `slow` test passes locally.
-- [ ] T048 Run [quickstart.md](quickstart.md) on Windows and note any deviations.
+- [X] T045 [P] Update `docs/roadmap.md`: mark 002 as done, and add to the open items "confirmar no regulamento oficial FMF 2026: critérios de desempate, chaveamento das semifinais, participantes e datas do Troféu Inconfidência (5º–8º pulando semifinalistas vs. melhores 4 fora das semifinais)". Also note for spec 004: participants come from the previous season's outcomes.
+- [X] T046 [P] Update the `README.md` quick start with `season` commands.
+- [X] T047 Make sure `ruff check .`, `mypy` (strict) and the full pytest suite pass, and that the 1,000-season `slow` test passes locally.
+- [X] T048 Run [quickstart.md](quickstart.md) on Windows and note any deviations.
 - [ ] T049 Open the PR `002-competitions-calendar` → `main` with a summary, test results and the quickstart check (description based on `specs/002-competitions-calendar/quickstart.md`).
 
 ---
