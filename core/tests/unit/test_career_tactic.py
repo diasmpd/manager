@@ -105,3 +105,30 @@ def test_tactic_survives_save_load_and_migration(career: Career, tmp_path: Path)
     old = api.load_career(tmp_path, "tac")
     assert old.tactic is None
     assert api.current_tactic(old).mentality == "balanced"
+
+
+def test_the_owner_is_told_which_slots_reset(career: Career) -> None:
+    api.confirm_selection(career, api.propose_selection(career, "4-4-2"))
+    assert api.tactic_changes(career, "4-3-3") is None  # nothing confirmed yet
+    api.confirm_tactic(career, api.current_tactic(career))
+    assert api.tactic_changes(career, "4-4-2") is None  # same formation
+    changes = api.tactic_changes(career, "4-3-3")
+    assert changes and set(changes) <= set(api.formation_positions("4-3-3"))
+    assert "GK" not in changes  # the keeper's slot is kept
+
+
+def test_an_invalid_saved_tactic_falls_back_to_the_default(career: Career,
+                                                          tmp_path: Path) -> None:
+    api.confirm_tactic(career, dataclasses.replace(api.current_tactic(career),
+                                                   mentality="positive"))
+    api.save_career(career, tmp_path)
+    with sqlite3.connect(path_for(tmp_path, "tac")) as conn:  # a role renamed in the data
+        (text,) = conn.execute("SELECT tactic_json FROM tactic").fetchone()
+        role = career.tactic.slots[0].ip_role
+        conn.execute("UPDATE tactic SET tactic_json = ?",
+                     (text.replace(f'"{role}"', '"renamed_role"'),))
+    conn.close()
+    loaded = api.load_career(tmp_path, "tac")
+    assert loaded.tactic is None
+    assert loaded.notices and "padrão" in loaded.notices[0]
+    assert api.current_tactic(loaded).mentality == "balanced"

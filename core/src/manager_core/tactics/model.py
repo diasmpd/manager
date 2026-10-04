@@ -7,6 +7,7 @@ and set-piece takers and setups. There are no duties (FM26).
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 from collections.abc import Set
 from dataclasses import asdict, dataclass
@@ -126,14 +127,41 @@ def tactic_digest(tactic: Tactic) -> str:
     return hashlib.sha256(repr(asdict(tactic)).encode("utf-8")).hexdigest()[:12]
 
 
-def for_formation(tactic: Tactic, formation: str) -> Tactic:
-    """The tactic for a sheet in `formation`: unchanged if it matches, else the same mentality,
-    instructions and set pieces with the formation's default roles and OOP shape."""
+def for_formation(tactic: Tactic, formation: str) -> tuple[Tactic, tuple[int, ...]]:
+    """The tactic refitted to `formation`, and the slots (of the new formation) whose roles and
+    instructions were reset (spec 006 edge case).
+
+    Mentality, team instructions and set pieces are kept. Each new slot takes the roles and
+    player instructions of an old slot at the same position (in slot order), if they are still
+    valid there; the other slots get the position's default roles. The OOP formation is kept if
+    it is still one of the suggestions for the new shape."""
     if tactic.ip_formation == formation:
-        return tactic
+        return tactic, ()
+    catalogue = load_catalogue()
     base = default_tactic(formation)
-    return Tactic(formation, base.oop_formation, tactic.mentality, tactic.team, base.slots,
-                  tactic.set_pieces, tactic.style)
+    old_positions = catalogue[tactic.ip_formation].slots if tactic.ip_formation in catalogue \
+        else ()
+    unused = {s.slot: s for s in tactic.slots}
+    slots, changed = [], []
+    for new_slot, slot_def in zip(base.slots, catalogue[formation].slots, strict=True):
+        match = next((unused[o.index] for o in old_positions
+                      if o.index in unused and o.position is slot_def.position), None)
+        kept = None
+        if match is not None:
+            kept = SlotTactic(new_slot.slot, match.ip_role, match.oop_role, match.instructions)
+            probe = dataclasses.replace(base, slots=tuple(
+                kept if s.slot == new_slot.slot else s for s in base.slots))
+            if any(i.path.startswith(f"slots[{new_slot.slot}]") for i in validate(probe)):
+                kept = None
+            else:
+                del unused[match.slot]
+        if kept is None:
+            changed.append(new_slot.slot)
+        slots.append(kept or new_slot)
+    oop = tactic.oop_formation if tactic.oop_formation in suggest_oop(formation) \
+        else base.oop_formation
+    return (Tactic(formation, oop, tactic.mentality, tactic.team, tuple(slots),
+                   tactic.set_pieces, tactic.style), tuple(changed))
 
 
 def tactic_to_json(tactic: Tactic) -> dict[str, Any]:

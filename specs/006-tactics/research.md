@@ -69,6 +69,10 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
     - the **exploit check**: the maximum gain over neutral is ≤ 0.20 points per match, and no
       tactic is best against every style.
   - The positional engine (007) will replace many levers with real positioning.
+- **The table values are pre-pressure.** The `possession` lever also adds attacking pressure
+  (`context.possession_pressure`, 2% per point of possession shift; see R6). So an option's real
+  effect on shots is its `shot_rate` value *plus* that pressure. Read the `shot_rate` sizes in
+  `effects.toml` with this in mind.
 - **Owner decision (review of 006)**: role levers count per player, with the same 1/11 share as
   player instructions. A role's main effect is player fit (role suitability scales the player's
   contribution); its team levers are small. A test keeps role-only stacking (the best role for a
@@ -118,6 +122,38 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
   - **Report**: the points-per-match matrix, each tactic's advantage over neutral, and
     whether any tactic is best against every style.
   - **Gate**: a dominant tactic, or a gain over 0.20 points per match, fails it.
+- **As built**:
+  - **Grid.** The grid has about 70 tactics:
+    - neutral;
+    - the 6 styles;
+    - the 6 other mentalities;
+    - the two extreme settings of every team instruction. `progress_through` is left out, since
+      it depends on the opponent's flanks.
+  - **Stack.** A last row, the *stack*, combines every option that gained on its own. It is the
+    tactic a player hunting for an exploit would build.
+  - **Seeds and sides.** The mirrored club is a mid-table one (União Operária), so tactics are
+    the only difference. Seeds are common: every tactic meets the same random numbers, so each
+    gain over neutral is a paired comparison.
+  - **Size and design (owner decisions, second review).** It is a two-stage screen with a
+    holdout, so the noise that picks a winner does not also inflate its measured gain:
+    1. The whole grid plays 20 matches per venue per pair on one seed set. This stage ranks the
+       single options and builds the stack.
+    2. A fresh seed set plays 60 matches per venue per pair (120 per pair) for the fixed entries
+       (neutral, styles, mentalities), the 10 best single options from stage 1, and the stack.
+       The report and the gate use these holdout numbers only.
+
+    The milestone sizes are doubled. The PR gate runs the check in about 2–3 minutes. A process
+    pool was tried, but it is blocked in the build sandbox, so the check stays serial.
+  - **Styles in the grid run without their style**, as the user would run them, so they get no
+    AI adaptation during the match. The opponent keeps its style and adapts.
+- **Finding (first run).** Possession bought by a tactic only moved the reported share, so every
+  option that trades shots for the ball lost points. Direct play gained everywhere, and the
+  stack reached +0.23.
+  - **Fix.** Each percentage point of possession shift from the tactic now adds 2% to that side's
+    attacking pressure (`effects.toml` `context.possession_pressure`).
+  - **Second run.** The best tactic gains +0.07, the stack +0.03, and no tactic dominates.
+    Defensive mentalities lose about 0.14 points per match at equal strength, which is
+    realistic.
 
 ## R7. Persistence and reports
 

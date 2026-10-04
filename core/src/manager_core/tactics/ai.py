@@ -143,9 +143,13 @@ def _step(mentality: str, steps: int) -> str:
     return settings[max(0, min(len(settings) - 1, index))]
 
 
-def pre_match(tactic: Tactic, own: float, opponent: float, home: bool) -> Tactic:
+def pre_match(tactic: Tactic, own: float, opponent: float, home: bool,
+              neutral: bool = False) -> Tactic:
     """Adapt to the opponent and the venue: a big underdog away goes at most Cautious and no
-    higher than a mid block; a big favourite at home goes one step more attacking."""
+    higher than a mid block; a big favourite at home goes one step more attacking. Both rules
+    are about the venue, so nothing changes at a neutral ground."""
+    if neutral:
+        return tactic
     rules = styles_table()["adaptation"]
     ratio = own / max(1.0, opponent)
     settings = load_options().mentality.settings

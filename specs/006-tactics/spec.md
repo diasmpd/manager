@@ -282,6 +282,11 @@ score: chasing late, it raises the mentality.
   are allowed (in FM26 a 4-3-3 winger defends as a wide midfielder in a 4-1-4-1). Mapping IP slots
   to OOP-formation positions, and giving the OOP shape its own lever effects, is deferred (see the
   roadmap). It needs an IP-to-OOP slot mapping, which is a design task of its own.
+- **Formation change (owner decision, second review)**: when the selection's formation changes,
+  each slot keeps its roles and player instructions if the new formation has a slot at the
+  same position and the roles are still valid there; the other slots get default roles. The
+  owner is told which positions were reset. A saved tactic that is no longer valid with the
+  current data falls back to the default tactic, with a notice.
 - **Shapes before 007**: IP and OOP shapes, roles and positions act through ratings and rates.
   Real positioning arrives with the positional engine (007) and the formation editor (006b).
 - **The OOP formation catalogue** adds FM's common shapes (4-1-4-1, 4-5-1, 4-4-1-1, 5-4-1,

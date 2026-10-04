@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from manager_core import __version__
+from manager_core.calibration.exploit import ExploitReport, run_exploit
 from manager_core.calibration.metrics import caution_check, league_metrics, mineiro_metrics
 from manager_core.calibration.samples import (
     GATES,
@@ -56,14 +57,19 @@ class CalibrationReport:
     state_matches: int
     results: tuple[MetricResult, ...]
     caution: CautionCheck | None
+    exploit: ExploitReport | None = None  # spec 006: the PR gate's tactical exploit check
 
     @property
     def passed(self) -> bool:
-        return all(r.verdict != "fail" for r in self.results)
+        exploit_ok = self.exploit is None or self.exploit.passed
+        return exploit_ok and all(r.verdict != "fail" for r in self.results)
 
     @property
     def failures(self) -> list[str]:
-        return [r.target.id for r in self.results if r.verdict == "fail"]
+        failed = [r.target.id for r in self.results if r.verdict == "fail"]
+        if self.exploit is not None and not self.exploit.passed:
+            failed.append("tactical_exploit")
+        return failed
 
     def to_json(self) -> str:
         def num(x: float | None) -> float | None:
@@ -83,6 +89,15 @@ class CalibrationReport:
                                       "kind": r.target.kind, "verdict": r.verdict}
                         for r in self.results},
         }
+        if self.exploit is not None:
+            e = self.exploit
+            best, gain = e.best
+            doc["exploit"] = {
+                "matches_per_venue": e.matches_per_venue, "passed": e.passed,
+                "best": best, "best_gain": num(gain), "dominant": e.dominant,
+                "ppm": {tactic: {style: num(v) for style, v in row.items()}
+                        for tactic, row in e.ppm.items()},
+            }
         if self.caution is not None:
             doc["caution"] = {k: num(getattr(self.caution, k)) for k in (
                 "second_yellow_rate_on", "second_yellow_rate_off", "conceded_on",
@@ -119,7 +134,8 @@ def measure(dataset: Dataset, spec: SampleSpec, params: ModelParams, caution: bo
 
 
 def run(dataset: Dataset, gate: str = "pr", params: ModelParams | None = None,
-        baseline: Path | None = None) -> CalibrationReport:
+        baseline: Path | None = None, exploit: bool | None = None) -> CalibrationReport:
+    """`exploit` (default: on for the PR gate) adds the tactical exploit check."""
     if gate not in GATES:
         raise ValueError(f"unknown gate {gate!r}")
     params = params or load_params()
@@ -130,6 +146,9 @@ def run(dataset: Dataset, gate: str = "pr", params: ModelParams | None = None,
         value = values[target.id]
         verdict = "pass" if target.contains(value) else ("fail" if target.primary else "warn")
         results.append(MetricResult(target, value, verdict, before.get(target.id)))
+    if exploit is None:
+        exploit = gate == "pr"
+    check_exploit = run_exploit(dataset, params, gate) if exploit else None
     return CalibrationReport(__version__, platform.python_version(), params.model_version,
                              params.params_hash[:12], gate, n_league, n_mineiro,
-                             tuple(results), check)
+                             tuple(results), check, check_exploit)

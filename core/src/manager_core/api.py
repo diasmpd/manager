@@ -572,6 +572,11 @@ def load_career(saves: Path, name: str) -> Career:
         career = store.load(saves, name)
     except store.SaveNotFoundError:
         raise NotFoundError("save", name) from None
+    if career.tactic is not None and validate_tactic(career, current_tactic(career)):
+        # the reference data changed under the save (a role renamed, say): play the default
+        # tactic and tell the owner rather than silently ignoring the broken parts
+        career.tactic = None
+        career.notices.append(t("tactics.reset_on_load"))
     apply_selection(career)
     return career
 
@@ -751,7 +756,18 @@ def current_tactic(career: Career) -> Tactic:
     formation = _user_formation(career)
     if career.tactic is None:
         return tactics_model.default_tactic(formation)
-    return tactics_model.for_formation(career.tactic, formation)
+    return tactics_model.for_formation(career.tactic, formation)[0]
+
+
+def tactic_changes(career: Career, formation: str) -> list[str] | None:
+    """If the confirmed tactic would be refitted to `formation`, the positions (slot codes) whose
+    roles and instructions reset; None when there is nothing to refit. For the notice shown
+    after a selection with a new formation is confirmed."""
+    if career.tactic is None or career.tactic.ip_formation == formation:
+        return None
+    _, changed = tactics_model.for_formation(career.tactic, formation)
+    positions = formation_positions(formation)
+    return [positions[i] for i in changed]
 
 
 def validate_tactic(career: Career, tactic: Tactic) -> list[TacticIssue]:

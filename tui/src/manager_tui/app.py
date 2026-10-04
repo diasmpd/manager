@@ -272,7 +272,11 @@ class TeamSelectionScreen(ModalScreen[bool]):
             self.warned = True
             self._message(t("ui.select.no_goalkeeper"))
             return
+        changes = api.tactic_changes(self.career, self.selection.formation)
         api.confirm_selection(self.career, self.selection)
+        if changes is not None:
+            self.app.notify(t("ui.tactics.refitted", positions=", ".join(changes)) if changes
+                            else t("ui.tactics.refitted_none"))
         self.dismiss(True)
 
     def action_tactics(self) -> None:
@@ -691,6 +695,9 @@ class ManagerApp(App[None]):
             in_season = today.year == self.career.season.year
             self.query_one(CalendarView).month = today.month if in_season else 1
             self.refresh_views()
+            for notice in self.career.notices:
+                self.notify(notice, severity="warning", timeout=15)
+            self.career.notices.clear()
 
     def on_resize(self) -> None:
         self._check_size()

@@ -5,8 +5,8 @@ the game is built around Brazilian football. The simulation core is in Python an
 client is in Godot.
 
 > Status: Milestone 0 in progress. Specs 001 (core domain model), 002 (competitions and
-> calendar), 003 (quick sim), 004 (career save and game loop) and 005 (playable season in the
-> terminal) are implemented. See [docs/roadmap.md](docs/roadmap.md).
+> calendar), 003 (quick sim), 004 (career save and game loop), 005 (playable season in the
+> terminal) and 006 (tactics on the FM26 model, with AI club styles) are implemented. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Quick start (Windows, PowerShell)
 
@@ -43,7 +43,8 @@ Checks: `cd core; ruff check .; mypy; pytest -q`. Validation guides:
 [001](specs/001-core-domain-model/quickstart.md),
 [002](specs/002-competitions-calendar/quickstart.md),
 [003](specs/003-quick-sim/quickstart.md),
-[004](specs/004-career-save/quickstart.md).
+[004](specs/004-career-save/quickstart.md),
+[006](specs/006-tactics/quickstart.md).
 
 ## Play (terminal)
 
@@ -54,6 +55,8 @@ python -m manager_tui minha                               # play: Space = Contin
 ```
 
 Keys and screens: [specs/005-terminal-season/quickstart.md](specs/005-terminal-season/quickstart.md).
+**X** opens the Tactics screen: formations, mentality, team instructions by phase, roles and
+player instructions, set pieces ([specs/006-tactics/quickstart.md](specs/006-tactics/quickstart.md)).
 
 ## Docs
 - [Product vision](docs/vision.md): what the game is and the decisions behind it

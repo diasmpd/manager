@@ -118,3 +118,32 @@ def test_missing_or_duplicate_team_instruction_is_t001() -> None:
     assert TacticIssue("T001", f"team.{base.team[0][0]}") in validate(missing)
     duplicate = dataclasses.replace(base, team=(*base.team, base.team[0]))
     assert TacticIssue("T001", f"team.{base.team[0][0]}") in validate(duplicate)
+
+
+def test_a_new_formation_keeps_the_slots_that_still_fit() -> None:
+    from manager_core.tactics.catalogue import valid_roles
+    from manager_core.tactics.model import for_formation
+
+    catalogue = load_catalogue()
+    old = default_tactic("4-4-2")
+    slots = []
+    for slot in old.slots:
+        position = catalogue["4-4-2"].slots[slot.slot].position
+        ip = [r.id for r in valid_roles(position, "ip")]
+        slots.append(dataclasses.replace(slot, ip_role=ip[-1]))  # a non-default choice
+    custom = dataclasses.replace(old, slots=tuple(slots), mentality="positive")
+    assert for_formation(custom, "4-4-2") == (custom, ())
+    refitted, changed = for_formation(custom, "4-3-3")
+    assert refitted.ip_formation == "4-3-3" and refitted.mentality == "positive"
+    assert validate(refitted) == []
+    old_positions = [catalogue["4-4-2"].slots[s.slot].position for s in custom.slots]
+    for slot in refitted.slots:
+        position = catalogue["4-3-3"].slots[slot.slot].position
+        if position in old_positions:
+            old_positions.remove(position)
+            assert slot.slot not in changed
+            assert slot.ip_role == [r.id for r in valid_roles(position, "ip")][-1]
+        else:
+            assert slot.slot in changed
+            assert slot == default_tactic("4-3-3").slots[slot.slot]
+    assert changed  # 4-4-2 and 4-3-3 differ in midfield and attack

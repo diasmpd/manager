@@ -104,3 +104,20 @@ async def test_reachable_from_team_selection(saves: Path) -> None:
         await pilot.press("escape")
         await pilot.pause()
         assert isinstance(app.screen, TeamSelectionScreen)
+
+
+async def test_a_new_formation_tells_the_owner_what_reset(saves: Path) -> None:
+    app = ManagerApp(saves, "jogo")
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.press("x", "c")  # confirm the default tactic
+        await pilot.pause()
+        for _ in range(60):
+            if isinstance(app.screen, TeamSelectionScreen):
+                break
+            await pilot.press("space")
+            await pilot.pause()
+        assert isinstance(app.screen, TeamSelectionScreen)
+        await pilot.press("f", "c")  # another formation, confirmed
+        await pilot.pause()
+        messages = [n.message for n in app._notifications]
+        assert any(m.startswith("Nova formação") for m in messages), messages

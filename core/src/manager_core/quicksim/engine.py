@@ -186,8 +186,9 @@ class _Match:
                             for pid in sorted({*s.on.values(), *s.bench})}
             s.refresh(params)
         self.possession_pressure = float(effects_table()["context"]["possession_pressure"])
+        self.home_possession = 50.0
+        self.possession_minutes: list[float] = []
         self.update_levers()
-        self.home_possession = self._possession()
 
     def update_levers(self) -> None:
         """Each side's tactical levers against the other's tactic (spec 006)."""
@@ -197,15 +198,21 @@ class _Match:
             balance = max(-1.0, min(1.0, 3 * (left - right) / max(1.0, left + right)))
             assert me.tactic is not None
             me.lv = tactic_levers(me.tactic, opp.tactic, balance)
+        self.home_possession = self._possession()
 
-    def _possession(self) -> int:
+    def _changed(self, side: _Side) -> None:
+        """After a card, send-off or substitution: new ratings, levers and possession."""
+        side.refresh(self.params)
+        self.update_levers()
+
+    def _possession(self) -> float:
         home, away = self.sides[HOME], self.sides[AWAY]
         c_diff = (home.ratings.control - away.ratings.control) / 5
         home_edge = 0.0 if self.neutral else self.params.home.possession
         slope = self.params.home.possession_slope
         share = 50 + 50 * math.tanh(slope * c_diff + home_edge)
         share += (home.lv.possession - away.lv.possession) / 2
-        return max(20, min(80, round(share)))
+        return max(20.0, min(80.0, share))
 
     def _fatigue(self, side: _Side, base: int) -> float:
         if base <= 60:
@@ -241,6 +248,7 @@ class _Match:
                     self._substitute(s, minute, windows[s][minute])
             if minute.added == 0:
                 self._adapt(minute.base)
+            self.possession_minutes.append(self.home_possession)
             for s in (HOME, AWAY):
                 self._minute(s, minute)
         return stop1, stop2
@@ -449,7 +457,7 @@ class _Match:
             else:
                 me.yellows[fouler] = 1
                 self._event(minute, side, "yellow", fouler)
-                me.refresh(p)
+                self._changed(me)
 
     def _send_off(self, side: str, minute: Minute, pid: str, kind: str) -> None:
         me = self.sides[side]
@@ -459,7 +467,7 @@ class _Match:
         me.sent_off += 1
         if me.sheet.slot_position(slot) is Position.GK:
             self._replace_keeper(side, minute)
-        me.refresh(self.params)
+        self._changed(me)
 
     def _replace_keeper(self, side: str, minute: Minute) -> None:
         """A sent-off keeper: bring on the reserve keeper for an outfield player if possible,
@@ -533,13 +541,14 @@ class _Match:
         if made:
             if not halftime:
                 me.windows += 1
-            me.refresh(p)
+            self._changed(me)
 
     # ---- output ------------------------------------------------------------------------------
 
     def report(self, stoppage: tuple[int, int]) -> MatchReport:
         home, away = self.sides[HOME], self.sides[AWAY]
-        home_poss = self.home_possession
+        minutes = self.possession_minutes
+        home_poss = round(sum(minutes) / len(minutes)) if minutes else round(self.home_possession)
 
         def stats(s: _Side, possession: int) -> SideStats:
             yellows, reds = card_counts(self.events, s.name)
@@ -568,7 +577,7 @@ def _fit_tactic(tactic: Tactic | None, sheet: TeamSheet) -> Tactic:
     """The tactic for this sheet: the default one, or the given one refitted to the sheet's
     formation (spec 006 edge case)."""
     formation = sheet.formation.name
-    return default_tactic(formation) if tactic is None else for_formation(tactic, formation)
+    return default_tactic(formation) if tactic is None else for_formation(tactic, formation)[0]
 
 
 def _summary(tactic: Tactic | None, start_mentality: str) -> TacticSummary | None:

@@ -8,18 +8,18 @@ description: "Task list for 006 Tactics"
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `core/src/manager_core/tactics/` and `reference/tactics/`, and add `reference/tactics/*.toml` to the package data.
+- [x] T001 Create `core/src/manager_core/tactics/` and `reference/tactics/`, and add `reference/tactics/*.toml` to the package data.
 
 ## Phase 2: Foundational
 
-- [ ] T002 [P] Write `reference/tactics/options.toml`, the full FM26 set from the spec:
+- [x] T002 [P] Write `reference/tactics/options.toml`, the full FM26 set from the spec:
   - the 7 mentality levels;
   - the team instructions by phase, each with its settings and default;
   - the 14 player instructions with settings;
   - the set-piece options.
-- [ ] T003 [P] Add the OOP formations to `reference/formations.csv` (4-1-4-1, 4-5-1, 4-4-1-1, 5-4-1, 4-1-2-3, 3-4-3, 5-2-3, 4-3-1-2 and others), plus a table of OOP suggestions per IP formation (3 each). 001's formation tests stay green.
-- [ ] T004 [P] Write `reference/tactics/roles.toml` with all IP and OOP roles of the spec. For each: phase, valid positions, key attributes with weights, locked player instructions, and lever modifiers.
-- [ ] T005 Tests then `tactics/model.py` and `catalogue.py`:
+- [x] T003 [P] Add the OOP formations to `reference/formations.csv` (4-1-4-1, 4-5-1, 4-4-1-1, 5-4-1, 4-1-2-3, 3-4-3, 5-2-3, 4-3-1-2 and others), plus a table of OOP suggestions per IP formation (3 each). 001's formation tests stay green.
+- [x] T004 [P] Write `reference/tactics/roles.toml` with all IP and OOP roles of the spec. For each: phase, valid positions, key attributes with weights, locked player instructions, and lever modifiers.
+- [x] T005 Tests then `tactics/model.py` and `catalogue.py`:
   - `Tactic` and its default;
   - validation with codes T001 (unknown option or setting), T002 (role invalid for slot), T003 (instruction locked by role), T004 (invalid set-piece taker) and T005 (unknown formation);
   - OOP suggestions;

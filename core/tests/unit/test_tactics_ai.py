@@ -8,6 +8,7 @@ import pytest
 from manager_core import api
 from manager_core.domain.formation import load_catalogue
 from manager_core.quicksim.engine import HOME, _Match
+from manager_core.quicksim.report import Minute
 from manager_core.quicksim.provider import QuickSimProvider
 from manager_core.tactics import ai
 from manager_core.tactics.catalogue import load_options
@@ -108,3 +109,26 @@ def test_the_provider_uses_styles_and_the_users_tactic(provider: QuickSimProvide
         provider.set_tactic("ferroviario", None)
     plain = QuickSimProvider(provider.dataset, ai_styles=False)
     assert plain.tactics_for(home, away) == (None, None)
+
+
+def test_no_venue_adaptation_at_a_neutral_ground(provider: QuickSimProvider) -> None:
+    press = ai.style_tactic("high_press", "4-4-2")
+    assert ai.pre_match(press, own=8.0, opponent=14.0, home=False, neutral=True) == press
+    assert ai.pre_match(press, own=14.0, opponent=8.0, home=True, neutral=True) == press
+    strong, weak = provider.team_sheet("serra-negra"), provider.team_sheet("campo-florido")
+    h, a = provider.tactics_for(strong, weak, neutral=True)
+    styles = provider.styles()
+    assert h == ai.style_tactic(styles["serra-negra"], strong.formation.name)
+    assert a == ai.style_tactic(styles["campo-florido"], weak.formation.name)
+
+
+def test_possession_follows_red_cards(provider: QuickSimProvider) -> None:
+    home, away = provider.team_sheet("ferroviario"), provider.team_sheet("mineracao")
+    match = _Match(home, away, provider.dataset.players, provider.params, random.Random(2),
+                   False)
+    before = match.home_possession
+    side = match.sides[HOME]
+    for _ in range(2):
+        pid = next(pid for i, pid in sorted(side.on.items()) if i != 0)
+        match._send_off(HOME, Minute(30), pid, "red")
+    assert match.home_possession < before

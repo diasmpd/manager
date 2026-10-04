@@ -72,7 +72,7 @@ class QuickSimProvider:
             self._styles = ai.assign_styles(profiles)
         return self._styles
 
-    def tactics_for(self, home: TeamSheet, away: TeamSheet
+    def tactics_for(self, home: TeamSheet, away: TeamSheet, neutral: bool = False
                     ) -> tuple[Tactic | None, Tactic | None]:
         """Both sides' tactics: the user's if set, else the AI style adapted to the match."""
         players = self.dataset.players
@@ -86,7 +86,8 @@ class QuickSimProvider:
             else:
                 style = self.styles()[sheet.club_id]
                 tactic = ai.style_tactic(style, sheet.formation.name)
-                out.append(ai.pre_match(tactic, strengths[k], strengths[1 - k], home=k == 0))
+                out.append(ai.pre_match(tactic, strengths[k], strengths[1 - k], home=k == 0,
+                                        neutral=neutral))
         return out[0], out[1]
 
     def override(self, club_id: str, sheet: TeamSheet | None) -> None:
@@ -123,7 +124,7 @@ class QuickSimProvider:
              rng: random.Random) -> Result:
         out = context.unavailable
         home_sheet, away_sheet = self.team_sheet(home.id, out), self.team_sheet(away.id, out)
-        home_tactic, away_tactic = self.tactics_for(home_sheet, away_sheet)
+        home_tactic, away_tactic = self.tactics_for(home_sheet, away_sheet, context.neutral)
         result, _ = simulate_match(home_sheet, away_sheet, self.dataset.players, self.params, rng,
                                    context.neutral, home_tactic, away_tactic)
         return result
