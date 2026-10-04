@@ -274,9 +274,8 @@ class TeamSelectionScreen(ModalScreen[bool]):
             return
         changes = api.tactic_changes(self.career, self.selection.formation)
         api.confirm_selection(self.career, self.selection)
-        if changes is not None:
-            self.app.notify(t("ui.tactics.refitted", positions=", ".join(changes)) if changes
-                            else t("ui.tactics.refitted_none"))
+        if changes:
+            self.app.notify(t("ui.tactics.refitted", positions=", ".join(changes)))
         self.dismiss(True)
 
     def action_tactics(self) -> None:

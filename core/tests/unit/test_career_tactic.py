@@ -107,14 +107,25 @@ def test_tactic_survives_save_load_and_migration(career: Career, tmp_path: Path)
     assert api.current_tactic(old).mentality == "balanced"
 
 
-def test_the_owner_is_told_which_slots_reset(career: Career) -> None:
+def test_the_owner_is_told_only_about_lost_choices(career: Career) -> None:
+    from manager_core.domain.positions import Position
+    from manager_core.tactics.catalogue import valid_roles
+
     api.confirm_selection(career, api.propose_selection(career, "4-4-2"))
-    assert api.tactic_changes(career, "4-3-3") is None  # nothing confirmed yet
+    assert api.tactic_changes(career, "4-3-3") == []  # nothing confirmed yet
     api.confirm_tactic(career, api.current_tactic(career))
-    assert api.tactic_changes(career, "4-4-2") is None  # same formation
+    assert api.tactic_changes(career, "4-4-2") == []  # same formation
+    assert api.tactic_changes(career, "4-3-3") == []  # only defaults: nothing lost
+    # a custom role on every slot: the slots without a place in 4-3-3 lose it
+    tactic = api.current_tactic(career)
+    positions = api.formation_positions("4-4-2")
+    slots = tuple(dataclasses.replace(
+        s, ip_role=[r.id for r in valid_roles(Position(positions[s.slot]), "ip")][-1])
+        for s in tactic.slots)
+    api.confirm_tactic(career, dataclasses.replace(tactic, slots=slots))
     changes = api.tactic_changes(career, "4-3-3")
-    assert changes and set(changes) <= set(api.formation_positions("4-3-3"))
-    assert "GK" not in changes  # the keeper's slot is kept
+    assert changes and set(changes) <= set(positions)
+    assert "GK" not in changes and "DC" not in changes  # both still exist in 4-3-3
 
 
 def test_an_invalid_saved_tactic_falls_back_to_the_default(career: Career,

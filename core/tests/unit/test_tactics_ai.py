@@ -8,8 +8,8 @@ import pytest
 from manager_core import api
 from manager_core.domain.formation import load_catalogue
 from manager_core.quicksim.engine import HOME, _Match
-from manager_core.quicksim.report import Minute
 from manager_core.quicksim.provider import QuickSimProvider
+from manager_core.quicksim.report import Minute
 from manager_core.tactics import ai
 from manager_core.tactics.catalogue import load_options
 from manager_core.tactics.model import default_tactic, validate

@@ -759,15 +759,15 @@ def current_tactic(career: Career) -> Tactic:
     return tactics_model.for_formation(career.tactic, formation)[0]
 
 
-def tactic_changes(career: Career, formation: str) -> list[str] | None:
-    """If the confirmed tactic would be refitted to `formation`, the positions (slot codes) whose
-    roles and instructions reset; None when there is nothing to refit. For the notice shown
-    after a selection with a new formation is confirmed."""
-    if career.tactic is None or career.tactic.ip_formation == formation:
-        return None
-    _, changed = tactics_model.for_formation(career.tactic, formation)
-    positions = formation_positions(formation)
-    return [positions[i] for i in changed]
+def tactic_changes(career: Career, formation: str) -> list[str]:
+    """The positions (slot codes of the current formation) whose own roles or player
+    instructions would be lost if the confirmed tactic were refitted to `formation`. Empty when
+    nothing the owner chose is lost. For the notice after a new formation is confirmed."""
+    if career.tactic is None:
+        return []
+    tactic = current_tactic(career)
+    positions = formation_positions(tactic.ip_formation)
+    return [positions[i] for i in tactics_model.dropped_choices(tactic, formation)]
 
 
 def validate_tactic(career: Career, tactic: Tactic) -> list[TacticIssue]:

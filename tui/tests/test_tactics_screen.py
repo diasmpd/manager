@@ -106,10 +106,13 @@ async def test_reachable_from_team_selection(saves: Path) -> None:
         assert isinstance(app.screen, TeamSelectionScreen)
 
 
-async def test_a_new_formation_tells_the_owner_what_reset(saves: Path) -> None:
+async def test_a_new_formation_tells_the_owner_what_was_lost(saves: Path) -> None:
     app = ManagerApp(saves, "jogo")
     async with app.run_test(size=SIZE) as pilot:
-        await pilot.press("x", "c")  # confirm the default tactic
+        await pilot.press("x", "tab")  # the slots list
+        for _ in range(11):  # a non-default IP role on every slot
+            await pilot.press("enter", "down")
+        await pilot.press("c")
         await pilot.pause()
         for _ in range(60):
             if isinstance(app.screen, TeamSelectionScreen):

@@ -164,6 +164,29 @@ def for_formation(tactic: Tactic, formation: str) -> tuple[Tactic, tuple[int, ..
                    tactic.set_pieces, tactic.style), tuple(changed))
 
 
+def dropped_choices(tactic: Tactic, formation: str) -> tuple[int, ...]:
+    """Old slots whose own choices (non-default roles, or player instructions) are lost when
+    the tactic is refitted to `formation`: the slots that were not carried over and were not
+    just defaults. Only these are worth telling the owner about."""
+    if tactic.ip_formation == formation:
+        return ()
+    refitted, _ = for_formation(tactic, formation)
+    old_formation = load_catalogue()[tactic.ip_formation]
+    defaults = load_roles().defaults
+    kept = list(refitted.slots)
+    dropped = []
+    for slot in tactic.slots:
+        same = next((k for k in kept if (k.ip_role, k.oop_role, k.instructions)
+                     == (slot.ip_role, slot.oop_role, slot.instructions)), None)
+        if same is not None:
+            kept.remove(same)
+            continue
+        position = old_formation.slots[slot.slot].position
+        if (slot.ip_role, slot.oop_role) != tuple(defaults[position]) or slot.instructions:
+            dropped.append(slot.slot)
+    return tuple(dropped)
+
+
 def tactic_to_json(tactic: Tactic) -> dict[str, Any]:
     return {
         "ip_formation": tactic.ip_formation, "oop_formation": tactic.oop_formation,
