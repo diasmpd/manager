@@ -127,7 +127,9 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
     0.120 with it off.
   - **Open (blocks the PR).** The PR gate fails on one metric: 3-goal games at **21.1%**, against
     a band of 21.3–29.3% (target 25.3%), 0.2 points short. Every other primary metric passes, and
-    so does the exploit check (best gain +0.146, no dominant tactic).
+    so does the exploit check (best gain +0.146, no dominant tactic). The milestone gate fails on the
+    same shape: 3-goal games at 20.2% (1.1 points short) and 0-0 games at 9.4% (band 4.5–9.0%,
+    0.4 points over).
   - **Diagnosis.**
     - The simulated totals are close to Poisson. A Poisson distribution's 3-goal share peaks at
       22.4%, so the real 25.3% needs game-state effects that pull totals toward the middle.
