@@ -1,0 +1,61 @@
+# Estilos táticos dos clubes da IA (spec 006 FR-009, research R5).
+#
+# Cada estilo é uma tática completa (mentalidade + instruções de equipe; o resto fica no padrão)
+# e uma lista de traços do elenco que o favorecem. Os traços são pesos sobre o desvio do clube em
+# relação à média do mundo (em desvios-padrão):
+#   attack, control, defence  -> ratings do XI (003)
+#   pace     -> velocidade e aceleração dos jogadores de frente
+#   energy   -> raça, resistência e agressividade dos jogadores de linha
+#   aerial   -> cabeceio, impulsão e força dos atacantes
+#   reputation -> reputação do clube
+# O perfil do treinador (sorteado por clube, determinístico) soma uma preferência de 0 a
+# `manager_weight` a cada estilo, para que clubes parecidos não joguem todos igual.
+
+manager_weight = 0.8
+
+[styles.possession]
+label = "Posse de bola"
+mentality = "positive"
+team = { passing_directness = "shorter", tempo = "lower", attacking_transition = "patient", build_up_strategy = "play_through_press", goal_kicks = "short", patience = "work_ball_into_box", defensive_transition = "counter_press", defensive_line = "higher" }
+traits = { control = 1.0, reputation = 0.5, attack = 0.3 }
+
+[styles.counter]
+label = "Contra-ataque"
+mentality = "balanced"
+team = { passing_directness = "more_direct", tempo = "higher", attacking_transition = "counter", line_of_engagement = "low_block", defensive_line = "deeper", defensive_transition = "regroup", dribbling_progression = "encouraged" }
+traits = { pace = 1.0, control = -0.5, reputation = -0.3 }
+
+[styles.high_press]
+label = "Pressão alta"
+mentality = "positive"
+team = { tempo = "higher", line_of_engagement = "high_press", defensive_line = "much_higher", trigger_press = "more_often", defensive_transition = "counter_press", tackling = "aggressive", prevent_short_gk_distribution = "yes" }
+traits = { energy = 1.0, pace = 0.3, reputation = 0.2 }
+
+[styles.direct]
+label = "Jogo direto"
+mentality = "balanced"
+team = { passing_directness = "much_more_direct", build_up_strategy = "direct", goal_kicks = "long", gk_distribution_target = "forwards", crossing_style = "high", attacking_width = "wider", patience = "less_often" }
+traits = { aerial = 1.0, control = -0.6 }
+
+[styles.low_block]
+label = "Bloco baixo"
+mentality = "cautious"
+team = { line_of_engagement = "low_block", defensive_line = "deeper", trigger_press = "less_often", defensive_transition = "regroup", attacking_transition = "counter", time_wasting = "more_often", cross_engagement_low = "contest" }
+traits = { defence = 0.6, attack = -0.6, reputation = -0.6 }
+
+[styles.balanced]
+label = "Equilibrado"
+mentality = "balanced"
+team = {}
+traits = { bias = 0.4 }
+
+# Adaptação antes do jogo: razão de força (meu / adversário) e mando.
+[adaptation]
+big_underdog = 0.88        # abaixo disto, fora de casa: no máximo Cauteloso e bloco médio
+underdog_cap = "cautious"
+underdog_line = "mid_block"
+big_favourite = 1.12       # acima disto, em casa: um passo a mais na mentalidade
+# Durante o jogo (além do estado de jogo do 003): depois do minuto `late_minute`, quem perde
+# sobe um passo (dois se perde por 2 ou mais); quem ganha por `protect_lead` ou mais desce um.
+late_minute = 70
+protect_lead = 2

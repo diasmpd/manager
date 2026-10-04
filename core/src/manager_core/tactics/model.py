@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Set
 from dataclasses import asdict, dataclass
+from typing import Any
 
 from manager_core.domain.formation import load_catalogue
 from manager_core.tactics.catalogue import IP, OOP, load_options, load_roles, suggest_oop
@@ -123,3 +124,35 @@ def validate(tactic: Tactic, squad: Set[str] | None = None) -> list[TacticIssue]
 def tactic_digest(tactic: Tactic) -> str:
     """A short, stable hash of the full tactic (recorded in match reports)."""
     return hashlib.sha256(repr(asdict(tactic)).encode("utf-8")).hexdigest()[:12]
+
+
+def for_formation(tactic: Tactic, formation: str) -> Tactic:
+    """The tactic for a sheet in `formation`: unchanged if it matches, else the same mentality,
+    instructions and set pieces with the formation's default roles and OOP shape."""
+    if tactic.ip_formation == formation:
+        return tactic
+    base = default_tactic(formation)
+    return Tactic(formation, base.oop_formation, tactic.mentality, tactic.team, base.slots,
+                  tactic.set_pieces, tactic.style)
+
+
+def tactic_to_json(tactic: Tactic) -> dict[str, Any]:
+    return {
+        "ip_formation": tactic.ip_formation, "oop_formation": tactic.oop_formation,
+        "mentality": tactic.mentality, "team": [list(x) for x in tactic.team],
+        "slots": [{"slot": s.slot, "ip_role": s.ip_role, "oop_role": s.oop_role,
+                   "instructions": [list(x) for x in s.instructions]} for s in tactic.slots],
+        "takers": [list(x) for x in tactic.set_pieces.takers],
+        "setups": [list(x) for x in tactic.set_pieces.setups],
+        "style": tactic.style,
+    }
+
+
+def tactic_from_json(d: dict[str, Any]) -> Tactic:
+    return Tactic(
+        d["ip_formation"], d["oop_formation"], d["mentality"],
+        tuple((a, b) for a, b in d["team"]),
+        tuple(SlotTactic(s["slot"], s["ip_role"], s["oop_role"],
+                         tuple((a, b) for a, b in s["instructions"])) for s in d["slots"]),
+        SetPieces(tuple((a, b) for a, b in d["takers"]), tuple((a, b) for a, b in d["setups"])),
+        d["style"])

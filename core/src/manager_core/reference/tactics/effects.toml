@@ -223,6 +223,8 @@ man = { allow_quality = 1.01, allow_rate = 0.99 }
 # Contexto: atacar o lado mais fraco do adversário (por ponto de desequilíbrio 0-1).
 [context]
 flank_bonus = 0.04
+# Cada ponto percentual de posse ganho pela tática aumenta a pressão (ataques) nesta fração.
+possession_pressure = 0.02
 
 # ---- interações (pedra-papel-tesoura): minha opção x opção do adversário -----------------------
 [[interactions]]

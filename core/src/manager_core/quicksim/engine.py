@@ -8,6 +8,7 @@ always iterated in a fixed order, so a match is a pure function of its inputs an
 
 from __future__ import annotations
 
+import dataclasses
 import math
 import random
 from collections.abc import Mapping, Sequence
@@ -41,10 +42,11 @@ from manager_core.quicksim.report import (
 )
 from manager_core.quicksim.squad import TeamSheet
 from manager_core.ratings.suitability import base as position_base
+from manager_core.tactics.ai import in_match_mentality
 from manager_core.tactics.catalogue import load_roles, role_suitability
-from manager_core.tactics.effects import NEUTRAL, Levers
+from manager_core.tactics.effects import NEUTRAL, Levers, effects_table
 from manager_core.tactics.effects import levers as tactic_levers
-from manager_core.tactics.model import Tactic, default_tactic, tactic_digest
+from manager_core.tactics.model import Tactic, default_tactic, for_formation, tactic_digest
 
 SOURCE = "quick_sim"
 
@@ -65,6 +67,7 @@ class _Side:
     ratings: TeamRatings = field(init=False)
     composites: dict[str, dict[str, float]] = field(default_factory=dict)
     tactic: Tactic | None = None
+    start_mentality: str = ""  # the AI's pre-match mentality, for late adaptation
     lv: Levers = NEUTRAL
     _contrib: dict[tuple[str, int], tuple[float, ...]] = field(default_factory=dict)
     goals: int = 0
@@ -176,11 +179,13 @@ class _Match:
         }
         for side, tactic in ((self.sides[HOME], home_tactic), (self.sides[AWAY], away_tactic)):
             side.tactic = _fit_tactic(tactic, side.sheet)
+            side.start_mentality = side.tactic.mentality
         for s in self.sides.values():
             s.played = set(s.on.values())
             s.composites = {pid: player_composites(players[pid])
                             for pid in sorted({*s.on.values(), *s.bench})}
             s.refresh(params)
+        self.possession_pressure = float(effects_table()["context"]["possession_pressure"])
         self.update_levers()
         self.home_possession = self._possession()
 
@@ -234,9 +239,25 @@ class _Match:
             for s in (HOME, AWAY):
                 if minute in windows[s]:
                     self._substitute(s, minute, windows[s][minute])
+            if minute.added == 0:
+                self._adapt(minute.base)
             for s in (HOME, AWAY):
                 self._minute(s, minute)
         return stop1, stop2
+
+    def _adapt(self, base: int) -> None:
+        """AI sides (a tactic with a style) step their mentality late by the score (R5)."""
+        changed = False
+        for side in (HOME, AWAY):
+            me, opp = self.sides[side], self.sides[other(side)]
+            if me.tactic is None or me.tactic.style is None:
+                continue
+            target = in_match_mentality(me.start_mentality, base, me.goals - opp.goals)
+            if target != me.tactic.mentality:
+                me.tactic = dataclasses.replace(me.tactic, mentality=target)
+                changed = True
+        if changed:
+            self.update_levers()
 
     def _plan_subs(self) -> dict[Minute, int]:
         p = self.params.subs
@@ -297,6 +318,8 @@ class _Match:
         pressure = math.exp(edge + control) * home * trend * own_mult
         tired_me, tired_opp = self._fatigue(me, base), self._fatigue(opp, base)
         pressure *= me.lv.shot_rate * opp.lv.allow_rate * opp.lv.error_risk / tired_me
+        # possession bought by the tactic is territory: more of the ball, more attacks
+        pressure *= 1 + self.possession_pressure * (me.lv.possession - opp.lv.possession) / 2
         opp_possession = (100 - self.home_possession) if side == HOME else self.home_possession
         counter = me.lv.counter ** max(0.0, (opp_possession - 50) / 25)
         quality = me.lv.chance_quality * opp.lv.allow_quality * counter * tired_opp
@@ -536,28 +559,25 @@ class _Match:
             away_finishers=tuple(pid for _, pid in away.on_pitch()),
             stoppage=stoppage, model_version=self.params.model_version,
             home_keeper=_id(goalkeeper_on(home)), away_keeper=_id(goalkeeper_on(away)),
-            home_tactic=_summary(home.tactic), away_tactic=_summary(away.tactic),
+            home_tactic=_summary(home.tactic, home.start_mentality),
+            away_tactic=_summary(away.tactic, away.start_mentality),
         )
 
 
 def _fit_tactic(tactic: Tactic | None, sheet: TeamSheet) -> Tactic:
-    """The tactic for this sheet: the default one, or the given one with default roles if its
-    formation no longer matches the sheet (spec 006 edge case)."""
+    """The tactic for this sheet: the default one, or the given one refitted to the sheet's
+    formation (spec 006 edge case)."""
     formation = sheet.formation.name
-    if tactic is None:
-        return default_tactic(formation)
-    if tactic.ip_formation == formation:
-        return tactic
-    base = default_tactic(formation)
-    return Tactic(formation, base.oop_formation, tactic.mentality, tactic.team, base.slots,
-                  tactic.set_pieces, tactic.style)
+    return default_tactic(formation) if tactic is None else for_formation(tactic, formation)
 
 
-def _summary(tactic: Tactic | None) -> TacticSummary | None:
+def _summary(tactic: Tactic | None, start_mentality: str) -> TacticSummary | None:
+    """The tactic the side started with (late mentality steps are not recorded)."""
     if tactic is None:
         return None
-    return TacticSummary(tactic.ip_formation, tactic.oop_formation, tactic.mentality,
-                         tactic.style, tactic_digest(tactic))
+    start = dataclasses.replace(tactic, mentality=start_mentality)
+    return TacticSummary(start.ip_formation, start.oop_formation, start.mentality, start.style,
+                         tactic_digest(start))
 
 
 def _id(player: Player | None) -> str | None:

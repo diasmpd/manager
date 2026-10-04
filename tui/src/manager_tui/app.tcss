@@ -53,3 +53,13 @@ TeamSelectionScreen DataTable {
 #feed {
     height: 1fr;
 }
+
+TacticsScreen #instructions {
+    width: 2fr;
+    height: 1fr;
+}
+
+TacticsScreen Vertical > DataTable {
+    width: 3fr;
+    height: 1fr;
+}

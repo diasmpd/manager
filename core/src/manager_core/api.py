@@ -54,6 +54,14 @@ from manager_core.ratings import lineup
 from manager_core.ratings.ability import best_position, current_ability, is_goalkeeper
 from manager_core.ratings.lineup import Lineup
 from manager_core.ratings.suitability import suitability_milli
+from manager_core.tactics import catalogue as tactics_catalogue
+from manager_core.tactics import model as tactics_model
+from manager_core.tactics.catalogue import Options as TacticOptions
+from manager_core.tactics.catalogue import Role as Role
+from manager_core.tactics.model import SetPieces as SetPieces
+from manager_core.tactics.model import SlotTactic as SlotTactic
+from manager_core.tactics.model import Tactic as Tactic
+from manager_core.tactics.model import TacticIssue as TacticIssue
 
 SquadSort = Literal["position", "ca", "age", "number"]
 DEFAULT_SEED = 20261002
@@ -552,9 +560,11 @@ def new_career(dataset: Dataset, name: str, club_id: str, master_seed: int | Non
                ruleset_id: str = DEFAULT_RULESET, year: int = 2027) -> Career:
     store.check_name(name)
     try:
-        return career_mod.new_career(dataset, name, club_id, master_seed, ruleset_id, year)
+        career = career_mod.new_career(dataset, name, club_id, master_seed, ruleset_id, year)
     except career_mod.UnknownClubError:
         raise NotFoundError("club", club_id) from None
+    apply_selection(career)  # the user's club plays the user's (default) tactic
+    return career
 
 
 def load_career(saves: Path, name: str) -> Career:
@@ -672,6 +682,9 @@ def apply_selection(career: Career) -> None:
     career.live_provider.override(
         career.user_club_id,
         None if sel is None else selection_mod.to_team_sheet(career, sel))
+    # the user's club always plays the user's tactic (the default until one is confirmed),
+    # never an AI style
+    career.live_provider.set_tactic(career.user_club_id, current_tactic(career))
 
 
 def confirm_selection(career: Career, selection: Selection) -> list[SelectionIssue]:
@@ -683,6 +696,76 @@ def confirm_selection(career: Career, selection: Selection) -> list[SelectionIss
     career.selection = selection
     apply_selection(career)
     return issues
+
+
+# ---- tactics (spec 006) ----------------------------------------------------------------------
+
+
+class TacticError(ValueError):
+    def __init__(self, issues: list[TacticIssue]) -> None:
+        super().__init__(", ".join(f"{i.code}:{i.path}" for i in issues))
+        self.issues = issues
+
+
+def tactic_options() -> TacticOptions:
+    """Every tactical option (FM26 set): mentality, team, player instructions and set pieces."""
+    return tactics_catalogue.load_options()
+
+
+def suggest_oop_formations(ip_formation: str) -> tuple[str, ...]:
+    if ip_formation not in load_catalogue():
+        raise NotFoundError("formation", ip_formation)
+    return tactics_catalogue.suggest_oop(ip_formation)
+
+
+def valid_roles(position: str, phase: str) -> list[Role]:
+    """The roles a slot at this position may take in this phase ("ip" or "oop")."""
+    return tactics_catalogue.valid_roles(Position(position), phase)
+
+
+def role_suitability(career: Career, player_id: str, role_id: str) -> float:
+    """How well the player fits the role (1-20, the weighted mean of its key attributes)."""
+    role = tactics_catalogue.load_roles().roles.get(role_id)
+    if role is None:
+        raise NotFoundError("role", role_id)
+    if player_id not in career.world.players:
+        raise NotFoundError("player", player_id)
+    return tactics_catalogue.role_suitability(career.world.players[player_id], role)
+
+
+def _user_formation(career: Career) -> str:
+    if career.selection is not None:
+        return str(career.selection.formation)
+    return career.live_provider.team_sheet(career.user_club_id).formation.name
+
+
+def default_tactic(formation: str) -> Tactic:
+    if formation not in load_catalogue():
+        raise NotFoundError("formation", formation)
+    return tactics_model.default_tactic(formation)
+
+
+def current_tactic(career: Career) -> Tactic:
+    """The user's tactic for the current formation: the confirmed one (refitted if the
+    selection changed formation) or the default one."""
+    formation = _user_formation(career)
+    if career.tactic is None:
+        return tactics_model.default_tactic(formation)
+    return tactics_model.for_formation(career.tactic, formation)
+
+
+def validate_tactic(career: Career, tactic: Tactic) -> list[TacticIssue]:
+    squad = frozenset(p.id for p in career.world.squad(career.user_club_id))
+    return tactics_model.validate(tactic, squad)
+
+
+def confirm_tactic(career: Career, tactic: Tactic) -> None:
+    """Confirm the user's tactic; any issue refuses it."""
+    issues = validate_tactic(career, tactic)
+    if issues:
+        raise TacticError(issues)
+    career.tactic = dataclasses.replace(tactic, style=None)
+    apply_selection(career)
 
 
 # ---- views for clients (spec 005) ------------------------------------------------------------

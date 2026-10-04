@@ -33,8 +33,8 @@ description: "Task list for 006 Tactics"
 
 ## Phase 4: US4 - AI styles (P4, needed before calibration)
 
-- [ ] T009 [P] Write `reference/tactics/styles.toml`: 6 styles as full tactics, squad-trait rules and adaptation rules.
-- [ ] T010 Tests then `tactics/ai.py`:
+- [x] T009 [P] Write `reference/tactics/styles.toml`: 6 styles as full tactics, squad-trait rules and adaptation rules.
+- [x] T010 Tests then `tactics/ai.py`:
   - at least 3 distinct styles among the sample's 12 clubs;
   - assignment is deterministic;
   - a big underdog away is at most Cautious and mid block;
@@ -47,12 +47,12 @@ description: "Task list for 006 Tactics"
 
 ## Phase 6: US1 - The user's tactic (P1)
 
-- [ ] T013 Tests then the career tactic:
+- [x] T013 Tests then the career tactic:
   - a default tactic is derived from the selection's formation;
   - the facade: `tactic_options`, `suggest_oop_formations`, `role_suitability`, `validate_tactic`, `confirm_tactic`;
   - save format v3 with a migration from v2;
   - the user's matches use the tactic.
-- [ ] T014 TUI Tactics screen: formations with OOP suggestions, mentality, instructions by phase, roles per slot with suitability, player instructions with locked ones marked, and set-piece takers. Pilot tests.
+- [x] T014 TUI Tactics screen: formations with OOP suggestions, mentality, instructions by phase, roles per slot with suitability, player instructions with locked ones marked, and set-piece takers. Pilot tests.
 
 ## Phase 7: Polish
 

@@ -3,6 +3,7 @@ views and sends the owner's choices back (Constitution III)."""
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 from typing import Any
 
@@ -166,9 +167,10 @@ class PlayerProfileScreen(ModalScreen[None]):
 class TeamSelectionScreen(ModalScreen[bool]):
     BINDINGS = [
         Binding("enter", "swap", "Trocar"),
-        Binding("tab", "focus_next", "Lista", show=False),
+        Binding("tab", "app.focus_next", "Lista", show=False),
         Binding("f", "formation", "Formação"),
         Binding("a", "assistant", "Assistente"),
+        Binding("x", "tactics", "Tática"),
         Binding("c", "confirm", "Confirmar"),
         Binding("escape", "cancel", "Voltar"),
     ]
@@ -273,6 +275,292 @@ class TeamSelectionScreen(ModalScreen[bool]):
         api.confirm_selection(self.career, self.selection)
         self.dismiss(True)
 
+    def action_tactics(self) -> None:
+        # the tactic follows the formation on screen; confirm the XI first to change it
+        self.app.push_screen(TacticsScreen(self.career))
+
+    def action_cancel(self) -> None:
+        self.dismiss(False)
+
+
+class TacticsScreen(ModalScreen[bool]):
+    """The user's tactic (spec 006 T014): formations, mentality, team instructions by phase,
+    IP and OOP roles per slot with suitability, player instructions (locked ones marked) and
+    set-piece takers. Every rule is the core's; this screen only cycles the options it lists."""
+
+    BINDINGS = [
+        Binding("enter", "cycle", "Mudar", show=False),
+        Binding("o", "cycle_oop", "Função sem a bola"),
+        Binding("tab", "app.focus_next", "Próxima lista", show=False),
+        Binding("r", "reset", "Padrão"),
+        Binding("c", "confirm", "Confirmar"),
+        Binding("escape", "cancel", "Voltar"),
+    ]
+
+    def __init__(self, career: api.Career) -> None:
+        super().__init__()
+        self.career = career
+        self.options = api.tactic_options()
+        self.tactic = api.current_tactic(career)
+        selection = career.selection or api.propose_selection(career, self.tactic.ip_formation)
+        self.players = dict(selection.starters)
+        self.slot = 0
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="dialog"):
+            yield Static(id="tactics-title")
+            with Horizontal():
+                yield DataTable(id="instructions", cursor_type="row")
+                with Vertical():
+                    yield DataTable(id="slots", cursor_type="row")
+                    yield DataTable(id="player-instructions", cursor_type="row")
+                    yield DataTable(id="takers", cursor_type="row")
+            yield Static(id="tactics-message")
+            yield Static(t("ui.tactics.help"))
+
+    def on_mount(self) -> None:
+        self._redraw()
+        self.query_one("#instructions", DataTable).focus()
+
+    # -- drawing -------------------------------------------------------------------------------
+
+    def _names(self) -> dict[str, str]:
+        return {r.player_id: r.name for r in api.squad_view(self.career)}
+
+    @staticmethod
+    def _label(option: Any, setting: str) -> str:
+        return str(option.labels[option.settings.index(setting)])
+
+    def _redraw(self) -> None:
+        tactic = self.tactic
+        mentality = self._label(self.options.mentality, tactic.mentality)
+        club = api.career_status(self.career).club_name
+        self.query_one("#tactics-title", Static).update(f"[b]{t(
+            'ui.tactics.title', club=club, ip=tactic.ip_formation, oop=tactic.oop_formation,
+            mentality=mentality)}[/b]")
+        self._draw_instructions()
+        self._draw_slots()
+        self._draw_player_instructions()
+        self._draw_takers()
+
+    @staticmethod
+    def _reset(table: DataTable[Any], *columns: str) -> int:
+        row = table.cursor_row
+        table.clear(columns=True)
+        table.add_columns(*columns)
+        return row
+
+    @staticmethod
+    def _restore(table: DataTable[Any], row: int) -> None:
+        if table.row_count:
+            table.move_cursor(row=min(row, table.row_count - 1))
+
+    def _draw_instructions(self) -> None:
+        table = self.query_one("#instructions", DataTable)
+        row = self._reset(table, t("ui.tactics.instruction"), t("ui.tactics.setting"))
+        table.add_row(t("ui.tactics.ip_formation"), self.tactic.ip_formation, key="ip_formation")
+        table.add_row(t("ui.tactics.oop_formation"), self.tactic.oop_formation,
+                      key="oop_formation")
+        table.add_row(t("ui.tactics.mentality"),
+                      self._label(self.options.mentality, self.tactic.mentality),
+                      key="mentality")
+        phase = None
+        for option in self.options.team:
+            if option.phase != phase:
+                phase = option.phase
+                table.add_row(f"[b]{t(f'tactics.phase.{phase}')}[/b]", "", key=f"phase:{phase}")
+            table.add_row(f"  {option.label}",
+                          self._label(option, self.tactic.setting(option.id)),
+                          key=f"team:{option.id}")
+        table.add_row(f"[b]{t('tactics.phase.set_pieces')}[/b]", "", key="phase:set_pieces")
+        setups = dict(self.tactic.set_pieces.setups)
+        for option in self.options.setups:
+            table.add_row(f"  {option.label}", self._label(option, setups[option.id]),
+                          key=f"setup:{option.id}")
+        self._restore(table, row)
+
+    def _draw_slots(self) -> None:
+        table = self.query_one("#slots", DataTable)
+        row = self._reset(table, t("ui.tactics.slot"), t("ui.tactics.player"),
+                          t("ui.tactics.ip_role"), t("ui.tactics.oop_role"))
+        names = self._names()
+        positions = api.formation_positions(self.tactic.ip_formation)
+        roles = {r.id: r for p in ("ip", "oop") for pos in set(positions)
+                 for r in api.valid_roles(pos, p)}
+        for slot in self.tactic.slots:
+            pid = self.players.get(slot.slot)
+            cells = []
+            for role_id in (slot.ip_role, slot.oop_role):
+                label = roles[role_id].label if role_id in roles else role_id
+                fit = (f" ({api.role_suitability(self.career, pid, role_id):.0f})"
+                       if pid is not None else "")
+                cells.append(label + fit)
+            table.add_row(positions[slot.slot], names.get(pid or "", "–"), *cells,
+                          key=str(slot.slot))
+        self._restore(table, row)
+
+    def _locked(self) -> dict[str, str]:
+        slot = self.tactic.slots[self.slot]
+        roles = {r.id: r for p in ("ip", "oop")
+                 for r in api.valid_roles(api.formation_positions(
+                     self.tactic.ip_formation)[slot.slot], p)}
+        locked: dict[str, str] = {}
+        for role_id in (slot.ip_role, slot.oop_role):
+            if role_id in roles:
+                locked.update(roles[role_id].locked)
+        return locked
+
+    def _draw_player_instructions(self) -> None:
+        table = self.query_one("#player-instructions", DataTable)
+        row = self._reset(table, t("ui.tactics.player_instruction"), t("ui.tactics.setting"))
+        chosen = dict(self.tactic.slots[self.slot].instructions)
+        locked = self._locked()
+        for option in self.options.player:
+            if option.id in locked:
+                value = f"{self._label(option, locked[option.id])} 🔒 {t('ui.tactics.locked')}"
+            else:
+                value = self._label(option, chosen.get(option.id, option.default))
+            table.add_row(option.label, value, key=option.id)
+        self._restore(table, row)
+
+    def _draw_takers(self) -> None:
+        table = self.query_one("#takers", DataTable)
+        row = self._reset(table, t("ui.tactics.taker"), t("ui.tactics.player"))
+        names = self._names()
+        labels = dict(zip(self.options.takers, self.options.taker_labels, strict=True))
+        for taker, pid in self.tactic.set_pieces.takers:
+            table.add_row(labels[taker], names.get(pid or "", t("ui.tactics.auto")), key=taker)
+        self._restore(table, row)
+
+    # -- editing -------------------------------------------------------------------------------
+
+    def _message(self, text: str) -> None:
+        self.query_one("#tactics-message", Static).update(text)
+
+    @staticmethod
+    def _next(values: Any, current: Any) -> Any:
+        values = list(values)
+        return values[(values.index(current) + 1) % len(values)] if current in values \
+            else values[0]
+
+    def _with_team(self, option_id: str, setting: str) -> api.Tactic:
+        team = dict(self.tactic.team)
+        team[option_id] = setting
+        return dataclasses.replace(self.tactic, team=tuple(sorted(team.items())))
+
+    def _key(self, table: DataTable[Any]) -> str:
+        return str(table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value)
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        if event.data_table.id == "slots" and event.row_key.value is not None:
+            slot = int(event.row_key.value)
+            if slot != self.slot:
+                self.slot = slot
+                self._draw_player_instructions()
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        event.stop()  # Enter on any list changes the highlighted setting
+        self.action_cycle()
+
+    def action_cycle(self) -> None:
+        focused = self.focused
+        if not isinstance(focused, DataTable) or focused.row_count == 0:
+            return
+        self._message("")
+        key = self._key(focused)
+        if focused.id == "instructions":
+            self._cycle_instruction(key)
+        elif focused.id == "slots":
+            self._cycle_role(int(key), "ip")
+        elif focused.id == "player-instructions":
+            self._cycle_player_instruction(key)
+        elif focused.id == "takers":
+            self._cycle_taker(key)
+        self._redraw()
+
+    def _cycle_instruction(self, key: str) -> None:
+        kind, _, option_id = key.partition(":")
+        tactic = self.tactic
+        if kind == "ip_formation":
+            self._message(t("ui.tactics.formation_from_selection"))
+        elif kind == "oop_formation":
+            choices = api.suggest_oop_formations(tactic.ip_formation)
+            self.tactic = dataclasses.replace(
+                tactic, oop_formation=self._next(choices, tactic.oop_formation))
+        elif kind == "mentality":
+            self.tactic = dataclasses.replace(
+                tactic, mentality=self._next(self.options.mentality.settings, tactic.mentality))
+        elif kind == "team":
+            option = next(o for o in self.options.team if o.id == option_id)
+            self.tactic = self._with_team(option_id,
+                                          self._next(option.settings, tactic.setting(option_id)))
+        elif kind == "setup":
+            option = next(o for o in self.options.setups if o.id == option_id)
+            setups = dict(tactic.set_pieces.setups)
+            setups[option_id] = self._next(option.settings, setups[option_id])
+            self.tactic = dataclasses.replace(tactic, set_pieces=dataclasses.replace(
+                tactic.set_pieces, setups=tuple(setups.items())))
+
+    def _cycle_role(self, slot_index: int, phase: str) -> None:
+        position = api.formation_positions(self.tactic.ip_formation)[slot_index]
+        choices = [r.id for r in api.valid_roles(position, phase)]
+        slots = list(self.tactic.slots)
+        slot = slots[slot_index]
+        if phase == "ip":
+            slot = dataclasses.replace(slot, ip_role=self._next(choices, slot.ip_role))
+        else:
+            slot = dataclasses.replace(slot, oop_role=self._next(choices, slot.oop_role))
+        slots[slot_index] = slot
+        self.tactic = dataclasses.replace(self.tactic, slots=tuple(slots))
+        # instructions the new roles lock are no longer the player's to set
+        locked = self._locked()
+        kept = tuple((k, v) for k, v in slot.instructions if k not in locked)
+        slots[slot_index] = dataclasses.replace(slot, instructions=kept)
+        self.tactic = dataclasses.replace(self.tactic, slots=tuple(slots))
+
+    def _cycle_player_instruction(self, option_id: str) -> None:
+        if option_id in self._locked():
+            self._message(t("ui.tactics.locked_refused"))
+            return
+        option = next(o for o in self.options.player if o.id == option_id)
+        slots = list(self.tactic.slots)
+        slot = slots[self.slot]
+        chosen = dict(slot.instructions)
+        setting = self._next(option.settings, chosen.get(option_id, option.default))
+        if setting == option.default:
+            chosen.pop(option_id, None)
+        else:
+            chosen[option_id] = setting
+        slots[self.slot] = dataclasses.replace(slot, instructions=tuple(sorted(chosen.items())))
+        self.tactic = dataclasses.replace(self.tactic, slots=tuple(slots))
+
+    def _cycle_taker(self, taker: str) -> None:
+        order = [None, *[self.players[i] for i in sorted(self.players)]]
+        takers = dict(self.tactic.set_pieces.takers)
+        takers[taker] = self._next(order, takers.get(taker))
+        self.tactic = dataclasses.replace(self.tactic, set_pieces=dataclasses.replace(
+            self.tactic.set_pieces, takers=tuple(takers.items())))
+
+    def action_cycle_oop(self) -> None:
+        focused = self.focused
+        if isinstance(focused, DataTable) and focused.id == "slots" and focused.row_count:
+            self._cycle_role(int(self._key(focused)), "oop")
+            self._redraw()
+
+    def action_reset(self) -> None:
+        self.tactic = api.default_tactic(self.tactic.ip_formation)
+        self._message("")
+        self._redraw()
+
+    def action_confirm(self) -> None:
+        issues = api.validate_tactic(self.career, self.tactic)
+        if issues:
+            self._message(t("ui.tactics.errors",
+                            problems=", ".join(f"{i.code} {i.path}" for i in issues)))
+            return
+        api.confirm_tactic(self.career, self.tactic)
+        self.dismiss(True)
+
     def action_cancel(self) -> None:
         self.dismiss(False)
 
@@ -360,6 +648,7 @@ class ManagerApp(App[None]):
         Binding("t", "show('tables')", t("ui.menu.tables")),
         Binding("c", "show('calendar')", t("ui.menu.calendar")),
         Binding("n", "show('news')", t("ui.menu.news")),
+        Binding("x", "tactics", t("ui.menu.tactics")),
         Binding("space", "continue_game", t("ui.continue")),
         Binding("[", "month(-1)", "", show=False),
         Binding("]", "month(1)", "", show=False),
@@ -384,6 +673,7 @@ class ManagerApp(App[None]):
         with Horizontal(id="main"):
             yield Static("\n".join(f"[b]{key.upper()}[/b] {t(f'ui.menu.{view}')}"
                                    for key, view in zip("hetcn", VIEWS, strict=True))
+                         + f"\n[b]X[/b] {t('ui.menu.tactics')}"
                          + f"\n\n[b]␣[/b] {t('ui.continue')}\n[b]Q[/b] {t('ui.quit')}",
                          id="sidebar")
             with ContentSwitcher(initial="home", id="views"):
@@ -421,6 +711,10 @@ class ManagerApp(App[None]):
     def action_show(self, view: str) -> None:
         if self.career is not None:
             self.query_one(ContentSwitcher).current = view
+
+    def action_tactics(self) -> None:
+        if self.career is not None:
+            self.push_screen(TacticsScreen(self.career))
 
     def action_month(self, step: int) -> None:
         if self.career is None:
