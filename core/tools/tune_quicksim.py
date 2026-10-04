@@ -41,8 +41,8 @@ TUNABLE = [
     ("strength.xg_median", 0.02, 0.3),
     ("home.shot", 1.0, 1.6),
     ("home.away_shot", 0.6, 1.0),
-    ("state.level", 0.0, 0.25),  # stays well below state.chase: trailing pushes harder
-    ("state.settled", 0.0, 0.15),  # higher freezes 2-0s (too many 2-goal games)
+    ("state.level", 0.0, 0.5),  # at most state.chase: trailing pushes at least as hard
+    ("state.settled", 0.0, 0.35),  # pulls blowouts back toward the middle totals
     ("shootout.base", 0.6, 0.85),
     ("strength.attack", 0.02, 1.0),
     ("strength.control", 0.0, 1.0),

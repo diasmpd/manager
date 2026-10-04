@@ -114,6 +114,29 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
 
 - **Calibration**: the harness gives every club its AI style, with adaptation. The PR and
   milestone gates must pass, so the quick sim is refitted with styles on.
+- **Refit with styles on (T011), model 1.2.** It ran as coarse rounds, then a polish on the PR
+  sample, with the tuner bounds on `state.level` (to 0.5) and `state.settled` (to 0.35) widened.
+  - **Main moves:**
+    - `trend_start` 0.94 → 0.80;
+    - `settled` 0.15 → 0.108;
+    - `yellow_per_foul` 0.241 → 0.226;
+    - `direct_red_per_foul` 0.00053 → 0.00096.
+  - **Refit consequence for spec 003's caution behaviour.** `caution.foul` goes 0.347 → 0.138 and
+    `caution.card` 0.2 → 0.082. A booked player now holds back more strongly than in model 1.1:
+    the share of booked players who get a second yellow is 0.057 with the caution on, against
+    0.120 with it off.
+  - **Open (blocks the PR).** The PR gate fails on one metric: 3-goal games at **21.1%**, against
+    a band of 21.3–29.3% (target 25.3%), 0.2 points short. Every other primary metric passes, and
+    so does the exploit check (best gain +0.146, no dominant tactic).
+  - **Diagnosis.**
+    - The simulated totals are close to Poisson. A Poisson distribution's 3-goal share peaks at
+      22.4%, so the real 25.3% needs game-state effects that pull totals toward the middle.
+    - The refit settled on a lower scoring mean than `main`: 2.46 against 2.52 goals per match.
+      `main` gets 22.2% 3-goal games.
+    - Ruled out as causes: styles, tactic levers, role factors and the AI's late steps (each
+      measured off, the 3-goal share stays at 20.4–20.8%).
+    - Also tried, without success: a stronger `level` push, and an earlier `chase` start (this
+      one raises 4+ goal games).
 - **Exploit check**: a new section of the PR gate.
   - **Setup**: a grid of the 6 style tactics plus single-option variations from neutral,
     played against each of the 6 AI styles. Mirrored strength: the same club meets itself,
