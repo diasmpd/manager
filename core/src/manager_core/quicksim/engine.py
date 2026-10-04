@@ -82,6 +82,7 @@ class _Side:
     windows: int = 0
     played: set[str] = field(default_factory=set)
     came_on: set[str] = field(default_factory=set)  # substitutes are not withdrawn again
+    conceded_at: int | None = None  # base minute of the last goal against
 
     def player(self, pid: str) -> Player:
         return self.players[pid]
@@ -291,6 +292,12 @@ class _Match:
             rate_mult *= 1 - p.settled
         if diff == 0 and base >= 60:
             rate_mult *= 1 + p.level * (min(base, 90) - 60) / 30
+        # score-dependent openness (real totals are under-dispersed): a goalless game opens up
+        # as it goes on, and a side that has just conceded responds straight away
+        if me.goals == opp.goals == 0:
+            rate_mult *= 1 + p.goalless * min(base, 90) / 90
+        if me.conceded_at is not None and base - me.conceded_at < p.respond_minutes:
+            rate_mult *= 1 + p.respond
         if diff == 1 and base >= 70:
             rate_mult *= 1 - p.protect
             conceded_quality *= 1 - p.protect / 2
@@ -382,6 +389,7 @@ class _Match:
         if self.rng.random() < min(pen.conversion_max, probability):
             me.on_target += 1
             me.goals += 1
+            opp.conceded_at = minute.base
             self._event(minute, side, "penalty_goal", taker.id, None, pen.xg)
         else:
             if self.rng.random() < pen.miss_saved:  # most misses are saves
@@ -392,6 +400,7 @@ class _Match:
         p = self.params
         me, opp = self.sides[side], self.sides[other(side)]
         me.goals += 1
+        opp.conceded_at = minute.base
         if self.rng.random() < p.rates.own_goal_share:
             weights = [(pid, line_weight(p.weights.own_goal, opp.group_of(i)))
                        for i, pid in opp.on_pitch()]

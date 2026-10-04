@@ -31,6 +31,8 @@ MODEL = ROOT / "src" / "manager_core" / "reference" / "quicksim" / "model.toml"
 # (other seeds, 5x larger) is the out-of-sample check against overfitting.
 FAST = SampleSpec("fast", league_seasons=12, mineiro_seasons=12)
 SECONDARY_WEIGHT = 0.3
+# Anchors: the scoring mean drives the whole goal distribution, so it must not drift.
+ANCHORS = {"goals_per_match": 3.0}
 
 # (dotted parameter path, lower bound, upper bound)
 TUNABLE = [
@@ -43,6 +45,8 @@ TUNABLE = [
     ("home.away_shot", 0.6, 1.0),
     ("state.level", 0.0, 0.5),  # at most state.chase: trailing pushes at least as hard
     ("state.settled", 0.0, 0.35),  # pulls blowouts back toward the middle totals
+    ("state.goalless", 0.0, 0.5),  # a 0-0 opens up (fewer goalless games)
+    ("state.respond", 0.0, 0.5),  # a side that has just conceded responds
     ("shootout.base", 0.6, 0.85),
     ("strength.attack", 0.02, 1.0),
     ("strength.control", 0.0, 1.0),
@@ -68,7 +72,7 @@ def loss(values: dict[str, float]) -> float:
     total = 0.0
     for t in load_targets():
         half = (t.high - t.low) / 2
-        weight = 1.0 if t.primary else SECONDARY_WEIGHT
+        weight = (1.0 if t.primary else SECONDARY_WEIGHT) * ANCHORS.get(t.id, 1.0)
         total += weight * ((values[t.id] - t.target) / half) ** 2
     return total
 

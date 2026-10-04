@@ -125,20 +125,43 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
     `caution.card` 0.2 → 0.082. A booked player now holds back more strongly than in model 1.1:
     the share of booked players who get a second yellow is 0.057 with the caution on, against
     0.120 with it off.
-  - **Open (blocks the PR).** The PR gate fails on one metric: 3-goal games at **21.1%**, against
-    a band of 21.3–29.3% (target 25.3%), 0.2 points short. Every other primary metric passes, and
-    so does the exploit check (best gain +0.146, no dominant tactic). The milestone gate fails on the
-    same shape: 3-goal games at 20.2% (1.1 points short) and 0-0 games at 9.4% (band 4.5–9.0%,
-    0.4 points over).
-  - **Diagnosis.**
-    - The simulated totals are close to Poisson. A Poisson distribution's 3-goal share peaks at
-      22.4%, so the real 25.3% needs game-state effects that pull totals toward the middle.
-    - The refit settled on a lower scoring mean than `main`: 2.46 against 2.52 goals per match.
-      `main` gets 22.2% 3-goal games.
-    - Ruled out as causes: styles, tactic levers, role factors and the AI's late steps (each
-      measured off, the 3-goal share stays at 20.4–20.8%).
-    - Also tried, without success: a stronger `level` push, and an earlier `chase` start (this
-      one raises 4+ goal games).
+  - **First result (blocked).** Against the old targets, the PR gate failed on 3-goal games
+    (21.1%, band floor 21.3%), and the milestone gate on 3-goal games (20.2%) and 0-0 games
+    (9.4%). Styles, tactic levers, role factors and the AI's late steps were each ruled out by
+    switching them off.
+- **Target recount (data correction).** The league targets counted 720 matches, taken before
+  the 2025 season ended. They were recounted from the Wikipedia results matrices of Série A
+  2024 and 2025 (raw wikitext, `|match_XXX_YYY = a–b`; 380 matches per season, 760 in all). A
+  peer session recounted independently and got identical numbers.
+  - **Totals:** 0 goals 7.0%, 1 goal 20.5%, 2 goals 25.8%, 3 goals 24.5% (2024: 27.4%,
+    2025: 21.6%), 4 goals 13.0%, 5 or more 9.2%.
+  - **Mean** 2.484 goals per match.
+  - **Variance/mean 0.887.** Real totals are under-dispersed, while the quick sim is near
+    Poisson.
+  - **Bands:** each one is re-centred on the recount, with the same width.
+- **Score-dependent openness (owner decision).** Two mechanisms were added, to pull totals
+  towards the middle without only adding late goals:
+  - `state.goalless`: in a 0-0 game both sides push harder, growing to the full value by
+    minute 90.
+  - `state.respond` and `respond_minutes`: for 10 minutes after conceding, a side pushes harder.
+
+  Paired-seed tests check the directions: the goalless push means fewer 0-0s, and the response
+  means fewer 1-goal games.
+  - **What the experiments showed.** The goalless push cuts 0-0s strongly, but it moves them to
+    2-goal games, not 3. The response adds spread (more 5+ games), so the tuner shrinks it to
+    0.038.
+  - **Refit settings.** The goals-per-match target is weighted 3× in the loss, so the mean
+    cannot drift low again.
+- **Refit result (model 1.2).**
+  - **PR gate: passes.** 3-goal games 21.4%, 0-0 7.8%, 2.47 goals per match. Exploit check:
+    best gain +0.157 (very attacking), no dominant tactic.
+  - **Milestone gate: one primary miss.** 3-goal games are at **20.48%** against a floor of
+    20.5%, about 3 matches short in 13,200. Everything else passes.
+  - **Warning (secondary).** Goals after minute 75 are 31.6% (PR) and 32.2% (milestone),
+    against a band up to 31%.
+  - **Caution behaviour (spec 003).** `caution.foul` goes 0.347 → 0.069 and `caution.card`
+    0.2 → 0.070, so a booked player holds back much more than in model 1.1: second yellows per
+    booked player are 0.057 with the caution on, against 0.125 with it off.
 - **Exploit check**: a new section of the PR gate.
   - **Setup**: a grid of the 6 style tactics plus single-option variations from neutral,
     played against each of the 6 AI styles. Mirrored strength: the same club meets itself,
