@@ -1,6 +1,7 @@
 """The Tactics screen with Textual's pilot (spec 006 T014)."""
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -108,6 +109,14 @@ async def test_reachable_from_team_selection(saves: Path) -> None:
 
 async def test_a_new_formation_tells_the_owner_what_was_lost(saves: Path) -> None:
     app = ManagerApp(saves, "jogo")
+    seen: list[str] = []  # every notice, even one that expires before the check (slow CI)
+    notify = app.notify
+
+    def record(message: str, *args: Any, **kwargs: Any) -> None:
+        seen.append(str(message))
+        notify(message, *args, **kwargs)
+
+    app.notify = record  # type: ignore[method-assign]
     async with app.run_test(size=SIZE) as pilot:
         await pilot.press("x", "tab")  # the slots list
         for _ in range(11):  # a non-default IP role on every slot
@@ -122,5 +131,4 @@ async def test_a_new_formation_tells_the_owner_what_was_lost(saves: Path) -> Non
         assert isinstance(app.screen, TeamSelectionScreen)
         await pilot.press("f", "c")  # another formation, confirmed
         await pilot.pause()
-        messages = [n.message for n in app._notifications]
-        assert any(m.startswith("Nova formação") for m in messages), messages
+        assert any(m.startswith("Nova formação") for m in seen), seen
