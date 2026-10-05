@@ -196,6 +196,7 @@ class LiveMatch:
         self._next_decision = 0.0
         self._next_targets = 0.0
         self._duel_clock = 0.0
+        self._challenged: dict[str, float] = {}  # player id -> time of his last challenge
         self.dead_until = 0.0  # a dead ball: the clock runs, nobody plays (restarts, goals)
         self.pr = dict(params["restarts"])
         self._steps = 0
@@ -349,6 +350,11 @@ class LiveMatch:
             return "level"
         return "normal"
 
+    def _slack(self, team: Team) -> float:
+        """How much a side two or more goals up has switched off (R5): it defends less tightly.
+        The trailing side keeps its push (its own intent is unchanged)."""
+        return self.p["intents"]["relaxed_drop"] if self._intent(team) == "relaxed" else 0.0
+
     def _line_offset(self, team: Team) -> float:
         s = self.p["shape"]
         setting = team.tactic.setting("defensive_line")
@@ -387,8 +393,11 @@ class LiveMatch:
             onside = self.offside_line(team.side) - 0.5 if in_possession else pitch.LENGTH
             # out of possession the lines close up towards the defensive line (a compact block)
             back = min(
-                (self._slot_uv(team, b, phase)[0] for b in team.on_pitch()
-                 if b.group is not Group.GOALKEEPER),
+                (
+                    self._slot_uv(team, b, phase)[0]
+                    for b in team.on_pitch()
+                    if b.group is not Group.GOALKEEPER
+                ),
                 default=25.0,
             )
             compact = 1.0 if in_possession else s["oop_compact"]
@@ -584,11 +593,13 @@ class LiveMatch:
         opp = self.teams[other(carrier.side)]
         u, v = self.rel(carrier.side, carrier.x, carrier.y)
         intent = self._intent(team)
-        risk = _mentality_index(team.tactic.mentality) - 3
+        risk: float = _mentality_index(team.tactic.mentality) - 3
         if intent == "chase":
             risk += 2
         elif intent == "protect":
             risk -= 2
+        elif intent == "relaxed":  # the game is won: slower, safer attacks
+            risk -= self.p["intents"]["relaxed_risk"]
         options: list[tuple[float, str, object]] = []
         pressure = self._pressure(carrier, opp)
         # shoot
@@ -788,6 +799,7 @@ class LiveMatch:
         attack = (carrier.attr("dribbling") + carrier.attr("agility") + carrier.attr("pace")) / 3
         defend = (nearest.attr("tackling") + nearest.attr("positioning") + nearest.attr("pace")) / 3
         chance = 0.5 + self.pdu["dribble_skill"] * (attack - defend) + self.edge[carrier.side]
+        chance += self._slack(opp) / 2
         return max(0.15, min(0.85, chance))
 
     # ---- actions ---------------------------------------------------------------------------------
@@ -968,12 +980,20 @@ class LiveMatch:
                 continue
             if math.hypot(body.x - carrier.x, body.y - carrier.y) > du["duel_radius"]:
                 continue
+            # a challenge is one event: a defender who just went in needs time to go in again
+            if self.t - self._challenged.get(body.pid, -99.0) < du["challenge_cooldown_s"]:
+                continue
+            self._challenged[body.pid] = self.t
+            # forwards close down to force the pass but rarely commit to a tackle
+            if body.group is Group.FORWARD and self.rng.random() > du["forward_challenge"]:
+                continue
             tackle = (body.attr("tackling") + body.attr("positioning") + body.attr("strength")) / 3
             keep = (
                 carrier.attr("dribbling") + carrier.attr("balance") + carrier.attr("strength")
             ) / 3
             win = du["tackle_base"] + du["dribble_skill"] * (tackle - keep) + self.edge[body.side]
             win *= 0.8 + 0.4 * body.energy
+            win *= 1 - self._slack(opp)
             win *= {"ease_off": 0.85, "standard": 1.0, "aggressive": 1.12}.get(
                 opp.tactic.setting("tackling"), 1.0
             )

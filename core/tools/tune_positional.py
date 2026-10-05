@@ -54,6 +54,7 @@ TUNABLE = [
     ("decide.shoot_bias", 0.1, 3.0),
     ("decide.min_shot_xg", 0.01, 0.2),
     ("decide.decision_every_s", 0.6, 3.0),
+    ("decide.control_delay_s", 0.4, 3.0),
     ("decide.loss_cost", 0.2, 5.0),
     ("decide.lane_pass", 0.6, 0.98),
     ("decide.crowd_pass", 0.6, 0.99),
