@@ -1,10 +1,12 @@
 """The calibration gates (Constitution I; SC-001..SC-003)."""
 
+import dataclasses
 from pathlib import Path
 
 import pytest
 
 from manager_core import api
+from manager_core.calibration.exploit import run_exploit
 from manager_core.calibration.harness import CalibrationReport, run
 from manager_core.domain.dataset import Dataset
 from manager_core.quicksim.params import load_params
@@ -49,16 +51,26 @@ def test_caution_behaviour_reduces_second_yellows(pr_report: CalibrationReport) 
 
 @pytest.mark.slow
 def test_reports_are_byte_identical(world: Dataset, pr_report: CalibrationReport) -> None:
-    assert run(world, "pr").to_json() == pr_report.to_json()
+    # the exploit check is left out: it is deterministic on its own (below) and doubles the cost
+    without = dataclasses.replace(pr_report, exploit=None)
+    assert run(world, "pr", exploit=False).to_json() == without.to_json()
 
 
 @pytest.mark.slow
 def test_a_broken_parameter_fails_the_gate(world: Dataset) -> None:
     params = load_params()
     broken = params.with_values(**{"rates.shot": min(0.9, params.rates.shot * 2)})
-    report = run(world, "pr", params=broken)
+    report = run(world, "pr", params=broken, exploit=False)
     assert not report.passed
     assert "goals_per_match" in report.failures
+
+
+def test_the_exploit_check_is_deterministic(world: Dataset) -> None:
+    """Same seeds, same points per match (on a tiny sample: the full one is in the PR gate)."""
+    params = load_params()
+    first = run_exploit(world, params, matches=(1, 1))
+    assert first.ppm == run_exploit(world, params, matches=(1, 1)).ppm
+    assert first.matches_per_venue == 1 and "stack" in first.ppm
 
 
 @pytest.mark.slow
