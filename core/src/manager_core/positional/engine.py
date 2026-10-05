@@ -36,6 +36,7 @@ from manager_core.quicksim.report import (
     other,
 )
 from manager_core.quicksim.squad import TeamSheet
+from manager_core.tactics.catalogue import load_roles
 from manager_core.tactics.model import Tactic, default_tactic, for_formation, tactic_digest
 
 SOURCE = "positional"
@@ -77,6 +78,7 @@ class Body:
     attrs: dict[str, float] = field(default_factory=dict)
     base_speed: float = 7.5
     stamina: float = 0.5
+    urgent_until: float = -1.0  # sprinting (pressing, a run in behind, a race) until then
 
     def __post_init__(self) -> None:
         if not self.attrs:
@@ -445,6 +447,7 @@ class LiveMatch:
         for body in candidates[:pressers]:
             if math.hypot(body.x - carrier.x, body.y - carrier.y) < self.ps["press_radius"]:
                 body.tx, body.ty = goal_side
+                body.urgent_until = self.t + self.pm["urgent_s"]
 
     def _calibrate(self, body: Body) -> None:
         """Attributes as they act in a match: pulled towards the scale's midpoint by `spread`
@@ -469,7 +472,6 @@ class LiveMatch:
 
     def _move(self, dt: float) -> None:
         e = self.pe
-        jog = self.pm["jog_share"]
         tired = e["tired_speed"]
         owner = self.ball.owner
         for team in self.teams.values():
@@ -479,12 +481,27 @@ class LiveMatch:
                 dx, dy = body.tx - body.x, body.ty - body.y
                 d = math.hypot(dx, dy)
                 top = body.base_speed * (1 - tired * (1 - body.energy))
-                speed = top if d > 4 else top * jog
+                if body.urgent_until > self.t or self._recovering(team, body):
+                    speed = top
+                else:  # moving into shape: the further from his place, the faster
+                    speed = top * min(
+                        self.pm["shape_max"], self.pm["shape_min"] + d * self.pm["shape_per_m"]
+                    )
                 step = d if d < speed * dt else speed * dt
                 if d > 1e-6:
                     body.x += dx / d * step
                     body.y += dy / d * step
                 self._tire(body, step, top, dt, e)
+
+    def _recovering(self, team: Team, body: Body) -> bool:
+        """Out of possession with the ball behind him (nearer his own goal): he sprints back
+        goal-side."""
+        owner = self.ball.owner
+        if owner is None or owner.side == team.side or body.group is Group.GOALKEEPER:
+            return False
+        bu, _ = self.rel(team.side, self.ball.x, self.ball.y)
+        mu, _ = self.rel(team.side, body.x, body.y)
+        return mu > bu + self.pm["recover_gap_m"]
 
     @staticmethod
     def _tire(body: Body, step: float, top: float, dt: float, e: Mapping[str, float]) -> None:
@@ -650,6 +667,37 @@ class LiveMatch:
             )
             value *= d["pass_bias"] * (1 + 0.04 * directness * (mu - u) / 10)
             options.append((value, "pass", (mate, p_ok)))
+        # a ball in behind for a runner (onside when it is played, Law 11): it punishes a
+        # high line and needs space behind it
+        space = pitch.LENGTH - line
+        if space >= d["through_min_space_m"]:
+            run = min(space - 6.0, d["through_run_m"])
+            for mate in team.on_pitch():
+                runs = self._runs(team, mate)
+                if mate is carrier or runs <= 0:
+                    continue
+                mu, mv = self.rel(carrier.side, mate.x, mate.y)
+                if mu > line + 0.3 or line - mu > d["through_start_m"]:
+                    continue  # offside, or too deep to attack the space
+                # into the space between the line and the keeper, short of him
+                keeper = opp.keeper()
+                keeper_u = (
+                    self.rel(carrier.side, keeper.x, keeper.y)[0]
+                    if keeper is not None
+                    else pitch.LENGTH
+                )
+                tu, tv = line + min(run, (keeper_u - line) * d["through_depth"]), mv
+                dist = math.hypot(tu - u, tv - v)
+                if dist < 10 or dist > d["pass_max_m"]:
+                    continue
+                tx, ty = self.absolute(carrier.side, tu, tv)
+                race = self._race(mate, opp, tx, ty)
+                p_ok = self._pass_success(carrier, mate, dist, pressure, opp) * race
+                value = p_ok * self._threat(tu, tv) - (1 - p_ok) * d["loss_cost"] * self._threat(
+                    pitch.LENGTH - tu, pitch.WIDTH - tv
+                )
+                value *= d["through_bias"] * runs
+                options.append((value, "through", (mate, p_ok, tx, ty)))
         # carry into space, or take on the defender in front
         forward = self._threat(min(pitch.LENGTH - 1, u + 8), v)
         blocker = self._blocked(carrier)
@@ -675,6 +723,10 @@ class LiveMatch:
         elif kind == "pass":
             assert isinstance(payload, tuple)
             self._pass(carrier, payload[0], payload[1], opp)
+        elif kind == "through":
+            assert isinstance(payload, tuple)
+            mate, p_ok, tx, ty = payload
+            self._through(carrier, mate, p_ok, tx, ty, opp)
         elif kind == "cross":
             self._cross(carrier, team, opp)
         elif kind == "clear":
@@ -845,6 +897,53 @@ class LiveMatch:
             )
             if _inside(tx, ty) and self.ball.receiver is None:
                 self.ball.landing = "out"
+
+    def _runs(self, team: Team, body: Body) -> float:
+        """How readily a player runs in behind: his position group, then the forward-runs
+        instruction (or his role's lock)."""
+        base = self.pd.get(f"runs_{body.group.value}", 0.0)
+        slot = next((st for st in team.tactic.slots if st.slot == body.slot), None)
+        setting = "standard"
+        if slot is not None:
+            roles = load_roles().roles
+            locked = roles[slot.ip_role].locked if slot.ip_role in roles else {}
+            setting = dict(slot.instructions).get(
+                "forward_runs", locked.get("forward_runs", setting)
+            )
+        return base * {"more": 1.5, "standard": 1.0, "fewer": 0.4}.get(setting, 1.0)
+
+    def _race(self, runner: Body, opp: Team, tx: float, ty: float) -> float:
+        """The chance the runner gets to a ball in behind first: running time against the
+        nearest defender's or the keeper's (the keeper comes off his line)."""
+        # the runner is already moving when it is played; defenders must turn, the keeper
+        # must read it and come off his line
+        mine = math.hypot(tx - runner.x, ty - runner.y) / max(0.1, self._speed(runner))
+        mine -= self.pd["through_head_start_s"]
+        theirs = min(
+            (
+                math.hypot(tx - b.x, ty - b.y) / max(0.1, self._speed(b))
+                + (self.pd["through_keeper_delay_s"] if b.group is Group.GOALKEEPER else 0.0)
+                for b in opp.on_pitch()
+            ),
+            default=99.0,
+        )
+        return 1 / (1 + math.exp(-(theirs - mine) / self.pd["through_temp_s"]))
+
+    def _through(
+        self, carrier: Body, mate: Body, p_ok: float, tx: float, ty: float, opp: Team
+    ) -> None:
+        self.passes += 1
+        speed = self.p["movement"]["ball_speed_long"]
+        if self.rng.random() < p_ok:
+            self.passes_completed += 1
+            self.ball.passer = carrier
+            mate.tx, mate.ty = tx, ty
+            mate.urgent_until = self.t + 3.0
+            self._launch(tx, ty, speed, "receive", mate)
+            return
+        self.ball.passer = None
+        winner = self._nearest(opp, tx, ty)
+        self._launch(tx, ty, speed, "intercept" if winner is not None else "out", winner)
 
     def _shoot(
         self, carrier: Body, u: float, v: float, blockers: int, header: bool = False
