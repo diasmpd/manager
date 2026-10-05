@@ -15,14 +15,16 @@ from manager_core.calibration.targets import (
 def test_bundled_targets_cover_every_metric_with_sources() -> None:
     targets = load_targets()
     assert sorted(t.id for t in targets) == sorted(METRIC_IDS)
-    assert all(t.source and t.retrieved.isoformat() == "2026-10-02" for t in targets)
+    # 2026-10-03: the Série A league targets recounted over 760 matches (spec 006 research R6)
+    assert all(t.source and t.retrieved.isoformat() in ("2026-10-02", "2026-10-03")
+               for t in targets)
 
 
 @pytest.mark.parametrize(("metric", "target", "low", "high"), [
-    ("goals_per_match", 2.50, 2.30, 2.70),
-    ("home_win", 0.486, 0.446, 0.526),
-    ("draw", 0.261, 0.221, 0.301),
-    ("away_win", 0.253, 0.213, 0.293),
+    ("goals_per_match", 2.48, 2.28, 2.68),
+    ("home_win", 0.488, 0.448, 0.528),
+    ("draw", 0.263, 0.223, 0.303),
+    ("away_win", 0.249, 0.209, 0.289),
     ("yellows_per_match", 5.2, 4.5, 6.0),
     ("reds_per_match", 0.25, 0.17, 0.33),
     ("mineiro_draw", 0.29, 0.22, 0.36),

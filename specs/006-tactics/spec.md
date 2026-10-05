@@ -287,6 +287,11 @@ score: chasing late, it raises the mentality.
   same position and the roles are still valid there; the other slots get default roles. The
   owner is told which positions were reset. A saved tactic that is no longer valid with the
   current data falls back to the default tactic, with a notice.
+- **Goal totals and game state (owner decision, T011)**: real goal totals are under-dispersed
+  (fewer 0-0s and more 3-goal games than chance alone gives). The quick sim models two
+  score-dependent behaviours: a goalless game opens up as it goes on, and a match with 3+ goals
+  is managed by both sides. The league targets use the full 760-match count of Série A 2024–25
+  (research R6).
 - **Shapes before 007**: IP and OOP shapes, roles and positions act through ratings and rates.
   Real positioning arrives with the positional engine (007) and the formation editor (006b).
 - **The OOP formation catalogue** adds FM's common shapes (4-1-4-1, 4-5-1, 4-4-1-1, 5-4-1,

@@ -139,29 +139,28 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
   - **Variance/mean 0.887.** Real totals are under-dispersed, while the quick sim is near
     Poisson.
   - **Bands:** each one is re-centred on the recount, with the same width.
-- **Score-dependent openness (owner decision).** Two mechanisms were added, to pull totals
-  towards the middle without only adding late goals:
+- **Score-dependent openness (owner decision).** Real totals are under-dispersed, but the quick
+  sim's rate multipliers make it near Poisson. Two mechanisms pull totals towards the middle,
+  and both depend on the score, not only the minute, so they do not just add late goals:
   - `state.goalless`: in a 0-0 game both sides push harder, growing to the full value by
-    minute 90.
-  - `state.respond` and `respond_minutes`: for 10 minutes after conceding, a side pushes harder.
+    minute 90. The result is fewer 0-0s.
+  - `state.managed`: once a match has 3 or more goals, both sides slow down by this share (game
+    management). This is negative feedback: fewer 5+ games, more matches that stop at three,
+    and no rise in the late-goal share.
 
-  Paired-seed tests check the directions: the goalless push means fewer 0-0s, and the response
-  means fewer 1-goal games.
-  - **What the experiments showed.** The goalless push cuts 0-0s strongly, but it moves them to
-    2-goal games, not 3. The response adds spread (more 5+ games), so the tuner shrinks it to
-    0.038.
+  Paired-seed tests check these directions. In the managed test, results are identical until a
+  third goal.
+  - **Tried and replaced.** First attempt: `state.respond`, where a side that has just conceded
+    pushes harder for 10 minutes. It is positive feedback: it adds spread (more 5+ games, fewer
+    3-goal games), so the tuner shrank it to 0.038. With that design, the milestone gate missed
+    3-goal games by 0.02 points (20.48% against a 20.5% floor). A peer review proposed the
+    damping term instead, and Mateus approved continuing with it ("Go on", 2026-10-04).
+  - **Booked-player caution is pinned.** `caution.foul` = 0.347 and `caution.card` = 0.2 are the
+    model 1.1 values, the owner-decided 003 behaviour. They are no longer tuned: the earlier
+    refits had pushed them to near full ease-off (0.069 and 0.070) to fit goal targets.
   - **Refit settings.** The goals-per-match target is weighted 3× in the loss, so the mean
-    cannot drift low again.
-- **Refit result (model 1.2).**
-  - **PR gate: passes.** 3-goal games 21.4%, 0-0 7.8%, 2.47 goals per match. Exploit check:
-    best gain +0.157 (very attacking), no dominant tactic.
-  - **Milestone gate: one primary miss.** 3-goal games are at **20.48%** against a floor of
-    20.5%, about 3 matches short in 13,200. Everything else passes.
-  - **Warning (secondary).** Goals after minute 75 are 31.6% (PR) and 32.2% (milestone),
-    against a band up to 31%.
-  - **Caution behaviour (spec 003).** `caution.foul` goes 0.347 → 0.069 and `caution.card`
-    0.2 → 0.070, so a booked player holds back much more than in model 1.1: second yellows per
-    booked player are 0.057 with the caution on, against 0.125 with it off.
+    cannot drift low.
+- **Refit result (model 1.2).** RESULT-PENDING
 - **Exploit check**: a new section of the PR gate.
   - **Setup**: a grid of the 6 style tactics plus single-option variations from neutral,
     played against each of the 6 AI styles. Mirrored strength: the same club meets itself,

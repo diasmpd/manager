@@ -37,7 +37,8 @@ ANCHORS = {"goals_per_match": 3.0}
 # (dotted parameter path, lower bound, upper bound)
 TUNABLE = [
     ("rates.shot", 0.03, 0.4),
-    ("time.trend_start", 0.6, 1.0),  # tempo rises within each half (bounds keep start <= end)
+    ("time.trend_start", 0.9, 1.0),  # tempo rises within each half; lower breaks the late
+    # chase (a trailing side must outscore a level one late, Lago et al.; test_quicksim_game_state)
     ("time.trend_end", 1.0, 1.6),
     ("time.second_half", 0.9, 1.4),
     ("strength.xg_median", 0.02, 0.3),
@@ -46,15 +47,13 @@ TUNABLE = [
     ("state.level", 0.0, 0.5),  # at most state.chase: trailing pushes at least as hard
     ("state.settled", 0.0, 0.35),  # pulls blowouts back toward the middle totals
     ("state.goalless", 0.0, 0.5),  # a 0-0 opens up (fewer goalless games)
-    ("state.respond", 0.0, 0.5),  # a side that has just conceded responds
+    ("state.managed", 0.0, 0.5),  # game management once a match has 3+ goals
     ("shootout.base", 0.6, 0.85),
     ("strength.attack", 0.02, 1.0),
     ("strength.control", 0.0, 1.0),
     ("strength.xg_attack", 0.0, 1.0),
     ("rates.yellow_per_foul", 0.05, 0.5),
     ("rates.direct_red_per_foul", 0.0005, 0.02),
-    ("caution.card", 0.05, 0.95),  # full ease-off; player strength scales it
-    ("caution.foul", 0.05, 0.95),
     ("rates.corner_per_shot", 0.05, 0.8),
     ("rates.own_goal_share", 0.005, 0.1),
 ]

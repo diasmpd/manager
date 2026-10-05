@@ -293,7 +293,7 @@ Phase 0 decisions. Each entry: Decision / Rationale / Alternatives considered.
 
 | Metric | Source |
 |---|---|
-| Goals, H/D/A, home/away goals, 0–0, total-goals distribution, favourites | Wikipedia season pages for Série A 2024 and 2025 (results matrices citing the CBF); counts by this project, 720 matches |
+| Goals, H/D/A, home/away goals, 0–0, total-goals distribution, favourites | Wikipedia season pages for Série A 2024 and 2025 (results matrices citing the CBF); counts by this project, 760 matches (recounted in spec 006) |
 | Yellow / red cards | Gazeta Mercantil (903 yellows in 173 matches, Série A 2025); Itatiaia (95 reds, Série A 2025) |
 | Mineiro draws and goals | Wikipedia, 2025 and 2026 Campeonato Mineiro group tables (96 matches) |
 | Shots on target | Grêmio News, Série A 2025 club averages |
