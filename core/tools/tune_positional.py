@@ -199,7 +199,7 @@ def main() -> None:
               f"{show(values)}", flush=True)
         step = 1 + (step - 1) * 0.6
         if args.write:  # after every round: a long fit can be stopped without losing it
-            MODEL.write_text(dump(params), "utf-8")
+            MODEL.write_text(dump(params), "utf-8", newline="\n")
             print(f"written to {MODEL}", flush=True)
 
 
