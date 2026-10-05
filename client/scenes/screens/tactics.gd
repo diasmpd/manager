@@ -275,10 +275,13 @@ func _cycle_role(phase: String) -> void:
 		choices.append(r["id"])
 	if choices.is_empty():
 		return
-	slot[phase + "_role"] = _next(choices, slot[phase + "_role"])
-	var locked := _locked(slot)  # instructions the new roles lock are no longer the player's
-	slot["instructions"] = slot["instructions"].filter(func(pair): return not locked.has(pair[0]))
-	_render()
+	# the core applies the change, including the instructions the new roles lock (one rule
+	# for every client, Constitution III)
+	var changed = await ask("tactic.set_role", {"tactic": _tactic, "slot": slot["slot"],
+			"phase": phase, "role_id": _next(choices, slot[phase + "_role"])})
+	if changed != null:
+		_tactic = changed
+		_render()
 
 
 func _cycle_player_instruction() -> void:

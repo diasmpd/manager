@@ -19,6 +19,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $Version = '4.7.2-stable'
 $Zip = "Godot_v${Version}_win64.exe.zip"
+# Pinned: a tampered release would also publish matching sums, so the expected hash lives here.
+# The release's SHA512-SUMS.txt is only a cross-check (both must agree).
+$PinnedSha512 = '83decd58fdf67b9d657958a1ae6bf1929c20785315a81effe245874cdc57acb709bf868e00778a96984338c1b29dafdb453c6847747694621c6ecf5da2259993'
 $Base = "https://github.com/godotengine/godot/releases/download/$Version"
 
 $Repo = Split-Path -Parent $PSScriptRoot
@@ -42,11 +45,15 @@ if ((Test-Path $Exe) -and ($current -eq $Version)) {
     $line = Get-Content $sumsPath | Where-Object { $_ -match [regex]::Escape($Zip) } | Select-Object -First 1
     Remove-Item $sumsPath -Force
     if (-not $line) { throw "No SHA-512 sum published for $Zip" }
-    $expected = ($line -split '\s+')[0].ToLowerInvariant()
-    $actual = (Get-FileHash -Algorithm SHA512 -Path $zipPath).Hash.ToLowerInvariant()
-    if ($actual -ne $expected) {
+    $published = ($line -split '\s+')[0].ToLowerInvariant()
+    if ($published -ne $PinnedSha512) {
         Remove-Item $zipPath -Force
-        throw "SHA-512 mismatch for $Zip (expected $expected, got $actual)"
+        throw "The release's published SHA-512 for $Zip differs from the pinned one: refusing it"
+    }
+    $actual = (Get-FileHash -Algorithm SHA512 -Path $zipPath).Hash.ToLowerInvariant()
+    if ($actual -ne $PinnedSha512) {
+        Remove-Item $zipPath -Force
+        throw "SHA-512 mismatch for $Zip (expected $PinnedSha512, got $actual)"
     }
     $unpack = Join-Path $GodotDir 'unpack'
     if (Test-Path $unpack) { Remove-Item $unpack -Recurse -Force }
@@ -56,7 +63,7 @@ if ((Test-Path $Exe) -and ($current -eq $Version)) {
     Remove-Item $unpack -Recurse -Force
     Remove-Item $zipPath -Force
     Set-Content -Path $Stamp -Value $Version -Encoding ascii
-    Write-Host "Godot $Version installed in $GodotDir (SHA-512 verified)"
+    Write-Host "Godot $Version installed in $GodotDir (SHA-512 matches the pinned hash)"
 }
 
 if (-not $NoShortcut) {

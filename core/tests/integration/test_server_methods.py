@@ -154,11 +154,28 @@ def test_tactics(playing: Client) -> None:
     values = playing.call("tactic.suitability",
                           pairs=[[squad[0]["player_id"], roles[0]["id"]]])
     assert len(values) == 1 and 1 <= values[0] <= 20
+    oop_roles = playing.call("tactic.roles", position=squad_position(playing, tactic, 1),
+                             phase="oop")
+    wanted = oop_roles[-1]["id"]
+    set_role = playing.call("tactic.set_role", tactic=tactic, slot=1, phase="oop",
+                            role_id=wanted)
+    assert set_role["slots"][1]["oop_role"] == wanted
+    assert playing.call("tactic.validate", tactic=set_role) == []
+    assert playing.error("tactic.set_role", tactic=tactic, slot=1, phase="oop",
+                         role_id="no_such_role")["code"] == "NOT_FOUND"
+    assert playing.error("tactic.set_role", tactic=tactic, slot=99, phase="ip",
+                         role_id=roles[0]["id"])["code"] == "NOT_FOUND"
     changed = dict(tactic, mentality="positive")
     assert playing.call("tactic.confirm", tactic=changed) == {}
     assert playing.call("tactic.current")["mentality"] == "positive"
     error = playing.error("tactic.confirm", tactic=dict(tactic, mentality="kamikaze"))
     assert error["code"] == "TACTIC" and error["data"]["issues"][0]["code"] == "T001"
+
+
+def squad_position(client: Client, tactic: dict[str, Any], slot: int) -> str:
+    formations = client.call("formations.list")
+    positions = next(f["positions"] for f in formations if f["name"] == tactic["ip_formation"])
+    return str(positions[slot])
 
 
 def test_views(playing: Client) -> None:

@@ -207,3 +207,24 @@ def tactic_from_json(d: dict[str, Any]) -> Tactic:
                          tuple((a, b) for a, b in s["instructions"])) for s in d["slots"]),
         SetPieces(tuple((a, b) for a, b in d["takers"]), tuple((a, b) for a, b in d["setups"])),
         d["style"])
+
+
+def with_role(tactic: Tactic, slot: int, phase: str, role_id: str) -> Tactic:
+    """The tactic with a slot's IP or OOP role changed. Player instructions that the slot's roles
+    now lock are dropped: they are no longer the player's to set (spec 006 FR-006). The result
+    is not validated (see `validate`)."""
+    if phase not in (IP, OOP):
+        raise ValueError(phase)
+    roles = load_roles().roles
+    slots = list(tactic.slots)
+    index = next(i for i, s in enumerate(slots) if s.slot == slot)
+    current = slots[index]
+    changed = (dataclasses.replace(current, ip_role=role_id) if phase == IP
+               else dataclasses.replace(current, oop_role=role_id))
+    locked: dict[str, str] = {}
+    for rid in (changed.ip_role, changed.oop_role):
+        if rid in roles:
+            locked.update(roles[rid].locked)
+    kept = tuple((k, v) for k, v in changed.instructions if k not in locked)
+    slots[index] = dataclasses.replace(changed, instructions=kept)
+    return dataclasses.replace(tactic, slots=tuple(slots))

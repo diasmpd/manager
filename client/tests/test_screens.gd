@@ -121,7 +121,32 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	t.check(moved, "on to the next stop")
 
 
+func test_a_role_change_goes_through_the_core(t) -> void:
+	await main.show_screen("tactics")
+	var screen = main.current
+	UI.select_key(screen._slots, 1)
+	var before: String = screen._tactic["slots"][1]["ip_role"]
+	await screen._cycle_role("ip")
+	t.check(screen._tactic["slots"][1]["ip_role"] != before, "the IP role changed")
+
+
+func test_closing_while_busy_waits_for_the_answer(t) -> void:
+	await main.show_screen("home")
+	var finished := [false]
+	var long_request := func():
+		await t.core().request("career.continue", {"to_season_end": true})
+		finished[0] = true
+	long_request.call()
+	await main.close_game()
+	t.check(finished[0], "the running request was answered before the core stopped")
+	t.check(t.core().state == "closed", "the core is closed")
+
+
 func test_change_the_mentality(t) -> void:
+	main._closing = false
+	await t.core().start()
+	var reopened: Dictionary = await t.core().request("career.open", {"name": "janela"})
+	t.check(reopened.has("result"), "career reopened after closing")
 	var before: Dictionary = await t.core().request("tactic.current")
 	await main.show_screen("tactics")
 	var screen = main.current

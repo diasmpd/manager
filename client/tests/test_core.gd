@@ -10,6 +10,24 @@ func test_version_compatibility(t) -> void:
 	t.check(not Core.compatible("garbage"), "nonsense is refused")
 
 
+func test_a_broken_core_fails_at_once_and_says_why(t) -> void:
+	var Core = t.core()
+	var broken := OS.get_user_data_dir().path_join("broken_core")
+	DirAccess.make_dir_recursive_absolute(broken.path_join("manager_core"))
+	var init := FileAccess.open(broken.path_join("manager_core/__init__.py"), FileAccess.WRITE)
+	init.store_string("raise ImportError('core quebrado para o teste')\n")
+	init.close()
+	var previous := OS.get_environment("PYTHONPATH")
+	OS.set_environment("PYTHONPATH", broken)
+	var started := Time.get_ticks_msec()
+	var ok: bool = await Core.start()
+	var elapsed := Time.get_ticks_msec() - started
+	OS.set_environment("PYTHONPATH", previous)
+	t.check(not ok and Core.state == "failed", "a broken core fails")
+	t.check(elapsed < 15000, "fails at once, not after the 30 s hello timeout (%d ms)" % elapsed)
+	t.check(Core.failure.contains("core quebrado para o teste"), "says why: " + Core.failure)
+
+
 func test_start_and_hello(t) -> void:
 	var Core = t.core()
 	var ok: bool = await Core.start()

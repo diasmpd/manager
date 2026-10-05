@@ -37,6 +37,8 @@ var _continue_button: Button
 var _message: Label
 var _ready_to_play := false
 var _navigating_back := false
+var _closing := false
+const CLOSE_WAIT_MS := 60000  # a whole-season continue can take a few seconds
 
 
 func _ready() -> void:
@@ -127,8 +129,22 @@ func _on_core_state(state: String) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		await Core.stop()  # the core saves the open career
+		await close_game()
 		get_tree().quit()
+
+
+## Let a running request finish (so its progress is saved), then shut the core down: it saves
+## the open career. Closing twice does nothing more.
+func close_game() -> void:
+	if _closing:
+		return
+	_closing = true
+	if Core.is_busy():
+		message(Core.t("ui.desktop.saving"))
+		var deadline := Time.get_ticks_msec() + CLOSE_WAIT_MS
+		while Core.is_busy() and Time.get_ticks_msec() < deadline:
+			await get_tree().process_frame
+	await Core.stop()
 
 
 # ---- layout ------------------------------------------------------------------------------------

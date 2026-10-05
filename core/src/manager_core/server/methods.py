@@ -14,7 +14,7 @@ from manager_core.quicksim.params import load_params
 from manager_core.server.encode import selection_from_json, tactic_from_json, to_json
 from manager_core.server.protocol import Handler, Params, RpcError, Session, param
 
-CONTRACT = "1.0"
+CONTRACT = "1.1"  # 1.1: tactic.set_role
 NEWS_ON_HOME = 5
 
 
@@ -218,6 +218,14 @@ def tactic_suitability(s: Session, p: Params) -> Any:
     return [api.role_suitability(career, pid, role) for pid, role in pairs]
 
 
+def tactic_set_role(s: Session, p: Params) -> Any:
+    phase = param(p, "phase", str)
+    if phase not in ("ip", "oop"):
+        raise RpcError("P003", t("server.P003", detail="phase"))
+    return api.set_role(tactic_from_json(param(p, "tactic", dict)), param(p, "slot", int), phase,
+                        param(p, "role_id", str))
+
+
 def tactic_validate(s: Session, p: Params) -> Any:
     return api.validate_tactic(_career(s), tactic_from_json(param(p, "tactic", dict)))
 
@@ -300,6 +308,7 @@ METHODS: dict[str, Handler] = {
     "tactic.options": tactic_options, "tactic.current": tactic_current,
     "tactic.default": tactic_default, "tactic.suggest_oop": tactic_suggest_oop,
     "tactic.roles": tactic_roles, "tactic.suitability": tactic_suitability,
+    "tactic.set_role": tactic_set_role,
     "tactic.validate": tactic_validate, "tactic.confirm": tactic_confirm,
     "view.home": view_home, "view.squad": view_squad, "view.player": view_player,
     "view.table": view_table, "view.groups": view_groups, "view.fixtures": view_fixtures,
