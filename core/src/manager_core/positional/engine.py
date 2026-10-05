@@ -9,6 +9,7 @@ recorded decisions, a match replays exactly (Constitution II).
 
 from __future__ import annotations
 
+import dataclasses
 import math
 import random
 from collections.abc import Mapping, Sequence
@@ -36,7 +37,8 @@ from manager_core.quicksim.report import (
     other,
 )
 from manager_core.quicksim.squad import TeamSheet
-from manager_core.tactics.catalogue import load_roles
+from manager_core.tactics import effects
+from manager_core.tactics.catalogue import load_options, load_roles
 from manager_core.tactics.model import Tactic, default_tactic, for_formation, tactic_digest
 
 SOURCE = "positional"
@@ -55,6 +57,43 @@ def _attributes(player: Player) -> dict[str, float]:
         cached = {name: float(player.attributes.get(name)) for name in ALL_ATTRIBUTES}
         _ATTRS[player.id] = cached
     return cached
+
+
+# 006 options the engine models in space (line, pressing, width, runs, transitions...): the
+# others act through their quick-sim levers on the engine's decisions (FR-007)
+SPATIAL_TEAM = frozenset(
+    {
+        "defensive_line",
+        "line_of_engagement",
+        "attacking_width",
+        "trigger_press",
+        "passing_directness",
+        "shots_from_distance",
+        "tempo",
+        "attacking_transition",
+        "defensive_transition",
+        "build_up_strategy",
+        "patience",
+        "tackling",
+    }
+)
+SPATIAL_PLAYER = frozenset({"forward_runs"})
+
+
+def _lever_tactic(tactic: Tactic) -> Tactic:
+    """The tactic without its spatial settings (and at a balanced mentality), for the levers."""
+    options = load_options()
+    defaults = {o.id: o.default for o in options.team}
+    team = tuple((k, defaults.get(k, v) if k in SPATIAL_TEAM else v) for k, v in tactic.team)
+    slots = tuple(
+        dataclasses.replace(
+            st, instructions=tuple((k, v) for k, v in st.instructions if k not in SPATIAL_PLAYER)
+        )
+        for st in tactic.slots
+    )
+    return dataclasses.replace(
+        tactic, team=team, slots=slots, mentality=options.mentality.default or tactic.mentality
+    )
 
 
 @dataclass
@@ -200,6 +239,9 @@ class LiveMatch:
         self._next_decision = 0.0
         self._possession: str | None = None
         self.pt = self.p["tactics"]
+        # (own tactic, opponent tactic) by identity: tactics are frozen and replaced on change
+        self._lever_cache: dict[tuple[int, int], tuple[Tactic, Tactic, effects.Levers]] = {}
+        self._set_piece_until = -1.0
         self._next_targets = 0.0
         self._duel_clock = 0.0
         self._challenged: dict[str, float] = {}  # player id -> time of his last challenge
@@ -359,6 +401,22 @@ class LiveMatch:
         if diff == 0 and late:
             return "level"
         return "normal"
+
+    def _lev(self, team: Team) -> effects.Levers:
+        """The side's 006 levers from its non-spatial settings, roles and player instructions,
+        against the opponent's tactic (cached per pair of tactics)."""
+        opp = self.teams[other(team.side)]
+        key = (id(team.tactic), id(opp.tactic))
+        hit = self._lever_cache.get(key)
+        if hit is None:
+            lev = effects.levers(_lever_tactic(team.tactic), opp.tactic)
+            hit = (team.tactic, opp.tactic, lev)  # keeps both alive: ids stay unique
+            self._lever_cache[key] = hit
+        return hit[2]
+
+    def _lv(self, value: float) -> float:
+        """A lever multiplier at the engine's strength (one exponent, calibrated)."""
+        return float(value ** self.pt["lever_scale"])
 
     def _tempo(self, team: Team) -> float:
         """The tempo instruction as a factor on the time on the ball."""
@@ -536,25 +594,31 @@ class LiveMatch:
                 if d > 1e-6:
                     body.x += dx / d * step
                     body.y += dy / d * step
-                self._tire(body, step, top, dt, e)
+                self._tire(body, step, top, dt, e, self._lv(self._lev(team).fatigue))
 
     def _recovering(self, team: Team, body: Body) -> bool:
-        """Out of possession with the ball behind him (nearer his own goal): he sprints back
-        goal-side."""
+        """Runs at full speed in the shape: out of possession with the ball behind him (nearer
+        his own goal) he sprints back goal-side; in possession with his place well ahead of
+        him he sprints forward in support."""
         owner = self.ball.owner
-        if owner is None or owner.side == team.side or body.group is Group.GOALKEEPER:
+        if owner is None or body.group is Group.GOALKEEPER:
             return False
-        bu, _ = self.rel(team.side, self.ball.x, self.ball.y)
         mu, _ = self.rel(team.side, body.x, body.y)
-        return mu > bu + self.pm["recover_gap_m"]
+        if owner.side != team.side:
+            bu, _ = self.rel(team.side, self.ball.x, self.ball.y)
+            return mu > bu + self.pm["recover_gap_m"]
+        tu, _ = self.rel(team.side, body.tx, body.ty)
+        return tu > mu + self.pm["support_gap_m"]
 
     @staticmethod
-    def _tire(body: Body, step: float, top: float, dt: float, e: Mapping[str, float]) -> None:
+    def _tire(
+        body: Body, step: float, top: float, dt: float, e: Mapping[str, float], fatigue: float = 1.0
+    ) -> None:
         body.distance += step
         effort = (step / dt) / top if top > 1e-6 else 0.0
         if effort > 0.8:
             body.sprint += step
-        energy = body.energy - e["drain"] * dt * effort * effort / body.stamina
+        energy = body.energy - e["drain"] * fatigue * dt * effort * effort / body.stamina
         if effort < 0.4:
             energy += e["recover"] * dt
         body.energy = 0.0 if energy < 0 else (1.0 if energy > 1 else energy)
@@ -620,7 +684,14 @@ class LiveMatch:
             if d > 1e-6:
                 carrier.x += dx / d * step
                 carrier.y += dy / d * step
-            self._tire(carrier, step, top, dt, self.pe)
+            self._tire(
+                carrier,
+                step,
+                top,
+                dt,
+                self.pe,
+                self._lv(self._lev(self.teams[carrier.side]).fatigue),
+            )
             ball.x, ball.y = carrier.x, carrier.y
             return
         if ball.flight is None:
@@ -684,6 +755,8 @@ class LiveMatch:
         elif style == "patient":
             risk -= self.pt["trans_risk"]
         through_bias = d["through_bias"] * (self.pt["trans_through"] if style == "counter" else 1.0)
+        if transition:
+            through_bias *= self._lv(self._lev(team).counter)
         options: list[tuple[float, str, object]] = []
         pressure = self._pressure(carrier, opp)
         # shoot
@@ -691,7 +764,7 @@ class LiveMatch:
             blockers = self._blockers(carrier, opp)
             value = pitch.xg(u, v, self.px, blockers=blockers)
             far = pitch.LENGTH - u > 20
-            bias = d["shoot_bias"]
+            bias = d["shoot_bias"] * self._lv(self._lev(team).shot_rate * self._lev(opp).allow_rate)
             if far:
                 bias *= {
                     "work_ball_into_box": self.pt["patience_work"],
@@ -926,7 +999,11 @@ class LiveMatch:
         base *= d["lane_pass"] ** lane
         base *= self.pd["crowd_pass"] ** crowd
         base *= 1 + self.edge[carrier.side]
-        return max(0.05, min(0.98, base))
+        lev = self._lev(self.teams[carrier.side])
+        fail = (
+            (1 - base) * self._lv(lev.error_risk) * (1 - self.pt["possession_k"] * lev.possession)
+        )
+        return max(0.05, min(0.98, 1 - fail))
 
     def _beat_chance(self, carrier: Body, opp: Team, nearest: Body | None = None) -> float:
         if nearest is None:
@@ -1070,7 +1147,9 @@ class LiveMatch:
             / on_target
             * (1 + 0.02 * (finishing - 10))
             * (1 - k["save_skill"] * (keeper_skill - 10))
-            * (1 + self.edge[shooter.side]),
+            * (1 + self.edge[shooter.side])
+            * self._lv(self._lev(team).chance_quality * self._lev(opp).allow_quality)
+            * (self._lv(self._lev(team).set_piece) if self.t < self._set_piece_until else 1.0),
         )
         if self.rng.random() < score:
             self._goal(shooter, value)
@@ -1202,6 +1281,7 @@ class LiveMatch:
             foul *= {"ease_off": 0.85, "standard": 1.0, "aggressive": 1.15}.get(
                 opp.tactic.setting("tackling"), 1.0
             )
+            foul *= self._lv(self._lev(opp).foul_rate)
             if body.yellow:
                 foul *= 1 - (1 - self.q.caution.foul) * caution_strength(body.player, self.q)
             r = self.rng.random()
@@ -1230,7 +1310,7 @@ class LiveMatch:
             self._send_off(fouler, "red")
         else:
             ramp = q.fouls.card_minute_start + q.fouls.card_minute_span * min(minute.base, 90) / 90
-            card = q.rates.yellow_per_foul * proneness * ramp
+            card = q.rates.yellow_per_foul * proneness * ramp * self._lv(self._lev(team).card_rate)
             if fouler.yellow:
                 card *= 1 - (1 - q.caution.card) * caution_strength(fouler.player, q)
             if self.rng.random() < card:
@@ -1328,7 +1408,8 @@ class LiveMatch:
             body.x, body.y = self.absolute(
                 side, pitch.LENGTH - 6 - i * 2, pitch.CENTRE_V - 6 + i * 4
             )
-        self._give(taker)
+        self._give(taker, live=False)
+        self._set_piece_until = self.t + self.pr["corner"] + 6.0
         self._stoppage("corner")
         self._cross(taker, team, opp)
 
@@ -1398,7 +1479,7 @@ class LiveMatch:
         team.played.add(incoming)
         team.subs += 1
         if self.ball.owner is out:
-            self._give(body)
+            self._give(body, live=False)
         self._event(team.side, "sub", out.pid, incoming)
         self._stoppage("substitution")
         if self.recording:
