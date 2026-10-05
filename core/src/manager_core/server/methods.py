@@ -1,5 +1,5 @@
-"""The local API's methods (spec 007, contracts/local-api.md). Each one calls the facade and
-returns its result; no game rule lives here (Constitution III)."""
+"""The local API's methods (spec 007; contract: contracts/local-api.md). Each one calls the
+facade and returns its result; no game rule lives here (Constitution III)."""
 
 from __future__ import annotations
 

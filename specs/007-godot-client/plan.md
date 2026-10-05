@@ -13,7 +13,7 @@ terminal UI and the Tactics screen.
 - **Launching**: a setup script fetches portable Godot and creates a desktop shortcut, so the
   game starts with one double-click and no console.
 
-Details: [research.md](research.md). Contract: [contracts/local-api.md](contracts/local-api.md).
+Details: [research.md](research.md). Contract: [contracts/local-api.md](../../contracts/local-api.md).
 
 ## Technical Context
 

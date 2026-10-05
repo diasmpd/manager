@@ -1,7 +1,7 @@
 # Data Model: Godot Desktop Client
 
 The client adds no game data. Every game entity (careers, selections, tactics, matches, tables,
-players) is the core's, and travels as JSON results ([contracts/local-api.md](contracts/local-api.md)).
+players) is the core's, and travels as JSON results ([contracts/local-api.md](../../contracts/local-api.md)).
 This file describes what the client and the server hold themselves.
 
 ## Server session (core side, `manager_core.server`)

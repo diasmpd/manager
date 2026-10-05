@@ -1,7 +1,7 @@
 # Tasks: Godot Desktop Client
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
-[contracts/local-api.md](contracts/local-api.md), [data-model.md](data-model.md)
+[contracts/local-api.md](../../contracts/local-api.md), [data-model.md](data-model.md)
 
 **Tests**: required (Constitution IV). Contract tests come before each server method group, and
 scene tests before each screen.

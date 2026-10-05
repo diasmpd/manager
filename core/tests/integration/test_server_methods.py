@@ -63,8 +63,8 @@ def playing(client: Client) -> Client:
 
 
 def test_every_contract_method_is_served() -> None:
-    contract = (Path(__file__).resolve().parents[3] / "specs" / "007-godot-client" / "contracts"
-                / "local-api.md").read_text("utf-8")
+    contract = (Path(__file__).resolve().parents[3] / "contracts" / "local-api.md").read_text(
+        "utf-8")
     documented = {m for m in METHODS if f"`{m}`" in contract}
     assert documented == set(METHODS)
 

@@ -1,4 +1,4 @@
-"""The local API's wire protocol (spec 007, contracts/local-api.md).
+"""The local API's wire protocol (spec 007; contract: contracts/local-api.md).
 
 One JSON object per line over stdin/stdout: a subset of JSON-RPC 2.0. Requests are handled one at a
 time, in order (determinism). stdout carries messages only; diagnostics go to stderr.

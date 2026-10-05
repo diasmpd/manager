@@ -43,3 +43,15 @@ jobs:
           ruff check .
           mypy
           pytest -q
+      - name: Desktop client (spec 007) - fetch Godot
+        working-directory: .
+        shell: pwsh
+        run: ./tools/setup_client.ps1 -NoShortcut
+      - name: Desktop client (spec 007) - headless tests against the real core
+        working-directory: .
+        shell: pwsh
+        run: |
+          $env:MANAGER_PYTHON = (Get-Command python).Source
+          $env:MANAGER_SAVES = Join-Path $env:RUNNER_TEMP "client-saves"
+          ./tools/godot/godot_console.exe --headless --path client -s res://tests/run_tests.gd
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

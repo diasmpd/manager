@@ -1,4 +1,4 @@
-"""JSON encoding for the local API contract (spec 007, contracts/local-api.md).
+"""JSON encoding for the local API contract (spec 007; contract: contracts/local-api.md).
 
 Results are plain JSON: a dataclass becomes an object with its field names, an enum its value, a
 date an ISO string, and tuples, lists and sets arrays. Decoders turn the client's JSON back into
