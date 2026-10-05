@@ -152,3 +152,29 @@ def test_a_live_match_without_decisions_equals_the_background_one(tmp_path: Path
             api.continue_career(direct, tmp_path / "direct")  # plays it in the background
             break
     assert served.season.results[match_id] == direct.season.results[match_id]
+
+
+def test_records_are_saved_and_survive_load(tmp_path: Path) -> None:
+    """Spec 008 FR-004 / T016: the user's match records are saved (format v4) and read back."""
+    import sqlite3
+
+    from manager_core.career.store import FORMAT_VERSION, path_for
+
+    client = Client(tmp_path)
+    client.call("career.new", name="registro", club_id="mineracao")
+    _to_user_match(client)
+    match_id = client.call("match.start")["match"]["id"]
+    client.call("match.finish")
+    client.call("career.save")
+    career = api.load_career(tmp_path, "registro")
+    record = api.match_record(career, match_id)
+    assert record is not None and len(record.players) == 22
+    assert len(record.samples) > 90 * 60  # 2 Hz over the whole match
+    assert FORMAT_VERSION == 4
+    # a format-3 save (spec 006) has no records table: it migrates and loads without records
+    with sqlite3.connect(path_for(tmp_path, "registro")) as conn:
+        conn.execute("DROP TABLE records")
+        conn.execute("PRAGMA user_version = 3")
+    conn.close()
+    old = api.load_career(tmp_path, "registro")
+    assert api.match_record(old, match_id) is None

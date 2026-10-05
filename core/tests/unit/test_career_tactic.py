@@ -96,7 +96,7 @@ def test_tactic_survives_save_load_and_migration(career: Career, tmp_path: Path)
     api.save_career(career, tmp_path)
     loaded = api.load_career(tmp_path, "tac")
     assert loaded.tactic == career.tactic
-    assert FORMAT_VERSION == 3
+    assert FORMAT_VERSION >= 3  # 3 added the tactic table; later formats migrate through it
     # a format-2 save (005) has no tactic table: it is migrated and loads with the default
     with sqlite3.connect(path_for(tmp_path, "tac")) as conn:
         conn.execute("DROP TABLE tactic")

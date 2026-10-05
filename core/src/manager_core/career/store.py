@@ -36,10 +36,14 @@ from manager_core.i18n import t
 from manager_core.io import reader, writer
 from manager_core.tactics.model import tactic_from_json, tactic_to_json
 
-FORMAT_VERSION = 3  # 2: the user's team selection (spec 005); 3: the user's tactic (006)
+FORMAT_VERSION = 4  # 2: selection (005); 3: the user's tactic (006); 4: positional records (008)
 AUTOSAVE = "autosave"
 SUFFIX = ".sqlite"
 NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
+RECORDS_TABLE = ("CREATE TABLE IF NOT EXISTS records (year INTEGER NOT NULL, "
+                 "match_id TEXT NOT NULL, blob BLOB NOT NULL, PRIMARY KEY (year, match_id))")
+
+
 # Migrations: MIGRATIONS[n] upgrades a file from format n to n + 1.
 def _v1_to_v2(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE TABLE IF NOT EXISTS selection (selection_json TEXT NOT NULL)")
@@ -49,7 +53,12 @@ def _v2_to_v3(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE TABLE IF NOT EXISTS tactic (tactic_json TEXT NOT NULL)")
 
 
-MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {1: _v1_to_v2, 2: _v2_to_v3}
+def _v3_to_v4(conn: sqlite3.Connection) -> None:
+    conn.execute(RECORDS_TABLE)
+
+
+MIGRATIONS: dict[int, Callable[[sqlite3.Connection], None]] = {
+    1: _v1_to_v2, 2: _v2_to_v3, 3: _v3_to_v4}
 
 SCHEMA = """
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -63,6 +72,8 @@ CREATE TABLE results (match_id TEXT PRIMARY KEY, result_json TEXT NOT NULL);
 CREATE TABLE history (year INTEGER PRIMARY KEY, record_json TEXT NOT NULL);
 CREATE TABLE selection (selection_json TEXT NOT NULL);
 CREATE TABLE tactic (tactic_json TEXT NOT NULL);
+CREATE TABLE records (year INTEGER NOT NULL, match_id TEXT NOT NULL, blob BLOB NOT NULL,
+    PRIMARY KEY (year, match_id));
 """
 
 
@@ -159,6 +170,9 @@ def save(career: Career, saves: Path, name: str | None = None,
         if career.tactic is not None:
             conn.execute("INSERT INTO tactic VALUES (?)",
                          (json.dumps(tactic_to_json(career.tactic), sort_keys=True),))
+        career.stash_records()
+        conn.executemany("INSERT INTO records VALUES (?, ?, ?)", [
+            (year, match_id, blob) for (year, match_id), blob in sorted(career.records.items())])
         conn.executemany("INSERT INTO history VALUES (?, ?)", [
             (r.year, json.dumps(record_to_json(r), sort_keys=True)) for r in career.history])
         conn.commit()
@@ -195,6 +209,7 @@ def load(saves: Path, name: str) -> Career:
             "SELECT record_json FROM history ORDER BY year").fetchall()]
         sel_row = conn.execute("SELECT selection_json FROM selection").fetchone()
         tactic_row = conn.execute("SELECT tactic_json FROM tactic").fetchone()
+        record_rows = conn.execute("SELECT year, match_id, blob FROM records").fetchall()
     except sqlite3.Error as exc:
         raise SaveError("V003", detail=str(exc)) from exc
     finally:
@@ -223,9 +238,11 @@ def load(saves: Path, name: str) -> Career:
         tactic = None if tactic_row is None else tactic_from_json(json.loads(tactic_row[0]))
     except (KeyError, TypeError, ValueError) as exc:
         raise SaveError("V003", detail=str(exc)) from exc
-    return Career(c[0], c[1], c[2], current, date.fromisoformat(c[4]), world, ruleset_toml,
-                  season, history, stop_from_json(json.loads(c[5]) if c[5] else None),
-                  selection, tactic)
+    career = Career(c[0], c[1], c[2], current, date.fromisoformat(c[4]), world, ruleset_toml,
+                    season, history, stop_from_json(json.loads(c[5]) if c[5] else None),
+                    selection, tactic)
+    career.records = {(int(y), str(m)): bytes(b) for y, m, b in record_rows}
+    return career
 
 
 def list_saves(saves: Path) -> list[SaveSummary]:

@@ -49,6 +49,7 @@ from manager_core.io.reader import LoadResult
 from manager_core.io.validate import ValidationReport
 from manager_core.io.writer import ExportSummary
 from manager_core.positional.engine import Decision, LiveMatch
+from manager_core.positional.record import PositionalRecord
 from manager_core.quicksim.provider import QuickSimProvider
 from manager_core.quicksim.report import MatchReport, Minute, SideStats
 from manager_core.ratings import lineup
@@ -604,6 +605,7 @@ def continue_career(career: Career, saves: Path, *, to_season_end: bool = False)
         store.save(c, saves, store.AUTOSAVE, allow_autosave=True)
 
     def next_season(c: Career) -> None:
+        c.stash_records()  # the new season gets a new provider
         rollover.next_season(c)
         apply_selection(c)  # the new season has a new provider; keep the user's choice
 
@@ -934,6 +936,17 @@ def finish_live_match(career: Career, session: LiveSession, saves: Path) -> Stop
     provider.precomputed[session.match_id] = match.result()
     provider.records[session.match_id] = match.record()
     return continue_career(career, saves)
+
+
+def match_record(career: Career, match_id: str,
+                 year: int | None = None) -> PositionalRecord | None:
+    """The positional record of one of the user's matches (spec 008 FR-004), or None for a
+    match the positional engine did not play (background matches, older saves)."""
+    year = career.season.year if year is None else year
+    if year == career.season.year and match_id in career.live_provider.records:
+        return career.live_provider.records[match_id]
+    blob = career.records.get((year, match_id))
+    return None if blob is None else PositionalRecord.decode(blob)
 
 
 # ---- views for clients (spec 005) ------------------------------------------------------------

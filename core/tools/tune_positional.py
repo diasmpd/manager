@@ -198,9 +198,9 @@ def main() -> None:
         print(f"round {round_index + 1}: loss {best:.3f} ({time.time() - start:.0f} s)  "
               f"{show(values)}", flush=True)
         step = 1 + (step - 1) * 0.6
-    if args.write:
-        MODEL.write_text(dump(params), "utf-8")
-        print(f"written to {MODEL}")
+        if args.write:  # after every round: a long fit can be stopped without losing it
+            MODEL.write_text(dump(params), "utf-8")
+            print(f"written to {MODEL}", flush=True)
 
 
 if __name__ == "__main__":

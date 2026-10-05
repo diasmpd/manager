@@ -68,6 +68,15 @@ class Career:
     tactic: Any = None  # spec 006: the user's confirmed Tactic (tactics.model)
     notices: list[str] = field(default_factory=list)  # for the owner, shown once; not saved
     positional: bool = True  # spec 008: the user club's matches use the positional engine
+    # spec 008: positional records of the user's matches, encoded, by (year, match id); the
+    # current season's live ones are on the provider until stashed (save, rollover)
+    records: dict[tuple[int, str], bytes] = field(default_factory=dict)
+
+    def stash_records(self) -> None:
+        provider = self.live_provider
+        for match_id, record in provider.records.items():
+            self.records[(self.season.year, match_id)] = record.encode()
+        provider.records.clear()
 
     @property
     def live_provider(self) -> QuickSimProvider:
