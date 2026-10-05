@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from manager_core import api
+from manager_core.calibration import exploit
 from manager_core.calibration.exploit import run_exploit
 from manager_core.calibration.harness import CalibrationReport, run
 from manager_core.domain.dataset import Dataset
@@ -71,6 +72,16 @@ def test_the_exploit_check_is_deterministic(world: Dataset) -> None:
     first = run_exploit(world, params, matches=(1, 1))
     assert first.ppm == run_exploit(world, params, matches=(1, 1)).ppm
     assert first.matches_per_venue == 1 and "stack" in first.ppm
+
+
+def test_the_pooled_exploit_check_equals_the_serial_one(world: Dataset,
+                                                         monkeypatch: pytest.MonkeyPatch) -> None:
+    """Worker processes hold their own state (provider, caches): it must not change a result."""
+    params = load_params()
+    monkeypatch.setattr(exploit, "WORKERS", 1)
+    serial = run_exploit(world, params, matches=(1, 1))
+    monkeypatch.setattr(exploit, "WORKERS", 2)
+    assert run_exploit(world, params, matches=(1, 1)).ppm == serial.ppm
 
 
 @pytest.mark.slow
