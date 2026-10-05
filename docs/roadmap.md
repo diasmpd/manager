@@ -22,8 +22,9 @@ working game.
 | 005 | **Playable Mineiro season from the terminal** (Python TUI): includes basic squad and lineup selection (and formation choice, if 001 models it), so the user makes real decisions before 006. [Spec](../specs/005-terminal-season/spec.md) | ✅ done (PR) |
 | 006 | Tactics on the FM26 model: IP and OOP formations, 7-level mentality, the full set of team instructions by phase, IP and OOP roles (no duties) with suitability, player instructions, set pieces; effects through the quick sim with an exploit check; AI clubs with styles that adapt. [Spec](../specs/006-tactics/spec.md) | ✅ done (PR) |
 | 006b | Formation editor and free player placement (owner request), with the OOP shape mapping deferred from 006. Built with the positional engine 008 | — |
-| 007 | **Local API contract + Godot desktop client** (moved ahead of the positional engine on 2026-10-04: the owner wants to play in Godot this week). Same game as the terminal UI plus tactics, careers screen; text match view. [Spec](../specs/007-godot-client/spec.md) | ⏳ in progress |
-| 008 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003 | — |
+| 007 | **Local API contract + Godot desktop client** (moved ahead of the positional engine on 2026-10-04: the owner wants to play in Godot this week). Same game as the terminal UI plus tactics, careers screen; text match view. [Spec](../specs/007-godot-client/spec.md) | ✅ done (PR) |
+| 008 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003. Owner decisions 2026-10-05: text view plus a positional record, pause at any time (FM-style), and the quick-sim 3-goal fix inside 008. [Spec](../specs/008-positional-engine/spec.md) | ⏳ in progress |
+| 008b | 2D match view in the Godot window, replaying 008's positional record (owner decision, 2026-10-05) | — |
 | 009 | Match report: stats, xG, FM-style player ratings, PT-BR commentary | — |
 | 010 | Assistant: suggestions and optional auto-subs | — |
 | 011 | Real-data import for MG clubs (into `manager-data`), including an attribute-synthesis model. Also covers (moved from 001): tolerant reading of files re-saved by pt-BR Excel (format v1.1) and the manual-edit audit trail | — |
