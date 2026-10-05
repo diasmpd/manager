@@ -11,7 +11,7 @@ from manager_core.career.career import Career
 from manager_core.domain.dataset import Dataset
 from manager_core.i18n import strings, t
 from manager_core.quicksim.params import load_params
-from manager_core.server.encode import selection_from_json, tactic_from_json
+from manager_core.server.encode import selection_from_json, tactic_from_json, to_json
 from manager_core.server.protocol import Handler, Params, RpcError, Session, param
 
 CONTRACT = "1.0"
@@ -78,7 +78,7 @@ def map_errors(exc: Exception) -> RpcError | None:
 def hello(s: Session, p: Params) -> Any:
     param(p, "client", str)
     return {"contract": CONTRACT, "core_version": __version__,
-            "model_version": load_params().model_version, "strings": strings("ui.")}
+            "model_version": load_params().model_version, "strings": strings("")}
 
 
 def shutdown(s: Session, p: Params) -> Any:
@@ -243,7 +243,9 @@ def view_player(s: Session, p: Params) -> Any:
 
 
 def view_table(s: Session, p: Params) -> Any:
-    return api.season_table(_career(s).season, param(p, "group", str, None))
+    season = _career(s).season
+    rows = api.season_table(season, param(p, "group", str, None))
+    return [{**to_json(r), "club_name": season.club_name(r.club_id)} for r in rows]
 
 
 def view_groups(s: Session, p: Params) -> Any:
@@ -255,7 +257,19 @@ def view_fixtures(s: Session, p: Params) -> Any:
 
 
 def view_calendar(s: Session, p: Params) -> Any:
-    return api.season_calendar(_career(s).season, param(p, "month", int))
+    career = _career(s)
+    season = career.season
+    club = career.user_club_id
+    days = []
+    for day in api.season_calendar(season, param(p, "month", int)):
+        mine = [mid for mid in day.match_ids
+                if club in (season.matches[mid].home_id, season.matches[mid].away_id)]
+        days.append({"day": day.day,
+                     "user_match": api.match_view(season, mine[0]) if mine else None,
+                     "match_count": len(day.match_ids),
+                     "windows": list(dict.fromkeys(w.name for w in day.windows)),
+                     "events": day.events})
+    return days
 
 
 def view_news(s: Session, p: Params) -> Any:

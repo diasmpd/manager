@@ -57,7 +57,7 @@ The client refuses to run on a different major version (spec FR-005).
 
 | Method | Params | → | Notes |
 |---|---|---|---|
-| `hello` | `client: str` | `{contract, core_version, model_version, strings}` | `strings`: every `ui.*` i18n string (R4) |
+| `hello` | `client: str` | `{contract, core_version, model_version, strings}` | `strings`: the whole PT-BR i18n catalogue (R4): `ui.*`, months, weekdays, table headers, attributes… |
 | `shutdown` | — | `{saved: bool}` | saves the open career, then the core exits |
 
 ### Careers
@@ -103,10 +103,10 @@ The client refuses to run on a different major version (spec FR-005).
 | `view.home` | — | `{status, last_match?: MatchView, news: [NewsItem] (latest 5)}` | new thin helper (R8) |
 | `view.squad` | — | `[SquadRow]` | `squad_view` |
 | `view.player` | `player_id` | `PlayerProfile` | `player_profile` |
-| `view.table` | `group?: str` | `[TableRow]` | `season_table` |
+| `view.table` | `group?: str` | `[TableRow + club_name]` | `season_table` |
 | `view.groups` | — | `[{label, clubs}]` | `season_groups` |
 | `view.fixtures` | `club_id?: str` | `[MatchView]` | `season_fixtures` |
-| `view.calendar` | `month: int` | `[CalendarDay]` | `season_calendar` |
+| `view.calendar` | `month: int` | `[{day, user_match?: MatchView, match_count, windows: [str], events: [SeasonEvent]}]` | `season_calendar` |
 | `view.news` | — | `[NewsItem]` | `career_news` |
 | `view.match` | `match_id` | `{match: MatchView, feed: [FeedLine], stats: [[label, home, away]]}` | `match_view`, `match_feed`, stat rows (R8) |
 | `view.last_user_match` | — | `{match_id?: str}` | `last_user_match` |

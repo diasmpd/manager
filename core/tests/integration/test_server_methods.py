@@ -74,7 +74,7 @@ def test_hello(client: Client) -> None:
     assert hello["contract"] == CONTRACT_VERSION
     assert hello["core_version"] and hello["model_version"]
     assert hello["strings"]["ui.continue"] == "Continuar"
-    assert all(k.startswith("ui.") for k in hello["strings"])
+    assert hello["strings"]["month.2"] and hello["strings"]["table.pts"]
 
 
 def test_no_career_yet(client: Client) -> None:
@@ -169,9 +169,14 @@ def test_views(playing: Client) -> None:
     groups = playing.call("view.groups")
     assert groups
     assert playing.call("view.table", group=groups[0]["label"])
-    assert len(playing.call("view.table")) == 12
+    overall = playing.call("view.table")
+    assert len(overall) == 12 and all(r["club_name"] for r in overall)
     assert playing.call("view.fixtures", club_id="alvorada")
-    assert len(playing.call("view.calendar", month=2)) == 28
+    february = playing.call("view.calendar", month=2)
+    assert len(february) == 28
+    assert any(d["user_match"] for d in february)
+    assert all({"day", "user_match", "match_count", "windows", "events"} <= set(d)
+               for d in february)
     assert playing.error("view.calendar", month=13)["code"] == "NOT_FOUND"
     assert isinstance(playing.call("view.news"), list)
     first = playing.call("view.fixtures", club_id="alvorada")[0]

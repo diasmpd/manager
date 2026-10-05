@@ -25,3 +25,6 @@ Thumbs.db
 .mypy_cache/
 .ruff_cache/
 .hypothesis/
+
+# Portable Godot fetched by tools/setup_client.ps1 (spec 007)
+/tools/godot/

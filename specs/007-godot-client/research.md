@@ -61,9 +61,10 @@ recommendation, so each decision below is a recommendation recorded for his revi
 
 ## R4. Text and localisation
 
-- **Decision**: the client's own labels (menu, buttons, headings) come from the core's i18n
-  table. `hello` returns every `ui.*` string, so PT-BR text has one source, shared with the
-  terminal UI. Texts the core builds (news, feed lines, error messages) arrive already
+- **Decision**: the client's own labels (menu, buttons, headings, months, table headers,
+  attribute names) come from the core's i18n table. `hello` returns the whole PT-BR catalogue,
+  which is small, so PT-BR text has one source, shared with the terminal UI. A handful of
+  messages the client may need before `hello` (the core failing to start) live in the client. Texts the core builds (news, feed lines, error messages) arrive already
   localised.
 - **Why**: FR-009 with no duplicated string tables, and the constitution's localisation layer
   stays in one place.

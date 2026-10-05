@@ -90,6 +90,7 @@ def test_one_answer_per_request_in_order() -> None:
     ('{"id":1,"method":"echo","params":{}}', "P003"),
     ('{"id":1,"method":"echo","params":{"x":"5"}}', "P003"),
     ('{"id":1,"method":"echo","params":{"x":true}}', "P003"),
+    ('{"id":1,"method":"echo","params":{"x":5.5}}', "P003"),
     ('{"id":1,"method":"boom"}', "P005"),
 ])
 def test_errors_are_answers_and_the_server_keeps_going(line: str, code: str) -> None:
@@ -133,3 +134,8 @@ def test_messages_are_one_line_utf8() -> None:
     handle_line(Session(out), {"text": text}, '{"id":1,"method":"text"}')
     assert out.getvalue().count("\n") == 1
     assert "Escalação" in out.getvalue()
+
+
+def test_whole_floats_count_as_ints() -> None:
+    answers = _run({"echo": _echo}, '{"id":1,"method":"echo","params":{"x":5.0}}')
+    assert answers[-1]["result"] == {"got": 5}

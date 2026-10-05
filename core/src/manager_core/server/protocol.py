@@ -116,6 +116,8 @@ def param(params: Params, name: str, kind: type | tuple[type, ...], default: Any
             raise RpcError("P003", _error_message("P003", detail=name))
         return default
     value = params[name]
+    if kind is int and isinstance(value, float) and value.is_integer():
+        value = int(value)  # clients whose JSON has one number type (Godot) send 10 as 10.0
     if not isinstance(value, kind) or (isinstance(value, bool) and kind is int):
         raise RpcError("P003", _error_message("P003", detail=name))
     return value
