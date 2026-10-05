@@ -13,9 +13,11 @@ passing volume and completion (secondary, typical top-flight values, to be sourc
 from __future__ import annotations
 
 import argparse
+import os
 import random
 import statistics
 import time
+from concurrent.futures import ProcessPoolExecutor
 from itertools import permutations
 from pathlib import Path
 
@@ -23,6 +25,7 @@ from manager_core import api
 from manager_core.positional.engine import LiveMatch
 from manager_core.positional.params import PositionalParams, load_params
 from manager_core.quicksim.provider import QuickSimProvider
+from manager_core.quicksim.report import MatchReport
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "src" / "manager_core" / "reference" / "positional" / "model.toml"
@@ -69,6 +72,29 @@ TUNABLE = [
 ]
 
 
+_worker: QuickSimProvider | None = None
+
+
+def _init_worker() -> None:
+    global _worker
+    loaded = api.load_dataset(ROOT.parent / "data" / "sample")
+    assert loaded.dataset is not None
+    _worker = QuickSimProvider(loaded.dataset)
+
+
+def _play(n: int, home: str, away: str,
+          params: PositionalParams) -> tuple[MatchReport, int, int]:
+    """One fixture on its own seed (so the result does not depend on the process)."""
+    assert _worker is not None
+    p = _worker
+    hs, as_ = p.team_sheet(home), p.team_sheet(away)
+    ht, at = p.tactics_for(hs, as_)
+    match = LiveMatch(hs, as_, p.dataset.players, params, p.params,
+                      random.Random(f"tune:{n}"), False, ht, at, record=False)
+    match.play()
+    return match.report(), match.passes, match.passes_completed
+
+
 class Sample:
     def __init__(self, fixtures: int) -> None:
         loaded = api.load_dataset(ROOT.parent / "data" / "sample")
@@ -79,6 +105,8 @@ class Sample:
         step = max(1, len(pairs) // fixtures)
         self.pairs = pairs[::step][:fixtures]
         self.strong = {pair: self._stronger(*pair) for pair in self.pairs}
+        self.pool = ProcessPoolExecutor(min(len(self.pairs), os.cpu_count() or 1),
+                                        initializer=_init_worker)
         TARGETS["strong_goal_share"] = (self._quick_strong_share(), 0.04, 1.0)
 
     def _stronger(self, home: str, away: str) -> str:
@@ -107,23 +135,19 @@ class Sample:
         return strong / total if total else 0.5
 
     def measure(self, params: PositionalParams) -> dict[str, float]:
-        p = self.provider
         rows = []
         passes = completed = 0
         strong_goals = all_goals = 0
-        for n, (h, a) in enumerate(self.pairs):
-            hs, as_ = p.team_sheet(h), p.team_sheet(a)
-            ht, at = p.tactics_for(hs, as_)
-            match = LiveMatch(hs, as_, p.dataset.players, params, p.params,
-                              random.Random(f"tune:{n}"), False, ht, at, record=False)
-            match.play()
-            report = match.report()
+        homes, aways = zip(*self.pairs, strict=True)
+        played = self.pool.map(_play, range(len(self.pairs)), homes, aways,
+                               [params] * len(self.pairs))
+        for (h, a), (report, made, done) in zip(self.pairs, played, strict=True):
             rows.append(report)
             goals = (report.home.goals, report.away.goals)
             strong_goals += goals[0] if self.strong[(h, a)] == "home" else goals[1]
             all_goals += sum(goals)
-            passes += match.passes
-            completed += match.passes_completed
+            passes += made
+            completed += done
         n = len(rows)
 
         def mean(f):  # type: ignore[no-untyped-def]
@@ -162,7 +186,7 @@ def dump(params: PositionalParams) -> str:
     lines = [f'model_version = "{params.model_version}"', ""]
     for group, values in params.groups.items():
         lines.append(f"[{group}]")
-        lines += [f"{k} = {round(v, 6)}" for k, v in values.items()]
+        lines += [f"{k} = {v!r}" for k, v in values.items()]  # full precision: reproducible
         lines.append("")
     return "\n".join(lines)
 
