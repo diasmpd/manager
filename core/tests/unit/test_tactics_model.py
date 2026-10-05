@@ -147,3 +147,31 @@ def test_a_new_formation_keeps_the_slots_that_still_fit() -> None:
             assert slot.slot in changed
             assert slot == default_tactic("4-3-3").slots[slot.slot]
     assert changed  # 4-4-2 and 4-3-3 differ in midfield and attack
+
+
+def test_a_role_change_drops_the_instructions_it_locks() -> None:
+    from manager_core.tactics.catalogue import load_roles
+    from manager_core.tactics.model import with_role
+
+    catalogue = load_catalogue()
+    base = default_tactic("4-4-2")
+    roles = load_roles().roles
+    for slot in base.slots:
+        position = catalogue["4-4-2"].slots[slot.slot].position
+        locking = next((r for r in roles.values() if r.phase == "ip" and position in r.positions
+                        and r.locked), None)
+        if locking is None:
+            continue
+        instr, value = next(iter(locking.locked.items()))
+        options = next(o for o in load_options().player if o.id == instr)
+        other = next(v for v in options.settings if v != value)
+        own = dataclasses.replace(slot, instructions=((instr, other),))
+        tactic = dataclasses.replace(base, slots=tuple(own if s.slot == slot.slot else s
+                                                       for s in base.slots))
+        changed = with_role(tactic, slot.slot, "ip", locking.id)
+        new_slot = next(s for s in changed.slots if s.slot == slot.slot)
+        assert new_slot.ip_role == locking.id
+        assert instr not in dict(new_slot.instructions)  # the role now sets it
+        assert validate(changed) == []
+        return
+    raise AssertionError("no role with a lock in 4-4-2")

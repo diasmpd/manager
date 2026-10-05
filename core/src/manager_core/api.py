@@ -770,6 +770,16 @@ def tactic_changes(career: Career, formation: str) -> list[str]:
     return [positions[i] for i in tactics_model.dropped_choices(tactic, formation)]
 
 
+def set_role(tactic: Tactic, slot: int, phase: str, role_id: str) -> Tactic:
+    """A slot's role changed, with the instructions the new roles lock dropped (one rule for
+    every client)."""
+    if role_id not in tactics_catalogue.load_roles().roles:
+        raise NotFoundError("role", role_id)
+    if all(s.slot != slot for s in tactic.slots):
+        raise NotFoundError("slot", str(slot))
+    return tactics_model.with_role(tactic, slot, phase, role_id)
+
+
 def validate_tactic(career: Career, tactic: Tactic) -> list[TacticIssue]:
     squad = frozenset(p.id for p in career.world.squad(career.user_club_id))
     return tactics_model.validate(tactic, squad)

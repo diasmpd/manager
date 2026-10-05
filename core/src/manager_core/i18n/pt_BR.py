@@ -342,6 +342,7 @@ MESSAGES: dict[str, str] = {
     "ui.careers.saved_at": "Salva em",
     "ui.careers.create": "Criar",
     "ui.desktop.busy": "Processando…",
+    "ui.desktop.saving": "Salvando…",
     "ui.desktop.progress": "Simulando… {date}",
     "ui.desktop.back": "Voltar",
     "ui.desktop.confirm": "Confirmar",

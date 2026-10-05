@@ -27,10 +27,15 @@ func clear() -> void:
 		child.queue_free()
 
 
-## Ask the core; on an error, show its message and return null.
+## Ask the core; on an error, show its message and return null. A screen the owner has already
+## left (navigation removes it while it may still be loading) stops quietly: null, no message.
 func ask(method: String, params: Dictionary = {}) -> Variant:
+	if not is_inside_tree():
+		return null
 	var core = get_node("/root/Core")
 	var answer: Dictionary = await core.request(method, params)
+	if not is_inside_tree():
+		return null
 	if answer.has("error"):
 		main.message(UI.error_text(answer))
 		return null

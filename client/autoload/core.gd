@@ -125,18 +125,13 @@ func is_busy() -> bool:
 func _process(_delta: float) -> void:
 	if _io == null:
 		return
-	# drain stderr every frame: a full pipe would block the core on its next warning
-	if _err != null:
-		var diagnostics := _err.get_buffer(65536)
-		if diagnostics.size() > 0:
-			var text := diagnostics.get_string_from_utf8()
-			printerr("[core] ", text.strip_edges())
-			stderr_tail = (stderr_tail + text).right(4000)
+	_drain_stderr()
 	var chunk := _io.get_buffer(65536)
 	if chunk.size() > 0:
 		_buffer.append_array(chunk)
 		_drain()
-	if state == "ready" and _pid > 0 and not OS.is_process_running(_pid):
+	# a core that dies while starting (broken .venv, import error) fails at once, with its error
+	if state in ["starting", "ready"] and _pid > 0 and not OS.is_process_running(_pid):
 		_lost()
 
 
@@ -177,13 +172,35 @@ func _watch(id: int, timeout_ms: int) -> void:
 		_answer(id, {"error": {"code": "P901", "message": LOCAL["no_answer"]}})
 
 
+## Drain stderr: a full pipe would block the core on its next warning; keep the tail for reports.
+func _drain_stderr() -> void:
+	if _err == null:
+		return
+	var diagnostics := _err.get_buffer(65536)
+	if diagnostics.size() > 0:
+		var text := diagnostics.get_string_from_utf8()
+		printerr("[core] ", text.strip_edges())
+		stderr_tail = (stderr_tail + text).right(4000)
+
+
+## The last few lines the core wrote to stderr (why it stopped), for the owner.
+func last_diagnostics(lines := 3) -> String:
+	var all := stderr_tail.strip_edges().split("\n", false)
+	return "\n".join(all.slice(max(0, all.size() - lines)))
+
+
 func _lost() -> void:
+	_drain_stderr()
+	var message: String = LOCAL["lost"]
+	var why := last_diagnostics()
+	if not why.is_empty():
+		message += "\n" + why
 	for id in _pending.keys():
-		_answer(id, {"error": {"code": "P902", "message": LOCAL["lost"]}})
+		_answer(id, {"error": {"code": "P902", "message": message}})
 	_io = null
 	_err = null
 	_pid = -1
-	_fail(LOCAL["lost"])
+	_fail(message)
 
 
 func _fail(message: String) -> bool:

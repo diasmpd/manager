@@ -507,19 +507,10 @@ class TacticsScreen(ModalScreen[bool]):
     def _cycle_role(self, slot_index: int, phase: str) -> None:
         position = api.formation_positions(self.tactic.ip_formation)[slot_index]
         choices = [r.id for r in api.valid_roles(position, phase)]
-        slots = list(self.tactic.slots)
-        slot = slots[slot_index]
-        if phase == "ip":
-            slot = dataclasses.replace(slot, ip_role=self._next(choices, slot.ip_role))
-        else:
-            slot = dataclasses.replace(slot, oop_role=self._next(choices, slot.oop_role))
-        slots[slot_index] = slot
-        self.tactic = dataclasses.replace(self.tactic, slots=tuple(slots))
-        # instructions the new roles lock are no longer the player's to set
-        locked = self._locked()
-        kept = tuple((k, v) for k, v in slot.instructions if k not in locked)
-        slots[slot_index] = dataclasses.replace(slot, instructions=kept)
-        self.tactic = dataclasses.replace(self.tactic, slots=tuple(slots))
+        slot = self.tactic.slots[slot_index]
+        current = slot.ip_role if phase == "ip" else slot.oop_role
+        # the core applies the change, including the instructions the new roles lock
+        self.tactic = api.set_role(self.tactic, slot.slot, phase, self._next(choices, current))
 
     def _cycle_player_instruction(self, option_id: str) -> None:
         if option_id in self._locked():

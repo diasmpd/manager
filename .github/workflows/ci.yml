@@ -18,7 +18,10 @@ jobs:
       run:
         working-directory: core
     env:
-      MANAGER_PERF_LIMIT_S: "4.0"  # shared runners are slower than the reference PC (SC-001)
+      # Budgets are enforced on the reference PC (Constitution, scale 1). Shared runners vary
+      # wildly (a season measured 6.6 s and 19 s against ~2 s locally, mostly SQLite autosave
+      # I/O), so CI only bounds gross regressions: scale 5.
+      MANAGER_PERF_LIMIT_S: "10.0"
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4

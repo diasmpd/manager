@@ -1,4 +1,4 @@
-# Contract: Local API, version 1.0
+# Contract: Local API, version 1.1
 
 The client starts the core as a child process:
 
@@ -49,6 +49,13 @@ Both sides then exchange **one JSON object per line**, UTF-8, over the child's s
 
 The client refuses to run on a different major version (spec FR-005).
 
+History: 1.0 (spec 007); 1.1 adds `tactic.set_role` (the role-change rule moved from the clients
+into the core).
+
+**Packaging note**: the server finds the repo (saves, sample data) from its source location
+(`server/__main__.py`, `parents[4]`), so it runs from a source checkout. An installed package
+will need `--saves` and `--data` passed explicitly; revisit when the game is packaged.
+
 ## Methods
 
 "→" gives the result. All parameters are named (`params` is an object).
@@ -93,6 +100,7 @@ The client refuses to run on a different major version (spec FR-005).
 | `tactic.suggest_oop` | `formation` | `[str]` | `suggest_oop_formations` |
 | `tactic.roles` | `position, phase` | `[Role]` | `valid_roles` |
 | `tactic.suitability` | `pairs: [[player_id, role_id]]` | `[float]` | `role_suitability`, one per pair |
+| `tactic.set_role` | `tactic, slot, phase, role_id` | `Tactic` | `set_role`: the slot's role changed, instructions the new roles lock dropped (since 1.1) |
 | `tactic.validate` | `tactic` | `[TacticIssue]` | `validate_tactic` |
 | `tactic.confirm` | `tactic` | `{}` | `confirm_tactic` (issues → `TACTIC`, `data.issues`) |
 
