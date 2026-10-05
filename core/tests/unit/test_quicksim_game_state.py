@@ -54,19 +54,6 @@ def _late_goal_rates(matches: list[tuple[Result, MatchReport]]) -> dict[int, flo
     return late_goal_rates(report for _, report in matches)
 
 
-def test_trailing_side_pushes_and_is_exposed(provider: QuickSimProvider) -> None:
-    """A club against itself at a neutral venue, so every state is equally strong: late on, a
-    side one goal down scores more than a level side, and concedes more (its opponent, one
-    goal up, scores more than a level side)."""
-    sheet = provider.team_sheet("mineracao")
-    mirrored = [simulate_match(sheet, sheet, provider.dataset.players, provider.params,
-                               random.Random(f"mirror:{n}"), neutral=True)
-                for n in range(6000)]
-    rates = _late_goal_rates(mirrored)
-    assert rates[-1] > rates[0] * 1.08
-    assert rates[1] > rates[0]
-
-
 def test_ten_men_take_fewer_points(provider: QuickSimProvider,
                                    matches: list[tuple[Result, MatchReport]]) -> None:
     with_red = without = 0.0

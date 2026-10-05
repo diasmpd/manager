@@ -292,6 +292,11 @@ score: chasing late, it raises the mentality.
   score-dependent behaviours: a goalless game opens up as it goes on, and a match with 3+ goals
   is managed by both sides. The league targets use the full 760-match count of Série A 2024–25
   (research R6).
+- **Calibration shortfall (documented, owner-approved plan)**: the milestone gate misses one
+  metric. 3-goal games are at 20.44% against a floor of 20.5%, because the quick sim's goal
+  totals stay near Poisson while real totals are under-dispersed (research R6). Every other
+  gate metric passes, and the PR gate and the exploit check pass. This must be fixed before
+  Milestone 0 closes (roadmap).
 - **Shapes before 007**: IP and OOP shapes, roles and positions act through ratings and rates.
   Real positioning arrives with the positional engine (007) and the formation editor (006b).
 - **The OOP formation catalogue** adds FM's common shapes (4-1-4-1, 4-5-1, 4-4-1-1, 5-4-1,

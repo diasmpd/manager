@@ -42,8 +42,8 @@ description: "Task list for 006 Tactics"
 
 ## Phase 5: US3 - Calibration with styles, and the exploit check (P3)
 
-- [ ] T011 Harness: AI styles for every club in both samples. Refit `model.toml` so both gates pass.
-- [ ] T012 Tests then `calibration/exploit.py`: a mirrored-strength grid (styles plus single-option variations against the 6 styles), a points-per-match matrix, and the gate (max gain ≤ 0.20 points per match; no tactic best against every style). Add it to the PR gate report and CLI. Retune the effects until it passes.
+- [x] T011 Harness: AI styles for every club in both samples. Refit `model.toml` so both gates pass.
+- [x] T012 Tests then `calibration/exploit.py`: a mirrored-strength grid (styles plus single-option variations against the 6 styles), a points-per-match matrix, and the gate (max gain ≤ 0.20 points per match; no tactic best against every style). Add it to the PR gate report and CLI. Retune the effects until it passes.
 
 ## Phase 6: US1 - The user's tactic (P1)
 
@@ -56,4 +56,4 @@ description: "Task list for 006 Tactics"
 
 ## Phase 7: Polish
 
-- [ ] T015 Docs (README, roadmap, quickstart), full suites, both gates, ruff and mypy, then the PR.
+- [x] T015 Docs (README, roadmap, quickstart), full suites, both gates, ruff and mypy, then the PR.

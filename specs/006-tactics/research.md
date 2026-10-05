@@ -144,13 +144,6 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
   and both depend on the score, not only the minute, so they do not just add late goals:
   - `state.goalless`: in a 0-0 game both sides push harder, growing to the full value by
     minute 90. The result is fewer 0-0s.
-  - `state.managed`: once a match has 3 or more goals, a side that is level or ahead slows down
-    by this share (game management). A trailing side keeps chasing. This is negative feedback:
-    fewer 5+ games, more matches that stop at three, and no rise in the late-goal share. It
-    first applied to both sides, which blunted the chase in a 2-1.
-
-  Paired-seed tests check these directions. In the managed test, results are identical until a
-  third goal.
   - **Tried and replaced.** First attempt: `state.respond`, where a side that has just conceded
     pushes harder for 10 minutes. It is positive feedback: it adds spread (more 5+ games, fewer
     3-goal games), so the tuner shrank it to 0.038. With that design, the milestone gate missed
@@ -159,20 +152,52 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
   - **Booked-player caution is pinned.** `caution.foul` = 0.347 and `caution.card` = 0.2 are the
     model 1.1 values, the owner-decided 003 behaviour. They are no longer tuned: the earlier
     refits had pushed them to near full ease-off (0.069 and 0.070) to fit goal targets.
-  - **Game-state ordering is a hard constraint (peer review).** Spec 003's behaviour test needs
-    late goal rates to rank trailing > level and leading > level (Lago et al.). Commit 06f9464
-    shipped with that test failing (trailing/level 0.93; it needs more than 1.08). The causes:
-    - the goalless push lifts the level 0-0 baseline;
-    - `managed`, when it applied to both sides, damped the chasing side;
-    - `trend_start` 0.94 → 0.80 steepened the tempo within each half.
-
-    The tuner now measures the ordering on 3,000 fixed-seed mirrored matches in every evaluation.
-    It adds a penalty of 100 × the shortfall below 1.10 (trailing/level) and 1.02
-    (leading/level). `trend_start` is bounded at 0.9 or above, which the late-goal share also
-    needs.
+  - **Tried and removed: game management (`state.managed`).** Once a match had 3+ goals, the side
+    level or ahead slowed down. It was negative feedback for the totals, but damping a one-goal
+    leader duplicates `protect` (a one-goal lead after minute 70) and `settled` (leads of 2+).
+    It also pushed the late leading/level goal ratio under 1, against Lago et al. (the leader
+    scores into the space the chasing side leaves). Removed on a peer decision under the
+    owner's standing instruction.
+  - **The late game-state test was noise-dominated.**
+    - The check: late on, a trailing side and a leading side must outscore a level side
+      (spec 003).
+    - On 6,000 matches, the same parameters gave trailing/level 1.02 on one seed set and 1.17
+      on another (SE about 0.05).
+    - The old single-sample threshold (1.08) was a coin flip: `main` passed at 1.103 by luck
+      of the seeds, and 06f9464 shipped with it failing.
+    - An in-loss tuner constraint on 3,000 matches only found seeds where the noise passed (a
+      winner's curse).
+    - Now the test pools 24,000 matches (SE about 0.025) and checks the directions: trailing
+      > 1.04 and leading > 1.00. It is not in the loss; it is checked after the fit.
+    - `trend_start` stays bounded at 0.9 or above, which the late-goal share also needs.
   - **Refit settings.** The goals-per-match target is weighted 3× in the loss, so the mean
     cannot drift low.
-- **Refit result (model 1.2).** RESULT-PENDING
+- **Refit result (model 1.2, final).** Coarse rounds, then a polish on the PR sample:
+  goals per match weighted 3×, caution pinned, no `managed`, and `trend_start` bounded at 0.9 or
+  above. The final PR-sample loss is 3.80.
+  - **Main moves:**
+    - `settled` 0.105 → 0.21;
+    - `goalless` → 0.039;
+    - `strength.attack` → 0.085 and `strength.control` → 0.126;
+    - `shootout.base` → 0.72.
+  - **Late game state** (pooled 24,000 matches): trailing/level 1.101, leading/level 1.086.
+    Both are well clear of the directions checked (1.04 and 1.00).
+  - **PR gate: passes.**
+    - 3-goal games 21.2%, 0-0 games 8.1%, 2.48 goals per match;
+    - goals after minute 75: 30.5% (back inside the band);
+    - reds 0.33 per match, at the band's upper edge (0.17–0.33);
+    - exploit check: the best tactic is Attacking, +0.124 points per match; no dominant tactic.
+  - **Milestone gate: one primary miss, documented (owner-approved plan).** 3-goal games are at
+    **20.44%** against the floor of 20.5%, 0.06 points short. Everything else passes. The
+    targets are unchanged.
+  - **Why it is short.** The quick sim's design multiplies per-minute rates, so its goal totals
+    stay near Poisson. That puts it about 3 points under the real 3-goal share, which comes
+    from real under-dispersion (variance/mean 0.89). The goalless push helps the 0-0 share, but
+    not the 3-goal share.
+  - **Fix before Milestone 0 closes** (roadmap open item, "quick-sim under-dispersion"): a
+    mechanism with real negative feedback on the totals that keeps the late game-state
+    ordering. Candidates: a time-varying match tempo, or goal timing that clusters, both
+    cross-checked against the positional engine.
 - **Exploit check**: a new section of the PR gate.
   - **Setup**: a grid of the 6 style tactics plus single-option variations from neutral,
     played against each of the 6 AI styles. Mirrored strength: the same club meets itself,

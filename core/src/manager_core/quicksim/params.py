@@ -67,7 +67,6 @@ class State:
     man_up: float
     short_handed: float  # own shot rate lost per player of numerical disadvantage
     goalless: float  # both sides push in a 0-0, growing to this by minute 90
-    managed: float  # game management: in a match with 3+ goals, a side level or ahead slows
 
 
 @dataclass(frozen=True, slots=True)
