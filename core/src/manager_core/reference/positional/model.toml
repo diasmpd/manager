@@ -111,3 +111,8 @@ keeper_hold = 8.0
 # Mando de campo: vantagem pequena no passe, nos duelos e na finalização (torcida).
 [home]
 edge = 0.04
+
+# Atributos na partida: puxados para o meio da escala (10). Vantagens individuais se acumulam em
+# centenas de duelos e passes; o fator é calibrado contra resultados reais (e o quick sim).
+[attributes]
+spread = 0.4

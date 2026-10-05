@@ -216,7 +216,7 @@ class LiveMatch:
         team = Team(side, sheet, fitted, fitted.mentality, bench=list(sheet.bench))
         for slot, pid in sheet.starters:
             body = Body(pid, side, slot, self.players[pid], sheet.slot_position(slot))
-            body.base_speed = self._base_speed(body)
+            self._calibrate(body)
             team.bodies.append(body)
             team.played.add(pid)
         return team
@@ -432,6 +432,15 @@ class LiveMatch:
         for body in candidates[:pressers]:
             if math.hypot(body.x - carrier.x, body.y - carrier.y) < self.ps["press_radius"]:
                 body.tx, body.ty = goal_side
+
+    def _calibrate(self, body: Body) -> None:
+        """Attributes as they act in a match: pulled towards the scale's midpoint by `spread`
+        (individual edges compound over hundreds of duels and passes, so the engine's raw
+        sensitivity is calibrated against real results), then the base speed."""
+        spread = self.p["attributes"]["spread"]
+        body.attrs = {k: 10.0 + (v - 10.0) * spread for k, v in body.attrs.items()}
+        body.stamina = max(0.25, (body.attr("stamina") + body.attr("natural_fitness")) / 40)
+        body.base_speed = self._base_speed(body)
 
     def _base_speed(self, body: Body) -> float:
         m = self.pm
@@ -1157,7 +1166,7 @@ class LiveMatch:
             out.tx,
             out.ty,
         )
-        body.base_speed = self._base_speed(body)
+        self._calibrate(body)
         team.bodies.append(body)
         team.bench.remove(incoming)
         team.came_on.add(incoming)

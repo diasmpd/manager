@@ -40,10 +40,14 @@ TARGETS = {
     "yellows": (5.2, 0.75, 0.5),
     "reds": (0.25, 0.08, 0.3),
     "passes_per_team": (420.0, 60.0, 0.3),
+    # cross-validation inside the fit: the stronger side's share of goals, as in the quick sim
+    # on the same fixtures (target filled in from the quick sim when the sample is built)
+    "strong_goal_share": (0.0, 0.04, 1.0),
     "pass_completion": (0.80, 0.04, 0.3),
 }
 
 TUNABLE = [
+    ("attributes.spread", 0.1, 1.0),
     ("decide.shoot_bias", 0.1, 3.0),
     ("decide.min_shot_xg", 0.01, 0.2),
     ("decide.decision_every_s", 0.6, 3.0),
@@ -74,18 +78,50 @@ class Sample:
         pairs = list(permutations(clubs, 2))
         step = max(1, len(pairs) // fixtures)
         self.pairs = pairs[::step][:fixtures]
+        self.strong = {pair: self._stronger(*pair) for pair in self.pairs}
+        TARGETS["strong_goal_share"] = (self._quick_strong_share(), 0.04, 1.0)
+
+    def _stronger(self, home: str, away: str) -> str:
+        from manager_core.tactics import ai
+
+        players = self.provider.dataset.players
+        h = ai.strength(self.provider.team_sheet(home), players)
+        a = ai.strength(self.provider.team_sheet(away), players)
+        return "home" if h >= a else "away"
+
+    def _quick_strong_share(self) -> float:
+        """The stronger side's share of goals in the quick sim, on the same fixtures."""
+        from manager_core.quicksim.engine import simulate_match
+
+        p = self.provider
+        strong = total = 0
+        for n, (h, a) in enumerate(self.pairs):
+            hs, as_ = p.team_sheet(h), p.team_sheet(a)
+            ht, at = p.tactics_for(hs, as_)
+            for k in range(20):
+                result, _ = simulate_match(hs, as_, p.dataset.players, p.params,
+                                           random.Random(f"xval:{n}:{k}"), False, ht, at)
+                goals = (result.home_goals, result.away_goals)
+                strong += goals[0] if self.strong[(h, a)] == "home" else goals[1]
+                total += sum(goals)
+        return strong / total if total else 0.5
 
     def measure(self, params: PositionalParams) -> dict[str, float]:
         p = self.provider
         rows = []
         passes = completed = 0
+        strong_goals = all_goals = 0
         for n, (h, a) in enumerate(self.pairs):
             hs, as_ = p.team_sheet(h), p.team_sheet(a)
             ht, at = p.tactics_for(hs, as_)
             match = LiveMatch(hs, as_, p.dataset.players, params, p.params,
                               random.Random(f"tune:{n}"), False, ht, at, record=False)
             match.play()
-            rows.append(match.report())
+            report = match.report()
+            rows.append(report)
+            goals = (report.home.goals, report.away.goals)
+            strong_goals += goals[0] if self.strong[(h, a)] == "home" else goals[1]
+            all_goals += sum(goals)
             passes += match.passes
             completed += match.passes_completed
         n = len(rows)
@@ -109,6 +145,7 @@ class Sample:
             "reds": mean(lambda r: r.home.reds + r.away.reds),
             "passes_per_team": passes / n / 2,
             "pass_completion": completed / passes if passes else 0.0,
+            "strong_goal_share": strong_goals / all_goals if all_goals else 0.5,
         }
 
 
