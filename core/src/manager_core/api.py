@@ -547,10 +547,11 @@ def season_scorers(season: Season, limit: int | None = None) -> list[ScorerRow]:
     return rows[:limit] if limit is not None else rows
 
 
-def run_calibration(dataset: Dataset, gate: str = "pr",
-                    baseline: Path | None = None) -> CalibrationReport:
-    """Run a calibration gate (deterministic; writes nothing)."""
-    return harness.run(dataset, gate, baseline=baseline)
+def run_calibration(dataset: Dataset, gate: str = "pr", baseline: Path | None = None,
+                    exploit: bool | None = None) -> CalibrationReport:
+    """Run a calibration gate (deterministic; writes nothing). `exploit` (default: on for the
+    PR gate) runs the tactical exploit check."""
+    return harness.run(dataset, gate, baseline=baseline, exploit=exploit)
 
 
 # ---- careers (spec 004) ----------------------------------------------------------------------

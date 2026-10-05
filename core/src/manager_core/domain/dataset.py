@@ -6,7 +6,7 @@ Every collection is exposed in sorted-id order (Constitution II).
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import date
 from enum import StrEnum
 from types import MappingProxyType
@@ -74,6 +74,11 @@ class Dataset:
         object.__setattr__(self, "record_flags", tuple(unique[k] for k in sorted(unique)))
 
     __hash__ = None  # type: ignore[assignment]  # holds mappings; compared by value only
+
+    def __reduce__(self) -> tuple[type[Dataset], tuple[object, ...]]:
+        """Picklable (calibration runs in worker processes): the read-only views are rebuilt."""
+        values = [getattr(self, f.name) for f in fields(self)]
+        return Dataset, tuple(dict(v) if isinstance(v, MappingProxyType) else v for v in values)
 
     def club(self, club_id: str) -> Club:
         return self.clubs[club_id]

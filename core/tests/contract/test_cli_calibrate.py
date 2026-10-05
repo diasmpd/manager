@@ -21,10 +21,12 @@ def test_calibrate_prints_every_target(capsys: pytest.CaptureFixture[str], sampl
     for target in load_targets():
         assert t(f"metric.{target.id}") in out
     assert t("calibration.passed") in out
+    assert "Exploit tático" in out  # the PR gate runs the exploit check by default
     doc = json.loads(report.read_text("utf-8"))
     assert doc["passed"] is True and doc["gate"] == "pr"
 
-    code = main(["--data", str(sample_dir), "calibrate", "--baseline", str(report)])
+    code = main(["--data", str(sample_dir), "calibrate", "--baseline", str(report),
+                 "--no-exploit"])
     assert code == EXIT_OK
     assert t("calibration.before") in capsys.readouterr().out
 
@@ -46,7 +48,8 @@ source = "teste"
 retrieved = 2026-10-02
 """, "utf-8")
     monkeypatch.setenv(TARGETS_ENV, str(targets))
-    code = main(["--data", str(sample_dir), "calibrate"])
+    code = main(["--data", str(sample_dir), "calibrate", "--no-exploit"])
     out = capsys.readouterr().out
     assert code == EXIT_INVALID
+    assert "Exploit tático" not in out
     assert "goals_per_match" in out
