@@ -20,7 +20,9 @@ $ErrorActionPreference = 'Stop'
 $Version = '4.7.2-stable'
 $Zip = "Godot_v${Version}_win64.exe.zip"
 # Pinned: a tampered release would also publish matching sums, so the expected hash lives here.
-# The release's SHA512-SUMS.txt is only a cross-check (both must agree).
+# The release's SHA512-SUMS.txt is only a cross-check (both must agree). Trust on first
+# download: pinned on 2026-10-04 from the official 4.7.2-stable release (its SHA512-SUMS.txt
+# and the zip downloaded here and on a GitHub runner all agreed). Re-verify when changing $Version.
 $PinnedSha512 = '83decd58fdf67b9d657958a1ae6bf1929c20785315a81effe245874cdc57acb709bf868e00778a96984338c1b29dafdb453c6847747694621c6ecf5da2259993'
 $Base = "https://github.com/godotengine/godot/releases/download/$Version"
 
