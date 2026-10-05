@@ -21,6 +21,8 @@ const LOCAL := {
 	"version": "Versões incompatíveis: cliente {client}, núcleo {core}. Atualize o projeto.",
 	"lost": "O núcleo do jogo parou inesperadamente.",
 	"not_running": "O núcleo do jogo não está rodando.",
+	"starting": "Iniciando o jogo…",
+	"retry": "Tentar de novo",
 }
 
 class Pending:
@@ -36,6 +38,9 @@ var model_version := ""
 
 var _pid := -1
 var _io: FileAccess
+var _err: FileAccess
+## The core's last diagnostics (stderr), kept for error reports.
+var stderr_tail := ""
 var _buffer := PackedByteArray()
 var _next_id := 0
 var _pending: Dictionary = {}
@@ -53,6 +58,7 @@ func start() -> bool:
 		return _fail(LOCAL["start_failed"].format({"detail": python}))
 	_pid = info["pid"]
 	_io = info["stdio"]
+	_err = info["stderr"]
 	var hello := await request("hello", {"client": "godot " + Engine.get_version_info()["string"]},
 			HELLO_TIMEOUT_MS)
 	if hello.has("error"):
@@ -95,6 +101,7 @@ func stop() -> void:
 	if _pid > 0 and OS.is_process_running(_pid):
 		OS.kill(_pid)
 	_io = null
+	_err = null
 	_pid = -1
 	_set_state("closed")
 
@@ -118,6 +125,13 @@ func is_busy() -> bool:
 func _process(_delta: float) -> void:
 	if _io == null:
 		return
+	# drain stderr every frame: a full pipe would block the core on its next warning
+	if _err != null:
+		var diagnostics := _err.get_buffer(65536)
+		if diagnostics.size() > 0:
+			var text := diagnostics.get_string_from_utf8()
+			printerr("[core] ", text.strip_edges())
+			stderr_tail = (stderr_tail + text).right(4000)
 	var chunk := _io.get_buffer(65536)
 	if chunk.size() > 0:
 		_buffer.append_array(chunk)
@@ -167,6 +181,7 @@ func _lost() -> void:
 	for id in _pending.keys():
 		_answer(id, {"error": {"code": "P902", "message": LOCAL["lost"]}})
 	_io = null
+	_err = null
 	_pid = -1
 	_fail(LOCAL["lost"])
 

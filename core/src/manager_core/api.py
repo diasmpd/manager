@@ -880,4 +880,4 @@ def home_view(career: Career, news: int = 5) -> HomeView:
     items = views.career_news(career)
     return HomeView(career_status(career),
                     match_view(career.season, last) if last is not None else None,
-                    tuple(items[-news:][::-1]) if news > 0 else ())
+                    tuple(items[:news]))  # career_news is newest first
