@@ -15,7 +15,7 @@ ball_speed_shot = 26.0
 
 [shape]
 ip_push = 0.55
-oop_push = 0.78
+oop_push = 0.6
 oop_compact = 0.3818384476534296
 lateral_shift = 0.35
 width_ip = 1.0
@@ -68,7 +68,7 @@ block_lane = 1.6
 [duel]
 tackle_base = 0.14792923076923076
 dribble_skill = 0.045
-foul_base = 0.076923
+foul_base = 0.09999990000000002
 foul_aggression = 0.02
 duel_every_s = 0.5
 duel_radius = 1.8
@@ -103,7 +103,7 @@ corner_header_xg = 0.06
 free_kick_direct_m = 30.0
 
 [restarts]
-scale = 1.3
+scale = 1.8
 kick_off = 4.0
 goal = 50.0
 throw_in = 10.0

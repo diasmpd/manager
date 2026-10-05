@@ -4,7 +4,7 @@ Coordinate descent with multiplicative steps on a fixed, seeded fixture set (com
 numbers, so the objective is deterministic). The loss is the sum of squared distances to each
 target in units of its tolerance; secondary targets weigh less.
 
-    python tools/tune_positional.py [--rounds 3] [--fixtures 33] [--write]
+    python tools/tune_positional.py [--rounds 3] [--fixtures 66] [--write]
 
 Targets are the quick sim's calibration targets (Série A 2024-25, 760-match recount) plus
 passing volume and completion (secondary, typical top-flight values, to be sourced).
@@ -202,7 +202,7 @@ def dump(params: PositionalParams) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rounds", type=int, default=3)
-    parser.add_argument("--fixtures", type=int, default=33)
+    parser.add_argument("--fixtures", type=int, default=66)  # strong-side share needs ~160 goals
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
     sample = Sample(args.fixtures)
