@@ -34,7 +34,7 @@ box_pressers = 2.0
 decision_every_s = 0.923077
 control_delay_s = 1.04
 temperature = 0.455
-shoot_bias = 1.521
+shoot_bias = 1.6756779661016952
 min_shot_xg = 0.03
 pass_bias = 1.0
 dribble_bias = 1.04
@@ -43,7 +43,7 @@ clear_spread = 30.0
 carry_pull = 0.15
 carry_pull_final = 0.45
 wide_m = 18.0
-pass_out = 0.2
+pass_out = 0.15384615384615385
 cross_bias = 0.7
 clear_bias = 0.6
 loss_cost = 1.6622837753568744
@@ -63,12 +63,12 @@ angle = 1.5
 distance = -0.12
 header_factor = 0.6
 blocker_factor = 0.65
-block_lane = 1.6
+block_lane = 1.223765526525118
 
 [duel]
 tackle_base = 0.14792923076923076
 dribble_skill = 0.045
-foul_base = 0.09999990000000002
+foul_base = 0.12999987000000002
 foul_aggression = 0.02
 duel_every_s = 0.5
 duel_radius = 1.8
@@ -79,7 +79,7 @@ tackle_out = 0.4
 block_depth = 3.0
 block_width = 1.8
 shield_speed = 0.15
-beat_advance = 4.49878
+beat_advance = 5.0
 
 [keeper]
 save_base = 0.7
@@ -119,4 +119,4 @@ keeper_hold = 8.0
 edge = 0.04
 
 [attributes]
-spread = 0.39999960000000007
+spread = 0.307692
