@@ -90,6 +90,9 @@ def test_the_clock_is_driven_by_the_client(live: Client) -> None:
 
 def test_substitutions_follow_the_rules(live: Client) -> None:
     state = live.call("match.start")["state"]
+    # a decision at kick-off: from now on the manager makes his own substitutions (the
+    # assistant's random ones would change the counts below)
+    live.call("match.tactic", tactic=state["tactic"])
     live.call("match.advance", seconds=55 * 60)
     on_pitch = [p for p in state["on_pitch"] if p["position"] != "GK"]
     bench = [p["player_id"] for p in state["bench"]]

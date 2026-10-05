@@ -112,6 +112,8 @@ class Team:
     came_on: set[str] = field(default_factory=set)
     played: set[str] = field(default_factory=set)
     owned_s: float = 0.0
+    won_at: float = -99.0  # open-play possession changes (transitions, 006 options)
+    lost_at: float = -99.0
 
     def on_pitch(self) -> list[Body]:
         return [b for b in self.bodies if b.on]
@@ -196,6 +198,8 @@ class LiveMatch:
         self.decisions: list[Decision] = []
         self._pending: list[Decision] = []
         self._next_decision = 0.0
+        self._possession: str | None = None
+        self.pt = self.p["tactics"]
         self._next_targets = 0.0
         self._duel_clock = 0.0
         self._challenged: dict[str, float] = {}  # player id -> time of his last challenge
@@ -356,6 +360,22 @@ class LiveMatch:
             return "level"
         return "normal"
 
+    def _tempo(self, team: Team) -> float:
+        """The tempo instruction as a factor on the time on the ball."""
+        setting = team.tactic.setting("tempo")
+        return {"lower": self.pt["tempo_lower"], "higher": self.pt["tempo_higher"]}.get(
+            setting, 1.0
+        )
+
+    def _transition(self, team: Team) -> str | None:
+        """ "attack" just after winning the ball in open play, "defend" just after losing it."""
+        window = self.pt["transition_s"]
+        if self.t - team.won_at < window:
+            return "attack"
+        if self.t - team.lost_at < window:
+            return "defend"
+        return None
+
     def _slack(self, team: Team) -> float:
         """How much a side two or more goals up has switched off (R5): it defends less tightly.
         The trailing side keeps its push (its own intent is unchanged)."""
@@ -407,6 +427,19 @@ class LiveMatch:
                 default=25.0,
             )
             compact = 1.0 if in_possession else s["oop_compact"]
+            transition = self._transition(team)
+            counter = (
+                in_possession
+                and transition == "attack"
+                and team.tactic.setting("attacking_transition") == "counter"
+            )
+            regroup = (
+                not in_possession
+                and transition == "defend"
+                and team.tactic.setting("defensive_transition") == "regroup"
+            )
+            if regroup:
+                offset -= self.pt["regroup_drop"]
             for body in team.on_pitch():
                 if body is owner:
                     continue
@@ -419,12 +452,17 @@ class LiveMatch:
                     tu = u + (bu - 52.5) * push + offset
                     if in_possession and body.group in (Group.FORWARD, Group.ATTACKING_MID):
                         tu = max(tu, bu - 5)
+                        if counter:  # break forward at once
+                            tu += self.pt["counter_push"]
+                            body.urgent_until = self.t + 1.0
+                    if regroup:  # get back into shape quickly
+                        body.urgent_until = self.t + 1.0
                     tu = min(tu, onside)
                     tv = pitch.CENTRE_V + (v - pitch.CENTRE_V) * width
                     tv += (bv - pitch.CENTRE_V) * s["lateral_shift"]
                 tu, tv = pitch.clamp_point(tu, tv)
                 body.tx, body.ty = self.absolute(team.side, tu, tv)
-            if not in_possession and owner is not None:
+            if not in_possession and owner is not None and not regroup:
                 self._press_targets(team, owner)
 
     def _press_targets(self, team: Team, carrier: Body) -> None:
@@ -432,9 +470,16 @@ class LiveMatch:
         own_u = pitch.LENGTH - cu  # distance of the ball from this team's own goal, in its view
         setting = team.tactic.setting("line_of_engagement")
         engage = self.p["shape"].get(f"engage_{setting}", 55.0)
-        if pitch.LENGTH - own_u > engage:
+        # just lost it: a counter-pressing side hunts the ball wherever it is
+        counter_press = (
+            self._transition(team) == "defend"
+            and team.tactic.setting("defensive_transition") == "counter_press"
+        )
+        if pitch.LENGTH - own_u > engage and not counter_press:
             return
         pressers = 2 if team.tactic.setting("trigger_press") == "more_often" else 1
+        if counter_press:
+            pressers = max(pressers, int(self.pt["counter_press_n"]))
         if cu <= pitch.BOX_DEPTH + 4:  # the carrier is at our box (our view): converge
             pressers = int(self.ps["box_pressers"])
         candidates = sorted(
@@ -519,7 +564,7 @@ class LiveMatch:
     def _restart(self, body: Body, kind: str) -> None:
         """A dead-ball restart taken by `body` after a realistic delay (throw-in, goal kick,
         corner, free kick, kick-off after a goal): the clock runs, the taker waits."""
-        self._give(body)
+        self._give(body, live=False)
         self.dead_until = self.t + self.pr[kind]
         self._next_decision = self.dead_until
 
@@ -528,7 +573,11 @@ class LiveMatch:
         self.dead_until = max(self.dead_until, self.t + self.pr[kind])
         self._next_decision = max(self._next_decision, self.dead_until)
 
-    def _give(self, body: Body) -> None:
+    def _give(self, body: Body, live: bool = True) -> None:
+        if live and self._possession is not None and self._possession != body.side:
+            self.teams[body.side].won_at = self.t
+            self.teams[self._possession].lost_at = self.t
+        self._possession = body.side
         self.ball.owner = body
         self.ball.flight = None
         self.ball.x, self.ball.y = body.x, body.y
@@ -604,7 +653,9 @@ class LiveMatch:
         ):
             ball.receiver.x, ball.receiver.y = ball.x, ball.y
             self._give(ball.receiver)
-            self._next_decision = self.t + self.p["decide"]["control_delay_s"]
+            self._next_decision = self.t + self.p["decide"]["control_delay_s"] * self._tempo(
+                self.teams[ball.receiver.side]
+            )
         elif landing == "shot":
             self._resolve_shot()
         else:
@@ -625,6 +676,14 @@ class LiveMatch:
             risk -= 2
         elif intent == "relaxed":  # the game is won: slower, safer attacks
             risk -= self.p["intents"]["relaxed_risk"]
+        # just won the ball: a counter goes forward at once, a patient side keeps it
+        transition = self._transition(team) == "attack"
+        style = team.tactic.setting("attacking_transition") if transition else "standard"
+        if style == "counter":
+            risk += self.pt["trans_risk"]
+        elif style == "patient":
+            risk -= self.pt["trans_risk"]
+        through_bias = d["through_bias"] * (self.pt["trans_through"] if style == "counter" else 1.0)
         options: list[tuple[float, str, object]] = []
         pressure = self._pressure(carrier, opp)
         # shoot
@@ -634,6 +693,10 @@ class LiveMatch:
             far = pitch.LENGTH - u > 20
             bias = d["shoot_bias"]
             if far:
+                bias *= {
+                    "work_ball_into_box": self.pt["patience_work"],
+                    "less_often": self.pt["patience_less"],
+                }.get(team.tactic.setting("patience"), 1.0)
                 bias *= {"reduced": 0.7, "balanced": 1.0, "encouraged": 1.3}.get(
                     team.tactic.setting("shots_from_distance"), 1.0
                 )
@@ -666,6 +729,11 @@ class LiveMatch:
                 pitch.LENGTH - mu, pitch.WIDTH - mv
             )
             value *= d["pass_bias"] * (1 + 0.04 * directness * (mu - u) / 10)
+            if u < 45:  # build-up from the back: long over the press, or short through it
+                lean = {"direct": 1.0, "play_through_press": -1.0}.get(
+                    team.tactic.setting("build_up_strategy"), 0.0
+                )
+                value *= max(0.2, 1 + self.pt["build_k"] * lean * (dist - 25) / 25)
             options.append((value, "pass", (mate, p_ok)))
         # a ball in behind for a runner (onside when it is played, Law 11): it punishes a
         # high line and needs space behind it
@@ -696,7 +764,7 @@ class LiveMatch:
                 value = p_ok * self._threat(tu, tv) - (1 - p_ok) * d["loss_cost"] * self._threat(
                     pitch.LENGTH - tu, pitch.WIDTH - tv
                 )
-                value *= d["through_bias"] * runs
+                value *= through_bias * runs
                 options.append((value, "through", (mate, p_ok, tx, ty)))
         # carry into space, or take on the defender in front
         forward = self._threat(min(pitch.LENGTH - 1, u + 8), v)
@@ -738,7 +806,9 @@ class LiveMatch:
         """Take on the defender in front (if any): past him, or the ball is lost."""
         blocker = self._blocked(carrier)
         if blocker is None:
-            self._next_decision = self.t + self.pd["decision_every_s"]
+            self._next_decision = self.t + self.pd["decision_every_s"] * self._tempo(
+                self.teams[carrier.side]
+            )
             return
         if self.rng.random() < self._beat_chance(carrier, opp, blocker):
             u, v = self.rel(carrier.side, carrier.x, carrier.y)
@@ -749,7 +819,9 @@ class LiveMatch:
             bu, bv = self.rel(carrier.side, blocker.x, blocker.y)
             blocker.x, blocker.y = self.absolute(carrier.side, *pitch.clamp_point(bu - 1.5, bv))
             self.ball.x, self.ball.y = carrier.x, carrier.y
-            self._next_decision = self.t + self.pd["decision_every_s"] * 0.6
+            self._next_decision = self.t + self.pd["decision_every_s"] * 0.6 * self._tempo(
+                self.teams[carrier.side]
+            )
         else:
             self._give(blocker)
             self._next_decision = self.t + self.pd["control_delay_s"]
@@ -760,6 +832,11 @@ class LiveMatch:
         d = self.p["decide"]
         skill = (carrier.attr("decisions") + carrier.attr("composure")) / 40
         temperature = d["temperature"] * (1.3 - skill) * (1 + (1 - carrier.energy) * 0.5)
+        tempo = self.teams[carrier.side].tactic.setting("tempo")  # quicker play, rasher choices
+        temperature *= {
+            "higher": 1 + self.pt["tempo_noise"],
+            "lower": 1 - self.pt["tempo_noise"] / 2,
+        }.get(tempo, 1.0)
         best = max(v for v, _, _ in options)
         scale = max(1e-4, abs(best) * temperature)
         weights = [math.exp((v - best) / scale) for v, _, _ in options]

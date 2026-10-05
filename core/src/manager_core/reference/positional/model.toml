@@ -131,6 +131,20 @@ card = 25.0
 substitution = 30.0
 keeper_hold = 8.0
 
+[tactics]
+tempo_higher = 0.8
+tempo_lower = 1.25
+tempo_noise = 0.15
+transition_s = 6.0
+trans_risk = 1.5
+trans_through = 1.5
+counter_push = 10.0
+counter_press_n = 3.0
+regroup_drop = 5.0
+build_k = 0.3
+patience_work = 0.8
+patience_less = 1.2
+
 [home]
 edge = 0.04
 
