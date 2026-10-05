@@ -16,6 +16,7 @@ from manager_core.quicksim.report import (
     Minute,
     SideLineup,
     SideStats,
+    TacticSummary,
 )
 
 Json = dict[str, Any]
@@ -82,6 +83,20 @@ def _lineup_back(d: Json) -> SideLineup:
                       tuple(d["bench"]), tuple(d["flags"]))
 
 
+def _tactic(t: TacticSummary | None) -> Json | None:
+    if t is None:
+        return None
+    return {"ip_formation": t.ip_formation, "oop_formation": t.oop_formation,
+            "mentality": t.mentality, "style": t.style, "digest": t.digest}
+
+
+def _tactic_back(d: Json | None) -> TacticSummary | None:
+    if d is None:
+        return None
+    return TacticSummary(d["ip_formation"], d["oop_formation"], d["mentality"], d["style"],
+                         d["digest"])
+
+
 def encode_report(r: MatchReport) -> Json:
     return {
         "home": _stats(r.home), "away": _stats(r.away),
@@ -90,6 +105,7 @@ def encode_report(r: MatchReport) -> Json:
         "home_finishers": list(r.home_finishers), "away_finishers": list(r.away_finishers),
         "stoppage": list(r.stoppage), "model_version": r.model_version,
         "home_keeper": r.home_keeper, "away_keeper": r.away_keeper,
+        "home_tactic": _tactic(r.home_tactic), "away_tactic": _tactic(r.away_tactic),
     }
 
 
@@ -102,4 +118,6 @@ def decode_report(d: Json) -> MatchReport:
         home_finishers=tuple(d["home_finishers"]), away_finishers=tuple(d["away_finishers"]),
         stoppage=(first, second), model_version=d["model_version"],
         home_keeper=d["home_keeper"], away_keeper=d["away_keeper"],
+        home_tactic=_tactic_back(d.get("home_tactic")),  # absent in reports saved before 006
+        away_tactic=_tactic_back(d.get("away_tactic")),
     )

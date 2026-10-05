@@ -1,6 +1,7 @@
 """US2: "Continuar" stops at events, before the user's matches and at the season end; it
 autosaves every in-game week (spec 004, research R4)."""
 
+import os
 import random
 import time
 from datetime import timedelta
@@ -106,4 +107,6 @@ def test_a_season_is_fast(world: Dataset, tmp_path: Path) -> None:
     start = time.perf_counter()
     career = api.new_career(world, "rapido", "alvorada", master_seed=1)
     api.continue_career(career, tmp_path, to_season_end=True)
-    assert time.perf_counter() - start < 5.0
+    # the budget is on the reference PC; CI runners scale it like the quick-sim budgets
+    scale = float(os.environ.get("MANAGER_PERF_LIMIT_S", "2.0")) / 2.0
+    assert time.perf_counter() - start < 5.0 * scale

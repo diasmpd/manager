@@ -290,18 +290,19 @@ on purpose so that goals per match leave their band, and the gate fails with the
 
 ## Calibration targets
 
-Sample: "Série A" means 2024 and 2025 combined (720 matches counted from the CBF results
-matrices). "Mineiro" means the first phase of 2025 and 2026 (96 matches). Bands are a first
+Sample: "Série A" means 2024 and 2025 combined (760 matches counted from the CBF results
+matrices; amended by spec 006, whose recount replaced a 720-match count taken before the 2025
+season ended. The bands kept their widths and were re-centred). "Mineiro" means the first phase of 2025 and 2026 (96 matches). Bands are a first
 proposal for owner review. They reflect both the sample sizes and the season-to-season
 variation seen in the data.
 
 | Metric | Target | Band | Kind | Source |
 |---|---|---|---|---|
-| Goals per match | 2.50 | 2.30–2.70 | primary | Série A 2024 (2.45), 2025 (2.55) |
-| Home win / draw / away win | 48.6% / 26.1% / 25.3% | ±4 pp each | primary | Série A 2024–25 |
+| Goals per match | 2.48 | 2.28–2.68 | primary | Série A 2024 (2.44), 2025 (2.52) |
+| Home win / draw / away win | 48.8% / 26.3% / 24.9% | ±4 pp each | primary | Série A 2024–25 |
 | Home goals / away goals per match | 1.47 / 1.02 | ±0.15 each | primary | Série A 2024–25 |
-| 0–0 share | 6.6% | 4.5–9% | primary | Série A 2024–25 |
-| Total goals 0 / 1 / 2 / 3 / 4 / 5+ | 6.6 / 20.4 / 25.3 / 25.3 / 13.2 / 9.2 % | ±4 pp each | primary | Série A 2024–25 |
+| 0–0 share | 7.0% | 4.9–9.4% | primary | Série A 2024–25 (53 of 760) |
+| Total goals 0 / 1 / 2 / 3 / 4 / 5+ | 7.0 / 20.5 / 25.8 / 24.5 / 13.0 / 9.2 % | ±4 pp each | primary | Série A 2024–25 |
 | Top-5 v bottom-5: favourite W / D / L | 65% / 24% / 11% | ±10 pp each | primary | Série A 2024–25 (100 matches; positions from the final table) |
 | Yellow cards per match | 5.2 | 4.5–6.0 | primary | Série A 2025 (903 in 173 matches) |
 | Red cards per match | 0.25 | 0.17–0.33 | primary | Série A 2025 (95 in 380) |

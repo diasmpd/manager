@@ -10,6 +10,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from manager_core import api
+from manager_core.calibration.exploit import MAX_GAIN as EXPLOIT_LIMIT
 from manager_core.career.career import Career, Stop
 from manager_core.career.store import SaveError
 from manager_core.competition.calendar import CalendarDay
@@ -542,6 +543,12 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
         print(t("calibration.caution", on=f"{c.second_yellow_rate_on:.3f}",
                 off=f"{c.second_yellow_rate_off:.3f}", cost_on=f"{c.conceded_on:.3f}",
                 cost_off=f"{c.conceded_off:.3f}"))
+    if report.exploit is not None:
+        e = report.exploit
+        best, gain = e.best
+        print(t("calibration.exploit", best=best, gain=f"{gain:+.3f}",
+                limit=f"{EXPLOIT_LIMIT:.2f}", dominant=e.dominant or "–",
+                matches=e.matches_per_venue * 2))
     print(t("calibration.versions", core=report.core_version, python=report.python_version,
             model=report.model_version, hash=report.params_hash))
     if args.write is not None:

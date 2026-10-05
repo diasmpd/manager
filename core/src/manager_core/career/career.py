@@ -65,6 +65,8 @@ class Career:
     history: list[SeasonRecord] = field(default_factory=list)
     pending: Stop | None = None
     selection: Any = None  # spec 005: the user's confirmed Selection (career.selection module)
+    tactic: Any = None  # spec 006: the user's confirmed Tactic (tactics.model)
+    notices: list[str] = field(default_factory=list)  # for the owner, shown once; not saved
 
     @property
     def live_provider(self) -> QuickSimProvider:

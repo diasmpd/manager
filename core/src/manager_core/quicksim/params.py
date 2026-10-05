@@ -66,6 +66,7 @@ class State:
     protect: float
     man_up: float
     short_handed: float  # own shot rate lost per player of numerical disadvantage
+    goalless: float  # both sides push in a 0-0, growing to this by minute 90
 
 
 @dataclass(frozen=True, slots=True)

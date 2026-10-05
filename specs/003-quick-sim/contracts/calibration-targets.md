@@ -10,10 +10,10 @@ id = "goals_per_match"
 sample = "league"            # league | mineiro
 kind = "primary"             # primary (gate) | secondary (warning)
 unit = "per_match"           # per_match | per_side | ratio
-target = 2.50
-low = 2.30
-high = 2.70
-source = "Série A 2024 (2.45) e 2025 (2.55), matrizes de resultados (Wikipedia/CBF), contagem própria (720 jogos)"
+target = 2.48
+low = 2.28
+high = 2.68
+source = "Série A 2024 (2,44) e 2025 (2,52), contagem própria (760 jogos)"
 retrieved = 2026-10-02
 ```
 

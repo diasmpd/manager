@@ -31,26 +31,28 @@ MODEL = ROOT / "src" / "manager_core" / "reference" / "quicksim" / "model.toml"
 # (other seeds, 5x larger) is the out-of-sample check against overfitting.
 FAST = SampleSpec("fast", league_seasons=12, mineiro_seasons=12)
 SECONDARY_WEIGHT = 0.3
+# Anchors: the scoring mean drives the whole goal distribution, so it must not drift.
+ANCHORS = {"goals_per_match": 3.0}
 
 # (dotted parameter path, lower bound, upper bound)
 TUNABLE = [
     ("rates.shot", 0.03, 0.4),
-    ("time.trend_start", 0.6, 1.0),  # tempo rises within each half (bounds keep start <= end)
+    ("time.trend_start", 0.9, 1.0),  # tempo rises within each half; lower breaks the late
+    # chase (a trailing side must outscore a level one late, Lago et al.; test_quicksim_game_state)
     ("time.trend_end", 1.0, 1.6),
     ("time.second_half", 0.9, 1.4),
     ("strength.xg_median", 0.02, 0.3),
     ("home.shot", 1.0, 1.6),
     ("home.away_shot", 0.6, 1.0),
-    ("state.level", 0.0, 0.25),  # stays well below state.chase: trailing pushes harder
-    ("state.settled", 0.0, 0.15),  # higher freezes 2-0s (too many 2-goal games)
+    ("state.level", 0.0, 0.5),  # at most state.chase: trailing pushes at least as hard
+    ("state.settled", 0.0, 0.35),  # pulls blowouts back toward the middle totals
+    ("state.goalless", 0.0, 0.5),  # a 0-0 opens up (fewer goalless games)
     ("shootout.base", 0.6, 0.85),
     ("strength.attack", 0.02, 1.0),
     ("strength.control", 0.0, 1.0),
     ("strength.xg_attack", 0.0, 1.0),
     ("rates.yellow_per_foul", 0.05, 0.5),
     ("rates.direct_red_per_foul", 0.0005, 0.02),
-    ("caution.card", 0.05, 0.95),  # full ease-off; player strength scales it
-    ("caution.foul", 0.05, 0.95),
     ("rates.corner_per_shot", 0.05, 0.8),
     ("rates.own_goal_share", 0.005, 0.1),
 ]
@@ -68,12 +70,17 @@ def loss(values: dict[str, float]) -> float:
     total = 0.0
     for t in load_targets():
         half = (t.high - t.low) / 2
-        weight = 1.0 if t.primary else SECONDARY_WEIGHT
+        weight = (1.0 if t.primary else SECONDARY_WEIGHT) * ANCHORS.get(t.id, 1.0)
         total += weight * ((values[t.id] - t.target) / half) ** 2
     return total
 
 
 TUNING = FAST
+
+
+# The game-state ordering (late on, trailing and leading sides outscore a level side) is not in
+# the loss: on a few thousand matches its noise (SE ~0.05) lets the fit chase lucky seeds. It is
+# checked after the fit on a pooled 24,000-match sample (test_quicksim_late_chase).
 
 
 def evaluate(dataset: Dataset, provider: QuickSimProvider, params: ModelParams) -> float:

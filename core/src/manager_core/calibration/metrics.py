@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections import Counter
+from collections.abc import Iterable, Sequence
 
 from manager_core.calibration.samples import LeagueMatch
 from manager_core.competition.rules import load_ruleset
 from manager_core.competition.season import Season
 from manager_core.competition.seeds import sub_seed
 from manager_core.competition.standings import PlayedMatch, build_table
-from manager_core.quicksim.report import GOAL_KINDS, MatchReport
+from manager_core.quicksim.report import GOAL_KINDS, MatchReport, Minute
 
 FAVOURITE_SHARE = 3  # top 3 v bottom 3 of 12 (= top 5 v bottom 5 of 20)
 
@@ -116,3 +117,25 @@ def caution_check(matches: Sequence[LeagueMatch]) -> tuple[float, float]:
                 conceded += sum(1 for e in report.events if e.kind in GOAL_KINDS
                                 and e.side != side and e.minute > first)
     return _ratio(second, booked), _ratio(conceded, sides)
+
+
+def late_goal_rates(reports: Iterable[MatchReport]) -> dict[int, float]:
+    """Goals per side per minute after minute 75, by the side's goal difference at that minute
+    (-1 trailing, 0 level, +1 leading). Real football: late on, a side one goal down scores
+    more than a level side, and so does the side one goal up (Lago et al.)."""
+    minutes: Counter[int] = Counter()
+    goals: Counter[int] = Counter()
+    for report in reports:
+        timeline = [Minute(m) for m in range(76, 91)] + [
+            Minute(90, k) for k in range(1, report.stoppage[1] + 1)]
+        goal_events = [e for e in report.events if e.kind in GOAL_KINDS]
+        for minute in timeline:
+            before = [e for e in goal_events if e.minute < minute]
+            now = [e for e in goal_events if e.minute == minute]
+            for side in ("home", "away"):
+                diff = (sum(e.side == side for e in before)
+                        - sum(e.side != side for e in before))
+                if -1 <= diff <= 1:
+                    minutes[diff] += 1
+                    goals[diff] += sum(e.side == side for e in now)
+    return {d: goals[d] / minutes[d] for d in (-1, 0, 1)}
