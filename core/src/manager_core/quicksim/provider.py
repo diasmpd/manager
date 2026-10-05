@@ -8,6 +8,10 @@ from manager_core.competition.results import MatchContext, Result, Shootout
 from manager_core.domain.club import Club
 from manager_core.domain.dataset import Dataset
 from manager_core.domain.positions import Position
+from manager_core.positional.engine import LiveMatch
+from manager_core.positional.params import PositionalParams
+from manager_core.positional.params import load_params as load_positional_params
+from manager_core.positional.record import PositionalRecord
 from manager_core.quicksim.engine import simulate_match
 from manager_core.quicksim.params import ModelParams, load_params
 from manager_core.quicksim.report import keeper_at_end
@@ -47,6 +51,11 @@ class QuickSimProvider:
         self._overrides: dict[str, TeamSheet] = {}
         self._tactics: dict[str, Tactic] = {}
         self._styles: dict[str, str] | None = None
+        # spec 008: the user club's matches are played by the positional engine
+        self.positional_club: str | None = None
+        self.positional_params: PositionalParams = load_positional_params()
+        self.precomputed: dict[str, Result] = {}  # live matches finished by the user
+        self.records: dict[str, PositionalRecord] = {}  # their positional records
 
     def with_params(self, params: ModelParams) -> QuickSimProvider:
         """A provider with other parameters that shares this one's team sheets and styles."""
@@ -54,6 +63,8 @@ class QuickSimProvider:
         twin._sheets = self._sheets
         twin._styles = self._styles
         twin._tactics = dict(self._tactics)
+        twin.positional_club = self.positional_club
+        twin.positional_params = self.positional_params
         return twin
 
     def set_tactic(self, club_id: str, tactic: Tactic | None) -> None:
@@ -120,8 +131,25 @@ class QuickSimProvider:
             self._sheets[key] = repair_team_sheet(base, squad, out)
         return self._sheets[key]
 
+    def live_match(self, home: Club, away: Club, context: MatchContext, rng: random.Random,
+                   record: bool = True) -> LiveMatch:
+        """A positional match, built exactly as a background one would be (the same sheets,
+        tactics, venue and random stream), ready to be stepped."""
+        out = context.unavailable
+        home_sheet, away_sheet = self.team_sheet(home.id, out), self.team_sheet(away.id, out)
+        home_tactic, away_tactic = self.tactics_for(home_sheet, away_sheet, context.neutral)
+        return LiveMatch(home_sheet, away_sheet, self.dataset.players, self.positional_params,
+                         self.params, rng, context.neutral, home_tactic, away_tactic, record)
+
     def play(self, match_id: str, home: Club, away: Club, context: MatchContext,
              rng: random.Random) -> Result:
+        if match_id in self.precomputed:  # the user played it live
+            return self.precomputed.pop(match_id)
+        if self.positional_club is not None and self.positional_club in (home.id, away.id):
+            match = self.live_match(home, away, context, rng)
+            match.play()
+            self.records[match_id] = match.record()
+            return match.result()
         out = context.unavailable
         home_sheet, away_sheet = self.team_sheet(home.id, out), self.team_sheet(away.id, out)
         home_tactic, away_tactic = self.tactics_for(home_sheet, away_sheet, context.neutral)

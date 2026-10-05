@@ -11,7 +11,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from manager_core.calibration import harness
 from manager_core.calibration.harness import CalibrationReport
@@ -48,8 +48,9 @@ from manager_core.io import reader, writer
 from manager_core.io.reader import LoadResult
 from manager_core.io.validate import ValidationReport
 from manager_core.io.writer import ExportSummary
+from manager_core.positional.engine import Decision, LiveMatch
 from manager_core.quicksim.provider import QuickSimProvider
-from manager_core.quicksim.report import MatchReport
+from manager_core.quicksim.report import MatchReport, Minute, SideStats
 from manager_core.ratings import lineup
 from manager_core.ratings.ability import best_position, current_ability, is_goalkeeper
 from manager_core.ratings.lineup import Lineup
@@ -687,6 +688,7 @@ def apply_selection(career: Career) -> None:
     career.live_provider.override(
         career.user_club_id,
         None if sel is None else selection_mod.to_team_sheet(career, sel))
+    career.live_provider.positional_club = career.user_club_id if career.positional else None
     # the user's club always plays the user's tactic (the default until one is confirmed),
     # never an AI style
     career.live_provider.set_tactic(career.user_club_id, current_tactic(career))
@@ -792,6 +794,146 @@ def confirm_tactic(career: Career, tactic: Tactic) -> None:
         raise TacticError(issues)
     career.tactic = dataclasses.replace(tactic, style=None)
     apply_selection(career)
+
+
+# ---- live matches (spec 008) -----------------------------------------------------------------
+
+
+class LiveMatchError(ValueError):
+    """A live-match action refused by the rules (data-model.md), with a code."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+        self.message = t(f"live.{code}")
+
+
+@dataclass
+class LiveSession:
+    match_id: str
+    match: LiveMatch
+    user_side: str
+
+
+@dataclass(frozen=True, slots=True)
+class LivePlayer:
+    player_id: str
+    name: str
+    slot: int
+    position: str
+    energy: float
+    yellow: bool
+
+
+@dataclass(frozen=True, slots=True)
+class LiveState:
+    minute: Minute
+    half: int
+    score: tuple[int, int]
+    home: SideStats
+    away: SideStats
+    on_pitch: tuple[LivePlayer, ...]
+    bench: tuple[LivePlayer, ...]
+    subs_left: int
+    windows_left: int
+    at_half_time: bool
+    finished: bool
+    tactic: Tactic
+
+
+def start_live_match(career: Career) -> LiveSession:
+    """The user's pending match, ready to be played live: built exactly as the match day would
+    build it (the same sheets, tactics, venue and random stream)."""
+    pending = career.pending
+    if pending is None or pending.kind != career_mod.USER_MATCH or pending.match_id is None:
+        raise LiveMatchError("no_match")
+    season = career.season
+    m = season.matches[pending.match_id]
+    match = career.live_provider.live_match(
+        season.dataset.club(m.home_id), season.dataset.club(m.away_id),
+        season.match_context(m.id), season.match_rng(m.id))
+    side = "home" if m.home_id == career.user_club_id else "away"
+    return LiveSession(m.id, match, side)
+
+
+def live_state(career: Career, session: LiveSession) -> LiveState:
+    match = session.match
+    report = match.report()
+    team = match.teams[session.user_side]
+    names = career.season.dataset.players
+
+    def player(body: Any) -> LivePlayer:
+        return LivePlayer(body.pid, names[body.pid].display_name, body.slot,
+                          body.position.value, round(body.energy, 3), body.yellow)
+
+    bench = tuple(LivePlayer(pid, names[pid].display_name, -1, "", 1.0, False)
+                  for pid in team.bench)
+    max_subs = match.q.subs.max
+    return LiveState(match.minute(), match.half, (report.home.goals, report.away.goals),
+                     report.home, report.away,
+                     tuple(player(b) for b in team.on_pitch()), bench,
+                     max(0, max_subs - team.subs), max(0, 3 - team.windows),
+                     match.at_half_time(), match.finished, team.tactic)
+
+
+def live_feed(career: Career, session: LiveSession) -> list[FeedLine]:
+    match = session.match
+    return views.report_feed(career.season, session.match_id, match.report(),
+                             second_half=match.half == 2 or match.finished,
+                             finished=match.finished)
+
+
+def live_advance(session: LiveSession, seconds: float) -> None:
+    session.match.advance(max(0.0, seconds))
+
+
+def live_substitute(session: LiveSession, off: str, on: str) -> None:
+    """A substitution from this moment, within the rules: 5 changes, 3 windows (half-time
+    free), the player off on the pitch, the player on unused on the bench."""
+    match = session.match
+    team = match.teams[session.user_side]
+    if match.finished:
+        raise LiveMatchError("finished")
+    if team.subs >= match.q.subs.max:
+        raise LiveMatchError("sub_limit")
+    new_window = not match.at_half_time() and match._last_window[session.user_side] != match.t
+    if new_window and team.windows >= 3:
+        raise LiveMatchError("sub_window")
+    if match.sent_off(off):
+        raise LiveMatchError("sent_off")
+    if all(b.pid != off for b in team.on_pitch()):
+        raise LiveMatchError("not_on_pitch")
+    if on not in team.bench:
+        raise LiveMatchError("not_on_bench")
+    match.apply(Decision(match.t, session.user_side, "substitution", off=off, on=on))
+    match.advance(0.0)  # apply it now, so the state shows it
+
+
+def live_tactic(career: Career, session: LiveSession, tactic: Tactic) -> None:
+    """A tactic from this moment. The in-possession formation stays the selection's (the
+    players hold their slots); everything else may change."""
+    match = session.match
+    team = match.teams[session.user_side]
+    if match.finished:
+        raise LiveMatchError("finished")
+    if tactic.ip_formation != team.sheet.formation.name:
+        raise LiveMatchError("formation_change")
+    issues = validate_tactic(career, tactic)
+    if issues:
+        raise TacticError(issues)
+    match.apply(Decision(match.t, session.user_side, "tactic",
+                         tactic=dataclasses.replace(tactic, style=None)))
+    match.advance(0.0)
+
+
+def finish_live_match(career: Career, session: LiveSession, saves: Path) -> Stop:
+    """Play the rest of the match, commit it, and continue the match day to the next stop."""
+    match = session.match
+    match.play()
+    provider = career.live_provider
+    provider.precomputed[session.match_id] = match.result()
+    provider.records[session.match_id] = match.record()
+    return continue_career(career, saves)
 
 
 # ---- views for clients (spec 005) ------------------------------------------------------------

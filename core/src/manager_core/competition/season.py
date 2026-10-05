@@ -203,16 +203,26 @@ class Season:
                          if m.kickoff.date() == day and m.id not in self.results),
                         key=lambda m: (m.kickoff, m.id))
         for m in todays:
-            rng = random.Random(sub_seed(self.seed, f"match:{m.id}"))
-            ctx = self._context(m)
-            if self.discipline is not None:
-                ctx = dataclasses.replace(ctx, unavailable=self.discipline.unavailable(m))
+            rng = self.match_rng(m.id)
+            ctx = self.match_context(m.id)
             self.results[m.id] = self.provider.play(
                 m.id, self.dataset.club(m.home_id), self.dataset.club(m.away_id), ctx, rng)
             if self.discipline is not None:
                 self.discipline.record(m, self.results[m.id])
             if m.tie_id is not None:
                 self._maybe_resolve_tie(m.tie_id)
+
+    def match_rng(self, match_id: str) -> random.Random:
+        """The match's own random stream (the same for live and background play)."""
+        return random.Random(sub_seed(self.seed, f"match:{match_id}"))
+
+    def match_context(self, match_id: str) -> MatchContext:
+        """The match's context: venue and the clubs' suspended players on its day."""
+        match = self.matches[match_id]
+        ctx = self._context(match)
+        if self.discipline is not None:
+            ctx = dataclasses.replace(ctx, unavailable=self.discipline.unavailable(match))
+        return ctx
 
     def _context(self, match: Match) -> MatchContext:
         stage = self.ruleset.stage(match.stage_id)

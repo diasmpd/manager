@@ -14,7 +14,7 @@ from manager_core.quicksim.params import load_params
 from manager_core.server.encode import selection_from_json, tactic_from_json, to_json
 from manager_core.server.protocol import Handler, Params, RpcError, Session, param
 
-CONTRACT = "1.1"  # 1.1: tactic.set_role
+CONTRACT = "1.2"  # 1.1: tactic.set_role; 1.2: live matches (spec 008)
 NEWS_ON_HOME = 5
 
 
@@ -65,6 +65,8 @@ def map_errors(exc: Exception) -> RpcError | None:
         return RpcError("SELECTION", t("server.selection",
                                        problems=", ".join(i.code for i in exc.issues)),
                         {"issues": exc.issues})
+    if isinstance(exc, api.LiveMatchError):
+        return RpcError("MATCH", exc.message, {"match_code": exc.code})
     if isinstance(exc, api.TacticError):
         return RpcError("TACTIC", t("server.tactic",
                                     problems=", ".join(f"{i.code} {i.path}" for i in exc.issues)),
@@ -130,6 +132,8 @@ def career_status(s: Session, p: Params) -> Any:
 
 def career_continue(s: Session, p: Params) -> Any:
     career = _career(s)
+    s.state.pop("live", None)
+    s.state.pop("live_sent", None)
     if not param(p, "to_season_end", bool, False):
         return api.continue_career(career, _config(s).saves)
     while True:  # stop by stop, so the client sees progress (research R3)
@@ -235,6 +239,63 @@ def tactic_confirm(s: Session, p: Params) -> Any:
     return {}
 
 
+# ---- live matches (spec 008) ------------------------------------------------------------------
+
+
+def _live(s: Session) -> api.LiveSession:
+    session = s.state.get("live")
+    if session is None:
+        raise RpcError("MATCH", t("live.no_session"), {"match_code": "no_session"})
+    assert isinstance(session, api.LiveSession)
+    return session
+
+
+def _live_view(s: Session) -> Any:
+    career, session = _career(s), _live(s)
+    feed = api.live_feed(career, session)
+    sent = int(s.state.get("live_sent", 0))
+    s.state["live_sent"] = len(feed)
+    return {"feed": feed[sent:], "state": api.live_state(career, session),
+            "finished": session.match.finished}
+
+
+def match_start(s: Session, p: Params) -> Any:
+    career = _career(s)
+    session = api.start_live_match(career)
+    s.state["live"] = session
+    s.state["live_sent"] = 0
+    return {"match": api.match_view(career.season, session.match_id), "side": session.user_side,
+            **_live_view(s)}
+
+
+def match_advance(s: Session, p: Params) -> Any:
+    seconds = param(p, "seconds", (int, float))
+    api.live_advance(_live(s), float(seconds))
+    return _live_view(s)
+
+
+def match_state(s: Session, p: Params) -> Any:
+    return api.live_state(_career(s), _live(s))
+
+
+def match_substitute(s: Session, p: Params) -> Any:
+    api.live_substitute(_live(s), param(p, "off", str), param(p, "on", str))
+    return api.live_state(_career(s), _live(s))
+
+
+def match_tactic(s: Session, p: Params) -> Any:
+    api.live_tactic(_career(s), _live(s), tactic_from_json(param(p, "tactic", dict)))
+    return api.live_state(_career(s), _live(s))
+
+
+def match_finish(s: Session, p: Params) -> Any:
+    career, session = _career(s), _live(s)
+    stop = api.finish_live_match(career, session, _config(s).saves)
+    s.state.pop("live", None)
+    s.state.pop("live_sent", None)
+    return {"stop": stop, "match_id": session.match_id}
+
+
 # ---- views -----------------------------------------------------------------------------------
 
 
@@ -310,6 +371,9 @@ METHODS: dict[str, Handler] = {
     "tactic.roles": tactic_roles, "tactic.suitability": tactic_suitability,
     "tactic.set_role": tactic_set_role,
     "tactic.validate": tactic_validate, "tactic.confirm": tactic_confirm,
+    "match.start": match_start, "match.advance": match_advance, "match.state": match_state,
+    "match.substitute": match_substitute, "match.tactic": match_tactic,
+    "match.finish": match_finish,
     "view.home": view_home, "view.squad": view_squad, "view.player": view_player,
     "view.table": view_table, "view.groups": view_groups, "view.fixtures": view_fixtures,
     "view.calendar": view_calendar, "view.news": view_news, "view.match": view_match,

@@ -31,10 +31,17 @@ class FeedLine:
 
 def match_feed(season: Season, match_id: str) -> list[FeedLine]:
     """The report's events as a commentary feed with the running score (presentation only)."""
-    match = season.matches[match_id]
     report = season.results[match_id].report
     if report is None:
         return []
+    return report_feed(season, match_id, report)
+
+
+def report_feed(season: Season, match_id: str, report: MatchReport, second_half: bool = True,
+                finished: bool = True) -> list[FeedLine]:
+    """The feed of a report, also of a match in progress: the half-time line once the second
+    half has begun, the full-time line once it is over."""
+    match = season.matches[match_id]
     names = _names(season, report)
     clubs = {"home": season.club_name(match.home_id), "away": season.club_name(match.away_id)}
     score = [0, 0]
@@ -52,11 +59,12 @@ def match_feed(season: Season, match_id: str) -> list[FeedLine]:
                   "score": f"{score[0]} x {score[1]}"}
         key = f"feed.{e.kind}" + ("_assist" if e.kind == "goal" and e.other_player_id else "")
         lines.append(FeedLine(e.minute, e.kind, t(key, **params), (score[0], score[1])))
-    if not half_time_done:
+    if not half_time_done and second_half:
         lines.append(_half_time(report, clubs, score))
-    lines.append(FeedLine(Minute(90, report.stoppage[1]), "full_time",
-                          t("feed.full_time", home=clubs["home"], away=clubs["away"],
-                            score=f"{score[0]} x {score[1]}"), (score[0], score[1])))
+    if finished:
+        lines.append(FeedLine(Minute(90, report.stoppage[1]), "full_time",
+                              t("feed.full_time", home=clubs["home"], away=clubs["away"],
+                                score=f"{score[0]} x {score[1]}"), (score[0], score[1])))
     return lines
 
 

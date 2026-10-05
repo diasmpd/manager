@@ -25,7 +25,6 @@ from manager_core.quicksim.params import ModelParams
 from manager_core.quicksim.ratings import POSITION_GROUP, Group, discipline_score
 from manager_core.quicksim.report import (
     AWAY,
-    HALF_TIME,
     HOME,
     MatchEvent,
     MatchReport,
@@ -169,6 +168,8 @@ class LiveMatch:
         self.ps = dict(params["shape"])
         self.px = dict(params["xg"])
         self.pdu = dict(params["duel"])
+        edge = 0.0 if neutral else params["home"]["edge"]
+        self.edge = {HOME: edge, AWAY: -edge}
         self.rng = rng
         self.neutral = neutral
         self.players = players
@@ -198,7 +199,10 @@ class LiveMatch:
         self.dead_until = 0.0  # a dead ball: the clock runs, nobody plays (restarts, goals)
         self.pr = dict(params["restarts"])
         self._steps = 0
+        self.passes = 0  # attempted passes (realism diagnostics and the tuner)
+        self.passes_completed = 0
         self._last_toucher: Body | None = None
+        self._last_window: dict[str, float] = {HOME: -1.0, AWAY: -1.0}
         self._windows_plan = {s: self._plan_subs() for s in (HOME, AWAY)}
         self._kickoff(HOME)
 
@@ -274,9 +278,17 @@ class LiveMatch:
             return HALF_S + self.stoppage[0] * 60
         return 2 * HALF_S + (self.stoppage[0] + self.stoppage[1]) * 60
 
+    def at_half_time(self) -> bool:
+        """Paused at the end of the first half (before the second half's kick-off)."""
+        return self.half == 1 and self.t >= self._half_end()
+
+    def sent_off(self, pid: str) -> bool:
+        return any(e.player_id == pid and e.kind in ("red", "second_yellow") for e in self.events)
+
     def apply(self, decision: Decision) -> None:
-        """Queue a user decision; it acts from the current moment (the pause)."""
-        self._pending.append(decision)
+        """A user decision, acting from the current moment (the pause): applied at once, before
+        the next step, so a replay that applies it at the same match time is identical."""
+        self._apply(decision)
 
     def advance(self, seconds: float) -> None:
         """Play up to `seconds` of match time (or to full time)."""
@@ -373,6 +385,13 @@ class LiveMatch:
             offset = self._line_offset(team)
             width = self._width(team, phase)
             onside = self.offside_line(team.side) - 0.5 if in_possession else pitch.LENGTH
+            # out of possession the lines close up towards the defensive line (a compact block)
+            back = min(
+                (self._slot_uv(team, b, phase)[0] for b in team.on_pitch()
+                 if b.group is not Group.GOALKEEPER),
+                default=25.0,
+            )
+            compact = 1.0 if in_possession else s["oop_compact"]
             for body in team.on_pitch():
                 if body is owner:
                     continue
@@ -381,6 +400,7 @@ class LiveMatch:
                     tu = min(18.0, 4.0 + max(0.0, bu - 40) * 0.12)
                     tv = pitch.CENTRE_V + (bv - pitch.CENTRE_V) * 0.2
                 else:
+                    u = back + (u - back) * compact
                     tu = u + (bu - 52.5) * push + offset
                     if in_possession and body.group in (Group.FORWARD, Group.ATTACKING_MID):
                         tu = max(tu, bu - 5)
@@ -400,6 +420,8 @@ class LiveMatch:
         if pitch.LENGTH - own_u > engage:
             return
         pressers = 2 if team.tactic.setting("trigger_press") == "more_often" else 1
+        if cu <= pitch.BOX_DEPTH + 4:  # the carrier is at our box (our view): converge
+            pressers = int(self.ps["box_pressers"])
         candidates = sorted(
             (b for b in team.on_pitch() if b.group is not Group.GOALKEEPER),
             key=lambda b: (math.hypot(b.x - carrier.x, b.y - carrier.y), b.pid),
@@ -600,10 +622,16 @@ class LiveMatch:
             )
             value *= d["pass_bias"] * (1 + 0.04 * directness * (mu - u) / 10)
             options.append((value, "pass", (mate, p_ok)))
-        # dribble on
-        beat = self._beat_chance(carrier, opp)
+        # carry into space, or take on the defender in front
         forward = self._threat(min(pitch.LENGTH - 1, u + 8), v)
-        options.append((beat * forward * d["dribble_bias"] * (1 + 0.04 * risk), "dribble", beat))
+        blocker = self._blocked(carrier)
+        if blocker is None:
+            options.append((0.95 * forward * d["carry_bias"], "dribble", 0.95))
+        else:
+            beat = self._beat_chance(carrier, opp, blocker)
+            options.append(
+                (beat * forward * d["dribble_bias"] * (1 + 0.04 * risk), "dribble", beat)
+            )
         # cross from wide in the final third
         if u > 75 and abs(v - pitch.CENTRE_V) > 18:
             value = 0.35 * self.p["set_pieces"]["corner_header_xg"] * 2 * d["cross_bias"]
@@ -634,7 +662,9 @@ class LiveMatch:
             return
         if self.rng.random() < self._beat_chance(carrier, opp, blocker):
             u, v = self.rel(carrier.side, carrier.x, carrier.y)
-            past_u, past_v = pitch.clamp_point(u + 3.5, v + self.rng.choice((-1.5, 1.5)))
+            past_u, past_v = pitch.clamp_point(
+                u + self.pdu["beat_advance"], v + self.rng.choice((-1.5, 1.5))
+            )
             carrier.x, carrier.y = self.absolute(carrier.side, past_u, past_v)
             bu, bv = self.rel(carrier.side, blocker.x, blocker.y)
             blocker.x, blocker.y = self.absolute(carrier.side, *pitch.clamp_point(bu - 1.5, bv))
@@ -705,7 +735,8 @@ class LiveMatch:
             1
             for b in opp.on_pitch()
             if b.group is not Group.GOALKEEPER
-            and pitch.point_segment_distance((b.x, b.y), (carrier.x, carrier.y), goal) < 1.2
+            and pitch.point_segment_distance((b.x, b.y), (carrier.x, carrier.y), goal)
+            < self.px["block_lane"]
         )
 
     def _crowd(self, mate: Body, opp: Team) -> int:
@@ -727,7 +758,7 @@ class LiveMatch:
         skill = (
             2 * carrier.attr("passing") + carrier.attr("vision") + carrier.attr("technique")
         ) / 80
-        base = 0.97 - dist * 0.006 * (1.4 - skill) - pressure * 0.12
+        base = 0.97 - dist * 0.006 * (1.4 - skill) - pressure * d["pressure_pass"]
         lane = 0
         for b in opp.on_pitch():
             if (
@@ -735,8 +766,9 @@ class LiveMatch:
                 < d["intercept_radius"]
             ):
                 lane += 1
-        base *= 0.78**lane
+        base *= d["lane_pass"] ** lane
         base *= self.pd["crowd_pass"] ** crowd
+        base *= 1 + self.edge[carrier.side]
         return max(0.05, min(0.98, base))
 
     def _beat_chance(self, carrier: Body, opp: Team, nearest: Body | None = None) -> float:
@@ -746,7 +778,8 @@ class LiveMatch:
             return 0.95
         attack = (carrier.attr("dribbling") + carrier.attr("agility") + carrier.attr("pace")) / 3
         defend = (nearest.attr("tackling") + nearest.attr("positioning") + nearest.attr("pace")) / 3
-        return max(0.15, min(0.85, 0.5 + self.p["duel"]["dribble_skill"] * (attack - defend)))
+        chance = 0.5 + self.pdu["dribble_skill"] * (attack - defend) + self.edge[carrier.side]
+        return max(0.15, min(0.85, chance))
 
     # ---- actions ---------------------------------------------------------------------------------
 
@@ -755,7 +788,9 @@ class LiveMatch:
         dist = math.hypot(mate.x - carrier.x, mate.y - carrier.y)
         if dist > 25:
             speed = self.p["movement"]["ball_speed_long"]
+        self.passes += 1
         if self.rng.random() < p_ok:
+            self.passes_completed += 1
             self.ball.passer = carrier
             self._launch(mate.x, mate.y, speed, "receive", mate)
             return
@@ -824,7 +859,8 @@ class LiveMatch:
             value
             / on_target
             * (1 + 0.02 * (finishing - 10))
-            * (1 - k["save_skill"] * (keeper_skill - 10)),
+            * (1 - k["save_skill"] * (keeper_skill - 10))
+            * (1 + self.edge[shooter.side]),
         )
         if self.rng.random() < score:
             self._goal(shooter, value)
@@ -927,7 +963,7 @@ class LiveMatch:
             keep = (
                 carrier.attr("dribbling") + carrier.attr("balance") + carrier.attr("strength")
             ) / 3
-            win = du["tackle_base"] + du["dribble_skill"] * (tackle - keep)
+            win = du["tackle_base"] + du["dribble_skill"] * (tackle - keep) + self.edge[body.side]
             win *= 0.8 + 0.4 * body.energy
             win *= {"ease_off": 0.85, "standard": 1.0, "aggressive": 1.12}.get(
                 opp.tactic.setting("tackling"), 1.0
@@ -1140,7 +1176,10 @@ class LiveMatch:
         if decision.kind == "substitution" and decision.off and decision.on:
             out = next(b for b in team.on_pitch() if b.pid == decision.off)
             self._swap(team, out, decision.on)
-            team.windows += 1 if self.minute().base != HALF_TIME else 0
+            # one window per stoppage; changes at half-time use none (IFAB)
+            if not self.at_half_time() and self._last_window[decision.side] != decision.at:
+                team.windows += 1
+                self._last_window[decision.side] = decision.at
         elif decision.kind == "tactic" and decision.tactic is not None:
             team.tactic = decision.tactic
 

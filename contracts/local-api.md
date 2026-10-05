@@ -1,4 +1,4 @@
-# Contract: Local API, version 1.1
+# Contract: Local API, version 1.2
 
 The client starts the core as a child process:
 
@@ -50,7 +50,7 @@ Both sides then exchange **one JSON object per line**, UTF-8, over the child's s
 The client refuses to run on a different major version (spec FR-005).
 
 History: 1.0 (spec 007); 1.1 adds `tactic.set_role` (the role-change rule moved from the clients
-into the core).
+into the core); 1.2 adds the live-match methods (spec 008).
 
 **Packaging note**: the server finds the repo (saves, sample data) from its source location
 (`server/__main__.py`, `parents[4]`), so it runs from a source checkout. An installed package
@@ -104,6 +104,23 @@ will need `--saves` and `--data` passed explicitly; revisit when the game is pac
 | `tactic.validate` | `tactic` | `[TacticIssue]` | `validate_tactic` |
 | `tactic.confirm` | `tactic` | `{}` | `confirm_tactic` (issues → `TACTIC`, `data.issues`) |
 
+### Live matches (since 1.2, spec 008)
+
+The client drives the clock: it calls `match.advance` at its chosen speed, and pausing is not
+calling it. The assistant handles the user's substitutions until his first decision.
+
+| Method | Params | → | Notes |
+|---|---|---|---|
+| `match.start` | — | `{match, side, feed, state, finished}` | The pending user match (stop `user_match`), built exactly as the match day would build it. |
+| `match.advance` | `seconds` | `{feed, state, finished}` | `feed` holds only the lines not sent before. |
+| `match.state` | — | `LiveState` | Minute, half, score, stats so far, players on the pitch (energy, yellow), bench, substitutions and windows left, at half-time, the current tactic. |
+| `match.substitute` | `off, on` | `LiveState` | From now on. Errors `MATCH` with `match_code`: `sub_limit`, `sub_window`, `sent_off`, `not_on_pitch`, `not_on_bench`, `finished`. |
+| `match.tactic` | `tactic` | `LiveState` | From now on; the in-possession formation stays the selection's (`formation_change`); 006 validation (`TACTIC`). |
+| `match.finish` | — | `{stop, match_id}` | Plays to full time, commits the result, continues the match day; the next stop. |
+
+A live match is never saved half-played: `career.continue` or closing drops it, and the career
+resumes before that match day.
+
 ### Views
 
 | Method | Params | → | Facade |
@@ -127,6 +144,7 @@ will need `--saves` and `--data` passed explicitly; revisit when the game is pac
 | `TACTIC` | `TacticError` | `issues: [TacticIssue]` (T001–T005) |
 | `SAVE` | `SaveError` | `save_code` (V001–V003, name codes) |
 | `NOT_FOUND` | `NotFoundError` | `kind, id` |
+| `MATCH` | `LiveMatchError` | `match_code` |
 
 ## Guarantees
 

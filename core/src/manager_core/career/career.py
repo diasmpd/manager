@@ -67,6 +67,7 @@ class Career:
     selection: Any = None  # spec 005: the user's confirmed Selection (career.selection module)
     tactic: Any = None  # spec 006: the user's confirmed Tactic (tactics.model)
     notices: list[str] = field(default_factory=list)  # for the owner, shown once; not saved
+    positional: bool = True  # spec 008: the user club's matches use the positional engine
 
     @property
     def live_provider(self) -> QuickSimProvider:
