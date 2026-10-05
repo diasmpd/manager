@@ -39,12 +39,26 @@ python -m manager_core season --career minha table      # any season view, on th
 python -m manager_core career history minha             # past seasons
 ```
 
-Checks: `cd core; ruff check .; mypy; pytest -q`. Validation guides:
+Checks: `cd core; ruff check .; mypy; pytest -q`; the desktop client:
+`.\tools\godot\godot_console.exe --headless --path client -s res://tests/run_tests.gd`. Validation guides:
 [001](specs/001-core-domain-model/quickstart.md),
 [002](specs/002-competitions-calendar/quickstart.md),
 [003](specs/003-quick-sim/quickstart.md),
 [004](specs/004-career-save/quickstart.md),
 [006](specs/006-tactics/quickstart.md).
+
+## Play (desktop window, spec 007)
+
+```powershell
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
+pip install -e "core[dev]"
+.\tools\setup_client.ps1        # once: portable Godot 4.7.2 (checked) + a "Manager" desktop shortcut
+```
+
+Double-click **Manager** on the desktop. Open or create a career; **Continuar** (or Space)
+advances, **X** opens the tactics, **Esc** goes back. Closing the window saves. Guide:
+[specs/007-godot-client/quickstart.md](specs/007-godot-client/quickstart.md). The window talks to
+the Python core through the versioned local API ([contracts/local-api.md](contracts/local-api.md)).
 
 ## Play (terminal)
 

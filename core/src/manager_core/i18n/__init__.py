@@ -16,3 +16,9 @@ def t(key: str, **params: object) -> str:
 
 def has(key: str) -> bool:
     return key in _CATALOGUES[_locale]
+
+
+def strings(prefix: str) -> dict[str, str]:
+    """Every raw string whose key starts with `prefix` (for clients that draw their own labels,
+    such as the Godot client's `hello`)."""
+    return {k: v for k, v in _CATALOGUES[_locale].items() if k.startswith(prefix)}
