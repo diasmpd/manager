@@ -62,6 +62,33 @@ func test_player_profile(t) -> void:
 	t.check(main.current_name == "squad", "back to the squad")
 
 
+func test_group_tables(t) -> void:
+	await main.show_screen("tables")
+	var screen = main.current
+	t.check(screen._choice.item_count > 1, "groups offered")
+	screen._choice.select(1)
+	await screen._load_table()
+	t.check(screen._table.get_root().get_child_count() >= 3, "a group table drawn")
+
+
+func test_selection_controls(t) -> void:
+	await main.show_screen("selection")
+	var screen = main.current
+	var before: Array = screen._selection["starters"].duplicate(true)
+	UI.select_key(screen._xi, int(before[-1][0]))
+	var bench_player: String = screen._selection["bench"][0]
+	UI.select_key(screen._others, bench_player)
+	await screen._swap()
+	var after: Array = screen._selection["starters"]
+	t.check(after.any(func(pair): return pair[1] == bench_player), "the bench player starts")
+	var other: int = screen._formations.find("4-3-3")
+	await screen._change_formation(other)
+	t.check(screen._selection["formation"] == "4-3-3", "formation changed")
+	t.check(screen._xi.get_root().get_child_count() == 11, "still eleven")
+	await screen._assistant()
+	t.check(screen._selection["starters"].size() == 11, "assistant proposal")
+
+
 func test_play_to_the_first_match_and_watch_it(t) -> void:
 	await main.show_screen("home")
 	var reached := false
@@ -83,6 +110,9 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	t.check(shown, "the match day is shown")
 	await _wait(t, func(): return main.current._stats != null)
 	var day = main.current
+	day._set_speed(3)
+	var some: bool = await _wait(t, func(): return day._shown > 3, 20.0)
+	t.check(some, "the feed advances at speed 3")
 	day._finish()
 	t.check(day._feed.get_parsed_text().length() > 50, "the feed was written")
 	t.check(day._stats.visible, "the stats are shown")

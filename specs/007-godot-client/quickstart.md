@@ -56,14 +56,14 @@ checked through the core contract tests, but not driven through the window by a 
 
 - ✅ Home: date, club, next match, position, latest news
 - ✅ Continuar to the next stop; ☑ season end, then the next season
-- ✅ Team selection: XI on the formation, bench and squad, confirm; ☑ swap, formation,
-  assistant, refusal of a suspended player, no-goalkeeper warning
+- ✅ Team selection: XI on the formation, bench and squad, swap, formation, assistant,
+  confirm; ☑ refusal of a suspended player, no-goalkeeper warning
 - ✅ Tactics: mentality change and confirm; ☑ OOP formation, instructions by phase, IP and
   OOP roles with suitability, player instructions with locks, set-piece takers and setups,
   reset, notice of lost choices after a formation change
-- ✅ Match day: the feed, then the stats; ☑ the speeds and skip
+- ✅ Match day: the feed at a chosen speed, skip, then the stats
 - ✅ Squad, and a player profile
-- ✅ Tables (overall) ☑ (groups) and fixtures
+- ✅ Tables (overall and groups) and fixtures
 - ✅ Calendar by month
 - ✅ News
 - ☑ Save on quit; reopen and resume (the core saves on `shutdown`, tested in the contract)
