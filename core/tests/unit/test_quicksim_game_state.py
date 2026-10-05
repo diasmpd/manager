@@ -8,13 +8,14 @@ from pathlib import Path
 import pytest
 
 from manager_core import api
+from manager_core.calibration.metrics import late_goal_rates
 from manager_core.competition.results import Result
 from manager_core.domain.positions import Position
 from manager_core.quicksim.engine import _Side, simulate_match
 from manager_core.quicksim.params import load_params
 from manager_core.quicksim.provider import QuickSimProvider
 from manager_core.quicksim.ratings import player_composites
-from manager_core.quicksim.report import GOAL_KINDS, MatchReport, Minute
+from manager_core.quicksim.report import GOAL_KINDS, MatchReport
 
 SAMPLE = Path(__file__).resolve().parents[3] / "data" / "sample"
 MIDTABLE = ["ferroviario", "mineracao", "pedra-branca", "rio-turvo", "uniao-operaria"]
@@ -50,24 +51,7 @@ def test_goals_by_period(matches: list[tuple[Result, MatchReport]]) -> None:
 
 
 def _late_goal_rates(matches: list[tuple[Result, MatchReport]]) -> dict[int, float]:
-    """Goals per side per minute after minute 75, by the side's goal difference at that
-    minute (-1 trailing, 0 level, +1 leading)."""
-    minutes: Counter[int] = Counter()
-    goals: Counter[int] = Counter()
-    for _, report in matches:
-        timeline = [Minute(m) for m in range(76, 91)] + [
-            Minute(90, k) for k in range(1, report.stoppage[1] + 1)]
-        goal_events = [e for e in report.events if e.kind in GOAL_KINDS]
-        for minute in timeline:
-            before = [e for e in goal_events if e.minute < minute]
-            now = [e for e in goal_events if e.minute == minute]
-            for side in ("home", "away"):
-                diff = (sum(e.side == side for e in before)
-                        - sum(e.side != side for e in before))
-                if -1 <= diff <= 1:
-                    minutes[diff] += 1
-                    goals[diff] += sum(e.side == side for e in now)
-    return {d: goals[d] / minutes[d] for d in (-1, 0, 1)}
+    return late_goal_rates(report for _, report in matches)
 
 
 def test_trailing_side_pushes_and_is_exposed(provider: QuickSimProvider) -> None:

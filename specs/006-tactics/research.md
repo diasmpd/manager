@@ -144,9 +144,10 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
   and both depend on the score, not only the minute, so they do not just add late goals:
   - `state.goalless`: in a 0-0 game both sides push harder, growing to the full value by
     minute 90. The result is fewer 0-0s.
-  - `state.managed`: once a match has 3 or more goals, both sides slow down by this share (game
-    management). This is negative feedback: fewer 5+ games, more matches that stop at three,
-    and no rise in the late-goal share.
+  - `state.managed`: once a match has 3 or more goals, a side that is level or ahead slows down
+    by this share (game management). A trailing side keeps chasing. This is negative feedback:
+    fewer 5+ games, more matches that stop at three, and no rise in the late-goal share. It
+    first applied to both sides, which blunted the chase in a 2-1.
 
   Paired-seed tests check these directions. In the managed test, results are identical until a
   third goal.
@@ -158,6 +159,17 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
   - **Booked-player caution is pinned.** `caution.foul` = 0.347 and `caution.card` = 0.2 are the
     model 1.1 values, the owner-decided 003 behaviour. They are no longer tuned: the earlier
     refits had pushed them to near full ease-off (0.069 and 0.070) to fit goal targets.
+  - **Game-state ordering is a hard constraint (peer review).** Spec 003's behaviour test needs
+    late goal rates to rank trailing > level and leading > level (Lago et al.). Commit 06f9464
+    shipped with that test failing (trailing/level 0.93; it needs more than 1.08). The causes:
+    - the goalless push lifts the level 0-0 baseline;
+    - `managed`, when it applied to both sides, damped the chasing side;
+    - `trend_start` 0.94 → 0.80 steepened the tempo within each half.
+
+    The tuner now measures the ordering on 3,000 fixed-seed mirrored matches in every evaluation.
+    It adds a penalty of 100 × the shortfall below 1.10 (trailing/level) and 1.02
+    (leading/level). `trend_start` is bounded at 0.9 or above, which the late-goal share also
+    needs.
   - **Refit settings.** The goals-per-match target is weighted 3× in the loss, so the mean
     cannot drift low.
 - **Refit result (model 1.2).** RESULT-PENDING
