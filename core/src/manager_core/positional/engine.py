@@ -198,10 +198,13 @@ class LiveMatch:
         self._duel_clock = 0.0
         self._challenged: dict[str, float] = {}  # player id -> time of his last challenge
         self.dead_until = 0.0  # a dead ball: the clock runs, nobody plays (restarts, goals)
-        self.pr = dict(params["restarts"])
+        restarts = dict(params["restarts"])
+        scale = restarts.pop("scale", 1.0)  # one factor on every restart time (ratios kept)
+        self.pr = {kind: seconds * scale for kind, seconds in restarts.items()}
         self._steps = 0
         self.passes = 0  # attempted passes (realism diagnostics and the tuner)
         self.passes_completed = 0
+        self.in_play_s = 0.0  # ball-in-play time (diagnostics, calibration)
         self._last_toucher: Body | None = None
         self._last_window: dict[str, float] = {HOME: -1.0, AWAY: -1.0}
         self._windows_plan = {s: self._plan_subs() for s in (HOME, AWAY)}
@@ -322,6 +325,7 @@ class LiveMatch:
             self._next_targets = self.t + self.p["time"]["target_every_s"]
         live = self.t >= self.dead_until
         if live:
+            self.in_play_s += dt
             self._ball(dt)
         self._move(dt)
         if live and self.ball.owner is not None:
@@ -534,7 +538,11 @@ class LiveMatch:
             # blocks the way (he shields and must pass or take him on: a dribble duel)
             u, v = self.rel(carrier.side, carrier.x, carrier.y)
             ahead = min(u + 6, self.pd["carry_limit_m"])
-            pull = 0.15 if u < 75 else 0.45  # in the final third he cuts towards goal
+            # a wide player carries down his line; in the final third everyone cuts in
+            wide = abs(v - pitch.CENTRE_V) > self.pd["wide_m"]
+            pull = (
+                self.pd["carry_pull_final"] if u >= 75 else 0.0 if wide else self.pd["carry_pull"]
+            )
             tu, tv = pitch.clamp_point(ahead, v + (pitch.CENTRE_V - v) * pull)
             tx, ty = self.absolute(carrier.side, tu, tv)
             dx, dy = tx - carrier.x, ty - carrier.y
@@ -815,7 +823,12 @@ class LiveMatch:
             self.ball.passer = carrier
             self._launch(mate.x, mate.y, speed, "receive", mate)
             return
-        # misplaced: an opponent near the line wins it, or it runs out of play
+        # misplaced: it runs into touch, or an opponent near the line wins it, or it runs loose
+        if self.rng.random() < self.pd["pass_out"]:
+            self.ball.passer = None
+            line = -1.0 if mate.y < pitch.CENTRE_V else pitch.WIDTH + 1.0
+            self._launch(mate.x, line, speed, "out")
+            return
         cut = self._nearest(opp, (carrier.x + mate.x) / 2, (carrier.y + mate.y) / 2)
         if cut is not None and self.rng.random() < 0.8:
             self.ball.passer = None
@@ -950,7 +963,10 @@ class LiveMatch:
 
     def _clear(self, carrier: Body) -> None:
         u, v = self.rel(carrier.side, carrier.x, carrier.y)
-        tu, tv = pitch.clamp_point(u + self.rng.uniform(30, 50), v + self.rng.uniform(-20, 20))
+        # a clearance is aimed up the pitch, not placed: sideways it can go into touch
+        tu, _ = pitch.clamp_point(u + self.rng.uniform(30, 50), v)
+        spread = self.p["decide"]["clear_spread"]
+        tv = v + self.rng.uniform(-spread, spread)
         tx, ty = self.absolute(carrier.side, tu, tv)
         opp = self.teams[other(carrier.side)]
         team = self.teams[carrier.side]
@@ -961,7 +977,13 @@ class LiveMatch:
             ),
         )
         self.ball.passer = None
-        self._launch(tx, ty, self.p["movement"]["ball_speed_long"], "intercept", landing)
+        self._launch(
+            tx,
+            ty,
+            self.p["movement"]["ball_speed_long"],
+            "intercept" if _inside(tx, ty) else "out",
+            landing,
+        )
 
     # ---- duels, fouls and cards ------------------------------------------------------------------
 
@@ -1011,6 +1033,13 @@ class LiveMatch:
                 self._foul(body, carrier)
                 return
             if r < foul + win * 0.5:
+                # near the touchline a won challenge often knocks the ball out off the tackler
+                to_line = min(carrier.y, pitch.WIDTH - carrier.y)
+                if to_line < du["out_zone_m"] and self.rng.random() < du["tackle_out"]:
+                    self._last_toucher = body
+                    self.ball.owner = None
+                    self._out_of_play()
+                    return
                 self._give(body)
                 self._next_decision = self.t + self.p["decide"]["control_delay_s"]
                 return

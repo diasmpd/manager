@@ -47,6 +47,8 @@ TARGETS = {
     # on the same fixtures (target filled in from the quick sim when the sample is built)
     "strong_goal_share": (0.0, 0.04, 1.0),
     "pass_completion": (0.80, 0.04, 0.3),
+    # typical top-flight ball-in-play time (to be sourced, like the passing targets)
+    "ball_in_play_min": (55.0, 3.0, 0.5),
 }
 
 TUNABLE = [
@@ -55,6 +57,8 @@ TUNABLE = [
     ("decide.min_shot_xg", 0.01, 0.2),
     ("decide.decision_every_s", 0.6, 3.0),
     ("decide.control_delay_s", 0.4, 3.0),
+    ("decide.pass_out", 0.02, 0.6),
+    ("restarts.scale", 0.6, 3.0),
     ("decide.loss_cost", 0.2, 5.0),
     ("decide.lane_pass", 0.6, 0.98),
     ("decide.crowd_pass", 0.6, 0.99),
@@ -84,7 +88,7 @@ def _init_worker() -> None:
 
 
 def _play(n: int, home: str, away: str,
-          params: PositionalParams) -> tuple[MatchReport, int, int]:
+          params: PositionalParams) -> tuple[MatchReport, int, int, float]:
     """One fixture on its own seed (so the result does not depend on the process)."""
     assert _worker is not None
     p = _worker
@@ -93,7 +97,7 @@ def _play(n: int, home: str, away: str,
     match = LiveMatch(hs, as_, p.dataset.players, params, p.params,
                       random.Random(f"tune:{n}"), False, ht, at, record=False)
     match.play()
-    return match.report(), match.passes, match.passes_completed
+    return match.report(), match.passes, match.passes_completed, match.in_play_s
 
 
 class Sample:
@@ -138,17 +142,19 @@ class Sample:
     def measure(self, params: PositionalParams) -> dict[str, float]:
         rows = []
         passes = completed = 0
+        in_play = 0.0
         strong_goals = all_goals = 0
         homes, aways = zip(*self.pairs, strict=True)
         played = self.pool.map(_play, range(len(self.pairs)), homes, aways,
                                [params] * len(self.pairs))
-        for (h, a), (report, made, done) in zip(self.pairs, played, strict=True):
+        for (h, a), (report, made, done, live) in zip(self.pairs, played, strict=True):
             rows.append(report)
             goals = (report.home.goals, report.away.goals)
             strong_goals += goals[0] if self.strong[(h, a)] == "home" else goals[1]
             all_goals += sum(goals)
             passes += made
             completed += done
+            in_play += live
         n = len(rows)
 
         def mean(f):  # type: ignore[no-untyped-def]
@@ -171,6 +177,7 @@ class Sample:
             "passes_per_team": passes / n / 2,
             "pass_completion": completed / passes if passes else 0.0,
             "strong_goal_share": strong_goals / all_goals if all_goals else 0.5,
+            "ball_in_play_min": in_play / n / 60,
         }
 
 
