@@ -16,7 +16,7 @@ ball_speed_shot = 26.0
 [shape]
 ip_push = 0.55
 oop_push = 0.78
-oop_compact = 0.423077
+oop_compact = 0.3818384476534296
 lateral_shift = 0.35
 width_ip = 1.0
 width_oop = 0.8
@@ -34,22 +34,22 @@ box_pressers = 2.0
 decision_every_s = 0.923077
 control_delay_s = 0.8
 temperature = 0.455
-shoot_bias = 1.17
+shoot_bias = 1.521
 min_shot_xg = 0.03
 pass_bias = 1.0
 dribble_bias = 1.04
 carry_bias = 0.692308
 cross_bias = 0.7
 clear_bias = 0.6
-loss_cost = 1.4999997999999999
+loss_cost = 1.6622837753568744
 shot_range_m = 32.0
 carry_limit_m = 97.0
 pass_max_m = 45.0
 intercept_radius = 2.2
 crowd_radius = 4.0
 crowd_discount = 0.8
-crowd_pass = 0.9
-lane_pass = 0.98
+crowd_pass = 0.99
+lane_pass = 0.8305084745762712
 pressure_pass = 0.08
 
 [xg]
@@ -58,10 +58,10 @@ angle = 1.5
 distance = -0.12
 header_factor = 0.6
 blocker_factor = 0.65
-block_lane = 1.6
+block_lane = 1.2307692307692308
 
 [duel]
-tackle_base = 0.192308
+tackle_base = 0.14792923076923076
 dribble_skill = 0.045
 foul_base = 0.076923
 foul_aggression = 0.02
@@ -72,7 +72,7 @@ forward_challenge = 0.35
 block_depth = 3.0
 block_width = 1.8
 shield_speed = 0.15
-beat_advance = 3.25
+beat_advance = 4.49878
 
 [keeper]
 save_base = 0.7
@@ -111,4 +111,4 @@ keeper_hold = 8.0
 edge = 0.04
 
 [attributes]
-spread = 0.307692
+spread = 0.39999960000000007
