@@ -9,7 +9,7 @@ foul = 0.135
 corner_per_shot = 0.219723
 corner_base = 0.02
 penalty = 0.0013
-own_goal_share = 0.034411
+own_goal_share = 0.044734
 yellow_per_foul = 0.225897
 direct_red_per_foul = 0.0005
 
@@ -19,7 +19,7 @@ control = 0.107049
 keeper = 0.25
 xg_median = 0.053023
 xg_sigma = 1.0
-xg_attack = 0.107916
+xg_attack = 0.11889
 
 [home]
 shot = 1.3
@@ -28,20 +28,19 @@ possession = 0.04
 possession_slope = 0.3
 
 [time]
-trend_start = 0.939144
+trend_start = 0.9
 trend_end = 1.2742
 second_half = 1.1
 
 [state]
 chase = 0.5
 level = 0.275424
-settled = 0.098344
+settled = 0.105334
 exposed = 0.7
 protect = 0.1
 man_up = 0.2
 short_handed = 0.2
-goalless = 0.1
-managed = 0.14404
+goalless = 0.065189
 
 [caution]
 enabled = true

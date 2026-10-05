@@ -1,6 +1,5 @@
 """Score-dependent openness (spec 006 T011, owner decision): a goalless game opens up as it goes
-on, and once a match has 3+ goals both sides manage it. Real totals are under-dispersed
-(variance/mean 0.89 in Série A 2024-25). Paired seeds."""
+on. Real totals are under-dispersed (variance/mean 0.89 in Série A 2024-25). Paired seeds."""
 
 import random
 from collections import Counter
@@ -46,7 +45,7 @@ def _play(provider: QuickSimProvider, params: ModelParams) -> tuple[Counter[int]
 
 
 def _without(provider: QuickSimProvider) -> ModelParams:
-    return provider.params.with_values(**{"state.goalless": 0.0, "state.managed": 0.0})
+    return provider.params.with_values(**{"state.goalless": 0.0})
 
 
 def test_a_goalless_game_opens_up(provider: QuickSimProvider) -> None:
@@ -54,12 +53,3 @@ def test_a_goalless_game_opens_up(provider: QuickSimProvider) -> None:
     on, _ = _play(provider, _without(provider).with_values(**{"state.goalless": 0.3}))
     assert on[0] < off[0] * 0.8  # fewer 0-0s
     assert on[0] + on[1] < off[0] + off[1]
-
-
-def test_a_high_scoring_game_is_managed(provider: QuickSimProvider) -> None:
-    off, late_off = _play(provider, _without(provider))
-    on, late_on = _play(provider, _without(provider).with_values(**{"state.managed": 0.3}))
-    assert [on[k] for k in range(3)] == [off[k] for k in range(3)]  # same until a third goal
-    assert on[5] < off[5]  # fewer 5+ games
-    assert on[3] > off[3]  # more of them stop at three
-    assert late_on <= late_off  # the late-goal share does not rise

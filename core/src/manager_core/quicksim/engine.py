@@ -292,12 +292,9 @@ class _Match:
         if diff == 0 and base >= 60:
             rate_mult *= 1 + p.level * (min(base, 90) - 60) / 30
         # real totals are under-dispersed (variance/mean 0.89): a goalless game opens up as it
-        # goes on, and once a match has 3+ goals the side level or ahead manages it (negative
-        # feedback); a trailing side keeps chasing
+        # goes on (owner decision, spec 006 research R6)
         if me.goals == opp.goals == 0:
             rate_mult *= 1 + p.goalless * min(base, 90) / 90
-        if me.goals + opp.goals >= 3 and diff >= 0:
-            rate_mult *= 1 - p.managed
         if diff == 1 and base >= 70:
             rate_mult *= 1 - p.protect
             conceded_quality *= 1 - p.protect / 2

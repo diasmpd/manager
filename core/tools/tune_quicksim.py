@@ -14,17 +14,14 @@ seeds and five times the matches.
 from __future__ import annotations
 
 import argparse
-import random
 import time
 from pathlib import Path
 
 from manager_core import api
 from manager_core.calibration.harness import measure
-from manager_core.calibration.metrics import late_goal_rates
 from manager_core.calibration.samples import GATES, SampleSpec
 from manager_core.calibration.targets import load_targets
 from manager_core.domain.dataset import Dataset
-from manager_core.quicksim.engine import simulate_match
 from manager_core.quicksim.params import ModelParams, dump_params, load_params
 from manager_core.quicksim.provider import QuickSimProvider
 
@@ -50,7 +47,6 @@ TUNABLE = [
     ("state.level", 0.0, 0.5),  # at most state.chase: trailing pushes at least as hard
     ("state.settled", 0.0, 0.35),  # pulls blowouts back toward the middle totals
     ("state.goalless", 0.0, 0.5),  # a 0-0 opens up (fewer goalless games)
-    ("state.managed", 0.0, 0.5),  # game management once a match has 3+ goals
     ("shootout.base", 0.6, 0.85),
     ("strength.attack", 0.02, 1.0),
     ("strength.control", 0.0, 1.0),
@@ -82,28 +78,14 @@ def loss(values: dict[str, float]) -> float:
 TUNING = FAST
 
 
-# Hard constraint: the game-state ordering of test_quicksim_game_state (late on, trailing and
-# leading sides both outscore a level side), measured on mirrored matches with fixed seeds, with
-# a margin over the test's thresholds (1.08 and 1.00) for sample noise.
-CHASE_MATCHES = 3000
-CHASE_MIN = {-1: 1.10, 1: 1.02}
-CHASE_PENALTY = 100.0
-
-
-def chase_ratios(provider: QuickSimProvider, params: ModelParams) -> dict[int, float]:
-    sheet = provider.team_sheet("mineracao")
-    players = provider.dataset.players
-    reports = (simulate_match(sheet, sheet, players, params, random.Random(f"chase:{n}"),
-                              neutral=True)[1] for n in range(CHASE_MATCHES))
-    rates = late_goal_rates(reports)
-    return {d: rates[d] / rates[0] for d in (-1, 1)}
+# The game-state ordering (late on, trailing and leading sides outscore a level side) is not in
+# the loss: on a few thousand matches its noise (SE ~0.05) lets the fit chase lucky seeds. It is
+# checked after the fit on a pooled 24,000-match sample (test_quicksim_late_chase).
 
 
 def evaluate(dataset: Dataset, provider: QuickSimProvider, params: ModelParams) -> float:
     values, *_ = measure(dataset, TUNING, params, caution=False, provider=provider)
-    ratios = chase_ratios(provider, params)
-    shortfall = sum(max(0.0, CHASE_MIN[d] - ratios[d]) for d in CHASE_MIN)
-    return loss(values) + CHASE_PENALTY * shortfall
+    return loss(values)
 
 
 def main() -> None:
