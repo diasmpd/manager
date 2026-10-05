@@ -1,113 +1,99 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Godot Desktop Client
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit-plan` command; its definition describes the execution workflow.
+**Branch**: `007-godot-client` | **Date**: 2026-10-05 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+The Milestone 0 game moves into a Godot 4.7 desktop window, with the same screens as the
+terminal UI and the Tactics screen.
+- **Core side**: a new `manager_core.server` speaks the **local API contract**: one JSON
+  message per line over the stdio of a child process. Each method maps to a facade function.
+- **Client side**: a Godot project in `client/`. A `Core` autoload manages the process and the
+  requests, and one scene per screen draws the answers.
+- **Launching**: a setup script fetches portable Godot and creates a desktop shortcut, so the
+  game starts with one double-click and no console.
+
+Details: [research.md](research.md). Contract: [contracts/local-api.md](contracts/local-api.md).
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
-
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
-
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
-
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
-
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]
-
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
-
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
-
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+- **Languages**:
+  - core: Python ≥ 3.12, standard library only (the server uses `json`, `sys` and the facade);
+  - client: GDScript on Godot 4.7.2-stable (win64, standard build).
+- **Dependencies**: no new Python dependency. Godot is fetched by `tools/setup_client.ps1` into
+  the gitignored `tools/godot/`.
+- **Storage**: unchanged. The core writes the SQLite saves; the client writes nothing.
+- **Testing**:
+  - pytest for every contract method, the framing, the handshake and the client–facade parity
+    season;
+  - a headless Godot runner for the screen scenes, the request queue and the error paths, plus
+    a smoke run against the real core.
+- **Target**: Windows 11 desktop (owner decision), from 1280×720 up.
+- **Performance**: a screen in under 0.5 s; a Continue no slower than the terminal UI plus
+  0.2 s; whole-season continues with progress. The JSON for a screen is at most tens of KB.
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-[Gates determined based on constitution file]
+| Principle | Status | How |
+|---|---|---|
+| I. Realism measured | ✅ | No simulation change. |
+| II. Determinism | ✅ | One request at a time, in order. A parity test checks a season through the server against the facade. |
+| III. Thin client | ✅ | This spec *is* the versioned contract III requires. The client only sends choices and draws results, and every method maps to the facade. |
+| IV. Test-first | ✅ | Contract tests come before the server methods, and scene tests before the scenes. |
+| V. Manager in control | ✅ | The same assistant proposals as the terminal; the owner confirms. |
+| VI. Data rights | ✅ | No data changes. The client ships no player data. |
+| VII. Incremental | ✅ | Text match view only, no exported executable, default theme. 2D/3D and export come later. |
 
 ## Project Structure
 
-### Documentation (this feature)
-
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit-plan command output)
-├── research.md          # Phase 0 output (/speckit-plan command)
-├── data-model.md        # Phase 1 output (/speckit-plan command)
-├── quickstart.md        # Phase 1 output (/speckit-plan command)
-├── contracts/           # Phase 1 output (/speckit-plan command)
-└── tasks.md             # Phase 2 output (/speckit-tasks command - NOT created by /speckit-plan)
+core/src/manager_core/
+├── server/
+│   ├── __main__.py   # python -m manager_core.server --saves DIR
+│   ├── protocol.py   # line framing, JSON-RPC subset, error mapping, progress notifications
+│   ├── encode.py     # dataclass/enum/date -> JSON
+│   └── methods.py    # one handler per contract method, each calling the facade
+├── api.py            # + view.home / match stat rows helpers (research R8), ui strings export
+client/
+├── project.godot
+├── core.cfg          # python path and saves folder (defaults relative to the repo)
+├── autoload/core.gd  # process, request queue, signals, version check
+├── scenes/           # main, careers, new_career, home, selection, tactics, match_day,
+│                     # squad, player, tables, calendar, news
+└── tests/run_tests.gd
+tools/setup_client.ps1  # fetch Godot 4.7.2 (SHA-512 checked) + desktop shortcut
+.github/workflows/ci.yml  # + headless client tests on Windows
 ```
 
-### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
+## Phases
 
-```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
-```
-
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+1. **Contract and server** (core):
+   - framing and dispatch;
+   - encoding;
+   - all methods with tests;
+   - parity.
+2. **Client foundation**:
+   - setup script;
+   - Godot project;
+   - the `Core` autoload (handshake, queue, errors, process lifecycle);
+   - the main layout;
+   - checking that no console window appears.
+3. **Screens**, in the user stories' order:
+   - careers and new career;
+   - home and Continue;
+   - team selection;
+   - match day;
+   - tactics;
+   - squad and player;
+   - tables, calendar and news.
+4. **Polish**:
+   - the parity checklist;
+   - headless client tests in CI;
+   - docs (README, roadmap with the renumbering, quickstart).
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| Item | Why it is needed | Simpler alternative rejected |
+|---|---|---|
+| A child process with a stdio protocol | Constitution III requires a contract; the core is Python and the client is Godot | Embedding Python (native build), or HTTP (firewall prompts and ports) |
+| A Godot download script | Godot isn't installed and must not need admin rights | Asking the owner to install it by hand (FR-006: one double-click) |
