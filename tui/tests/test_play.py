@@ -100,6 +100,8 @@ async def test_selection_swap_and_suspension(saves: Path) -> None:
         await pilot.press("c")
         await pilot.pause()
         assert isinstance(app.screen, MatchDayScreen)
+        await pilot.press("enter")  # plays to full time and commits the live match
+        await pilot.pause()
         report = career.season.results[match_id or ""].report
         assert report is not None
         side = "home" if career.season.matches[match_id or ""].home_id == "alvorada" else "away"
@@ -118,6 +120,7 @@ async def test_feed_shows_every_event(saves: Path) -> None:
         assert isinstance(screen, MatchDayScreen)
         await pilot.press("4")
         await pilot.pause()
+        assert screen.session.match.finished
         log = screen.query_one("#feed", RichLog)
         text = "\n".join(str(line.text) for line in log.lines)
         for line in screen.lines:
@@ -160,3 +163,28 @@ async def test_no_career(tmp_path: Path) -> None:
     app = ManagerApp(tmp_path)
     async with app.run_test(size=SIZE):
         assert "career new" in str(app.query_one("#no-career", Static).render())
+
+
+async def test_pause_and_substitute_live(saves: Path) -> None:
+    """Spec 008 US3/US5: pause the live match, substitute while paused, resume."""
+    app = ManagerApp(saves, "jogo")
+    async with app.run_test(size=SIZE) as pilot:
+        while not isinstance(app.screen, MatchDayScreen):
+            await pilot.press("c" if isinstance(app.screen, TeamSelectionScreen) else "space")
+            await pilot.pause()
+        screen = app.screen
+        assert isinstance(screen, MatchDayScreen)
+        await pilot.press("space")  # pause
+        await pilot.pause()
+        assert screen.paused
+        minute = screen.session.match.minute()
+        await pilot.press("s")
+        await pilot.pause()
+        await pilot.press("enter")  # the highlighted player off, the first bench player on
+        await pilot.pause()
+        team = screen.session.match.teams[screen.session.user_side]
+        assert team.subs == 1
+        assert screen.session.match.minute() == minute  # nothing ran while paused
+        await pilot.press("escape", "space")  # close the panel, resume
+        await pilot.pause()
+        assert not screen.paused

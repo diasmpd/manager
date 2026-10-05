@@ -300,11 +300,13 @@ class TacticsScreen(ModalScreen[bool]):
         Binding("escape", "cancel", "Voltar"),
     ]
 
-    def __init__(self, career: api.Career) -> None:
+    def __init__(self, career: api.Career, live: api.LiveSession | None = None) -> None:
         super().__init__()
         self.career = career
+        self.live = live  # spec 008: a change during a live match acts from this minute
         self.options = api.tactic_options()
-        self.tactic = api.current_tactic(career)
+        self.tactic = (api.live_state(career, live).tactic if live is not None
+                       else api.current_tactic(career))
         selection = career.selection or api.propose_selection(career, self.tactic.ip_formation)
         self.players = dict(selection.starters)
         self.slot = 0
@@ -552,81 +554,209 @@ class TacticsScreen(ModalScreen[bool]):
             self._message(t("ui.tactics.errors",
                             problems=", ".join(f"{i.code} {i.path}" for i in issues)))
             return
-        api.confirm_tactic(self.career, self.tactic)
+        if self.live is not None:
+            api.live_tactic(self.career, self.live, self.tactic)
+        else:
+            api.confirm_tactic(self.career, self.tactic)
         self.dismiss(True)
 
     def action_cancel(self) -> None:
         self.dismiss(False)
 
 
-class MatchDayScreen(ModalScreen[None]):
+class MatchDayScreen(ModalScreen["api.Stop | None"]):
+    """The user's match, live (spec 008): the screen drives the clock through the core. Space
+    pauses; while paused, S substitutes and X changes the tactic. Enter plays to full time,
+    commits the match and goes on to the next stop."""
+
     BINDINGS = [
         Binding("1", "speed('1')", "Lento"),
         Binding("2", "speed('2')", "Normal"),
         Binding("3", "speed('3')", "Rápido"),
-        Binding("4", "instant", "Instantâneo"),
-        Binding("space", "instant", "Pular", show=False),
+        Binding("4", "instant", "Até o fim"),
+        Binding("space", "pause", "Pausar"),
+        Binding("s", "subs", "Substituições"),
+        Binding("x", "tactics", "Tática"),
         Binding("enter", "close", "Continuar"),
-        Binding("escape", "close", "Continuar", show=False),
     ]
 
-    def __init__(self, career: api.Career, match_id: str, speed: str = "2") -> None:
+    STEP_SECONDS = {"1": 7.5, "2": 15.0, "3": 45.0}  # match time per tick (0.25 s)
+
+    def __init__(self, career: api.Career, saves: Path, speed: str = "2") -> None:
         super().__init__()
         self.career = career
-        self.match_id = match_id
-        self.lines = api.match_feed(career.season, match_id)
-        self.shown = 0
+        self.saves = saves
+        self.session = api.start_live_match(career)
+        self.match_id = self.session.match_id
+        self.sent = 0
         self.speed = speed
+        self.paused = False
         self.timer: Timer | None = None
+        self.lines: list[api.FeedLine] = []
+        self.stats_shown = False
 
     def compose(self) -> ComposeResult:
         with Vertical(id="dialog"):
             yield Static(f"[b]{t('ui.match.title')}[/b]", id="match-title")
+            yield Static(id="match-clock")
             yield RichLog(id="feed", wrap=True, markup=True)
-            yield Static(t("ui.match.help"))
+            yield Static(t("ui.match.live_help"))
 
     def on_mount(self) -> None:
+        self._write_new()
         self._start()
 
     def _start(self) -> None:
         if self.timer is not None:
             self.timer.stop()
-        self.timer = self.set_interval(SPEEDS[self.speed], self._next_line)
+        self.timer = self.set_interval(0.25, self._tick)
 
-    def _next_line(self) -> None:
-        if self.shown >= len(self.lines):
-            self._finish()
-            return
-        line = self.lines[self.shown]
-        self.shown += 1
-        minute = "" if line.kind == "kickoff" else f"{line.minute}'"
-        self.query_one("#feed", RichLog).write(f"{minute:>6}  {line.text}")
-
-    def _finish(self) -> None:
+    def _stop(self) -> None:
         if self.timer is not None:
             self.timer.stop()
             self.timer = None
-        if self.shown > len(self.lines):
+
+    def _tick(self) -> None:
+        api.live_advance(self.session, self.STEP_SECONDS[self.speed])
+        self._write_new()
+        if self.session.match.finished:
+            self._stop()
+            self._finish()
+
+    def _write_new(self) -> None:
+        feed = api.live_feed(self.career, self.session)
+        log = self.query_one("#feed", RichLog)
+        for line in feed[self.sent:]:
+            minute = "" if line.kind == "kickoff" else f"{line.minute}'"
+            log.write(f"{minute:>6}  {line.text}")
+        self.sent = len(feed)
+        self.lines = feed
+        state = api.live_state(self.career, self.session)
+        clock = f"{state.minute}'  {state.score[0]} x {state.score[1]}"
+        if self.paused:
+            clock += f"  [b]{t('ui.live.paused')}[/b]"
+        self.query_one("#match-clock", Static).update(clock)
+
+    def _finish(self) -> None:
+        if self.stats_shown:
             return
-        self.shown = len(self.lines) + 1
+        self.stats_shown = True
         log = self.query_one("#feed", RichLog)
         log.write("")
         log.write(f"[b]{t('ui.match.final')}[/b]")
-        for line in api.match_stat_lines(self.career.season, self.match_id):
-            log.write(line)
+        report = self.session.match.report()
+        for key in api.STAT_KEYS:
+            home, away = getattr(report.home, key), getattr(report.away, key)
+            if key == "possession":
+                home, away = f"{home}%", f"{away}%"
+            log.write(f"{t(f'stat.{key}'):14}{home!s:>10}{away!s:>10}")
 
     def action_speed(self, speed: str) -> None:
         self.speed = speed
-        if self.shown <= len(self.lines):
+        if not self.session.match.finished:
+            self.paused = False
             self._start()
 
+    def action_pause(self) -> None:
+        if self.session.match.finished:
+            return
+        self.paused = not self.paused
+        if self.paused:
+            self._stop()
+        else:
+            self._start()
+        self._write_new()
+
     def action_instant(self) -> None:
-        while self.shown < len(self.lines):
-            self._next_line()
+        self._stop()
+        api.live_advance(self.session, 3 * 60 * 60)
+        self._write_new()
         self._finish()
+
+    def action_subs(self) -> None:
+        if self.session.match.finished:
+            return
+        if not self.paused:
+            self.action_pause()
+        self.app.push_screen(LiveSubsScreen(self.career, self.session),
+                             lambda _: self._write_new())
+
+    def action_tactics(self) -> None:
+        if self.session.match.finished:
+            return
+        if not self.paused:
+            self.action_pause()
+        self.app.push_screen(TacticsScreen(self.career, live=self.session),
+                             lambda _: self._write_new())
 
     def action_close(self) -> None:
         self.action_instant()
+        stop = api.finish_live_match(self.career, self.session, self.saves)
+        self.dismiss(stop)
+
+
+class LiveSubsScreen(ModalScreen[None]):
+    """Substitutions during a paused live match: pick a player on the pitch and one on the
+    bench; the core applies the rules."""
+
+    BINDINGS = [
+        Binding("enter", "substitute", "Substituir"),
+        Binding("tab", "app.focus_next", "Lista", show=False),
+        Binding("escape", "close", "Voltar"),
+    ]
+
+    def __init__(self, career: api.Career, session: api.LiveSession) -> None:
+        super().__init__()
+        self.career = career
+        self.session = session
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="dialog"):
+            yield Static(f"[b]{t('ui.live.subs')}[/b]")
+            with Horizontal():
+                yield DataTable(id="live-on", cursor_type="row")
+                yield DataTable(id="live-bench", cursor_type="row")
+            yield Static(id="live-message")
+
+    def on_mount(self) -> None:
+        self._redraw()
+        self.query_one("#live-on", DataTable).focus()
+
+    def _redraw(self) -> None:
+        state = api.live_state(self.career, self.session)
+        on = self.query_one("#live-on", DataTable)
+        bench = self.query_one("#live-bench", DataTable)
+        for table in (on, bench):
+            table.clear(columns=True)
+        on.add_columns(t("ui.select.pos"), t("ui.select.player"), t("ui.live.energy"), "")
+        bench.add_columns(t("ui.live.bench"))
+        for p in state.on_pitch:
+            on.add_row(p.position, p.name, f"{p.energy:.0%}", "🟨" if p.yellow else "",
+                       key=p.player_id)
+        for p in state.bench:
+            bench.add_row(p.name, key=p.player_id)
+        self.query_one("#live-message", Static).update(
+            t("ui.live.subs_left", subs=state.subs_left, windows=state.windows_left))
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        event.stop()
+        self.action_substitute()
+
+    def action_substitute(self) -> None:
+        on = self.query_one("#live-on", DataTable)
+        bench = self.query_one("#live-bench", DataTable)
+        if on.row_count == 0 or bench.row_count == 0:
+            return
+        off = str(on.coordinate_to_cell_key(on.cursor_coordinate).row_key.value)
+        incoming = str(bench.coordinate_to_cell_key(bench.cursor_coordinate).row_key.value)
+        try:
+            api.live_substitute(self.session, off, incoming)
+        except api.LiveMatchError as error:
+            self.query_one("#live-message", Static).update(error.message)
+            return
+        self._redraw()
+
+    def action_close(self) -> None:
         self.dismiss(None)
 
 
@@ -749,12 +879,12 @@ class ManagerApp(App[None]):
         career = self.career
         if not confirmed or career is None or career.pending is None:
             return
-        match_id = career.pending.match_id
-        stop = api.continue_career(career, self.saves)  # plays the match day, on to the next stop
+        self.push_screen(MatchDayScreen(career, self.saves), self._after_match)
+
+    def _after_match(self, stop: api.Stop | None) -> None:
         self.refresh_views()
-        if match_id is not None:
-            self.push_screen(MatchDayScreen(career, match_id),
-                             lambda _: self._handle_stop(stop))
+        if stop is not None:
+            self._handle_stop(stop)
 
     def action_quit_game(self) -> None:
         if self.career is not None:

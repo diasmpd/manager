@@ -38,6 +38,8 @@ var _message: Label
 var _ready_to_play := false
 var _navigating_back := false
 var _closing := false
+var live_lines: Array = []  # the live match's feed so far (kept across screens)
+var live_match: Dictionary = {}  # the live match's MatchView
 const CLOSE_WAIT_MS := 60000  # a whole-season continue can take a few seconds
 
 
@@ -267,19 +269,9 @@ func handle_stop(stop: Dictionary) -> void:
 			await show_screen("home")
 
 
-## Team selection confirmed: play the match day, show it, then go on to the next stop.
+## Team selection confirmed: the match is played live (spec 008); its screen starts it.
 func play_match_day() -> void:
-	var pending = status.get("pending")
-	var match_id = pending.get("match_id") if pending is Dictionary else null
-	var answer: Dictionary = await Core.request("career.continue")
-	if answer.has("error"):
-		message(UI.error_text(answer))
-		return
-	await refresh_status()
-	if match_id != null:
-		await show_screen("match_day", {"match_id": match_id, "next_stop": answer["result"]})
-	else:
-		await handle_stop(answer["result"])
+	await show_screen("match_day")
 
 
 func _on_busy(busy: bool) -> void:
@@ -298,7 +290,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	match event.keycode:
 		KEY_SPACE:
-			if current_name not in ["selection", "tactics", "match_day", "careers"]:
+			if current_name == "match_day":
+				current._toggle_pause()
+				get_viewport().set_input_as_handled()
+			elif current_name not in ["selection", "tactics", "careers"]:
 				continue_game()
 				get_viewport().set_input_as_handled()
 		KEY_X:

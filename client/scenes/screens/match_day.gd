@@ -1,73 +1,152 @@
 extends "res://scenes/screen.gd"
-## Match day (spec 007 US1): the live feed at the chosen speed (1 slow ... 4 instant), then the
-## stats. Continuar goes on to the next stop.
+## Match day, live (spec 008 US3/US5): the window drives the match clock through the core
+## (`match.advance`); Pausar stops it. While paused: substitutions (here) and the tactic (the
+## tactics screen in live mode). After full time: the stats, then Continuar commits the match and
+## goes on to the next stop. Every rule is the core's.
 
-const SPEEDS := {1: 0.8, 2: 0.3, 3: 0.05}  # seconds per feed line; 4 = instant
+const SPEEDS := {1: 7.5, 2: 15.0, 3: 45.0, 4: 900.0}  # match seconds per 0.25 s tick
+const TICK := 0.25
 
-var match_id := ""
-var next_stop: Dictionary = {}
 var _feed: RichTextLabel
-var _stats: Tree
 var _score: Label
-var _lines: Array = []
-var _shown := 0
-var _speed := 2
+var _clock: Label
+var _pause_button: Button
+var _subs_panel: VBoxContainer
+var _on_list: ItemList
+var _bench_list: ItemList
+var _subs_info: Label
+var _stats: Tree
+var _continue_button: Button
 var _timer: Timer
+var _speed := 2
+var _paused := false
+var _state: Dictionary = {}
+var _finished := false
+var _names := {}
 
 
 func open() -> void:
 	clear()
-	var data = await ask("view.match", {"match_id": match_id})
-	if data == null:
+	var started = await _start_or_resume()
+	if started == null:
 		return
-	var m: Dictionary = data["match"]
-	_lines = data["feed"]
 	add_child(UI.title(UI.t("ui.match.title")))
-	_score = UI.label("%s  0 x 0  %s" % [m["home_name"], m["away_name"]], 24, true)
-	add_child(_score)
-	var speed_buttons := UI.row([UI.label(UI.t("ui.desktop.speed"))])
+	_score = UI.label("", 26, true)
+	_clock = UI.label("", 16)
+	add_child(UI.row([_score, UI.spacer(), _clock]))
+	var controls := UI.row([UI.label(UI.t("ui.desktop.speed"))])
 	for s in [1, 2, 3, 4]:
-		speed_buttons.add_child(UI.button(str(s), _set_speed.bind(s)))
-	speed_buttons.add_child(UI.button(UI.t("ui.desktop.skip"), _finish))
-	speed_buttons.add_child(UI.spacer())
-	speed_buttons.add_child(UI.button(UI.t("ui.continue"), _done))
-	add_child(speed_buttons)
+		controls.add_child(UI.button(str(s), _set_speed.bind(s)))
+	_pause_button = UI.button(UI.t("ui.live.pause"), _toggle_pause)
+	controls.add_child(_pause_button)
+	controls.add_child(UI.button(UI.t("ui.live.subs"), _show_subs))
+	controls.add_child(UI.button(UI.t("ui.menu.tactics"), _open_tactics))
+	controls.add_child(UI.spacer())
+	_continue_button = UI.button(UI.t("ui.continue"), _done)
+	_continue_button.visible = false
+	controls.add_child(_continue_button)
+	add_child(controls)
 	_feed = RichTextLabel.new()
 	_feed.bbcode_enabled = true
 	_feed.scroll_following = true
 	_feed.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(_feed)
-	_stats = UI.table(["", m["home_name"], m["away_name"]])
+	for line in main.live_lines:
+		_show_line(line)
+	_build_subs_panel()
+	_stats = UI.table(["", "", ""])
 	_stats.custom_minimum_size.y = 250
 	_stats.visible = false
 	add_child(_stats)
-	var rows := []
-	for row in data["stats"]:
-		rows.append(row)
-	UI.fill(_stats, rows)
 	_timer = Timer.new()
+	_timer.wait_time = TICK
 	_timer.timeout.connect(_tick)
 	add_child(_timer)
-	_set_speed(_speed)
+	_update(started)
+	if _finished:
+		_show_end()
+	elif not _paused:
+		_timer.start()
+
+
+## The live match: resume the one in progress (after visiting the tactics screen), or start it.
+func _start_or_resume() -> Variant:
+	var core = get_node("/root/Core")
+	var state: Dictionary = await core.request("match.state")
+	if state.has("result"):
+		_paused = true  # coming back from the tactics screen: still paused
+		return {"state": state["result"], "feed": [], "finished": state["result"]["finished"]}
+	main.live_lines = []
+	var started = await ask("match.start")
+	if started != null:
+		main.live_match = started["match"]
+	return started
+
+
+func _build_subs_panel() -> void:
+	_subs_panel = UI.column([UI.label(UI.t("ui.live.subs"), 16, true)])
+	_on_list = ItemList.new()
+	_bench_list = ItemList.new()
+	for list in [_on_list, _bench_list]:
+		list.custom_minimum_size = Vector2(320, 220)
+	_subs_info = UI.label("")
+	_subs_panel.add_child(UI.row([
+		UI.column([UI.label(UI.t("ui.live.on_pitch")), _on_list]),
+		UI.column([UI.label(UI.t("ui.live.bench")), _bench_list]),
+	]))
+	_subs_panel.add_child(UI.row([UI.button(UI.t("ui.live.substitute"), _substitute), _subs_info]))
+	_subs_panel.visible = false
+	add_child(_subs_panel)
 
 
 func _set_speed(speed: int) -> void:
 	_speed = speed
-	if speed == 4:
-		_finish()
+	if _paused and not _finished:
+		_toggle_pause()
+
+
+func _toggle_pause() -> void:
+	if _finished:
 		return
-	_timer.wait_time = SPEEDS[speed]
-	if _shown < _lines.size():
+	_paused = not _paused
+	_pause_button.text = UI.t("ui.live.resume") if _paused else UI.t("ui.live.pause")
+	if _paused:
+		_timer.stop()
+	else:
+		_subs_panel.visible = false
 		_timer.start()
 
 
 func _tick() -> void:
-	if _shown >= _lines.size():
-		_timer.stop()
-		_stats.visible = true
+	_timer.stop()
+	var step = await ask("match.advance", {"seconds": SPEEDS[_speed]})
+	if step == null:
 		return
-	_show_line(_lines[_shown])
-	_shown += 1
+	_update(step)
+	if _finished:
+		_show_end()
+	elif not _paused:
+		_timer.start()
+
+
+func _update(step: Dictionary) -> void:
+	for line in step.get("feed", []):
+		main.live_lines.append(line)
+		_show_line(line)
+	_state = step["state"]
+	_finished = step.get("finished", false)
+	var m: Dictionary = main.live_match
+	var score: Array = _state["score"]
+	_score.text = "%s  %d x %d  %s" % [m.get("home_name", ""), score[0], score[1], m.get("away_name", "")]
+	var minute: Dictionary = _state["minute"]
+	_clock.text = ("%d+%d'" % [minute["base"], minute["added"]]) if minute["added"] > 0 \
+			else ("%d'" % minute["base"])
+	if _state["at_half_time"]:
+		_clock.text += "  " + UI.t("ui.live.half_time")
+	for p in _state["on_pitch"] + _state["bench"]:
+		_names[p["player_id"]] = p["name"]
+	if _subs_panel != null and _subs_panel.visible:
+		_fill_subs()
 
 
 func _show_line(line: Dictionary) -> void:
@@ -75,29 +154,86 @@ func _show_line(line: Dictionary) -> void:
 	var stamp := "%d'" % minute["base"]
 	if minute["added"] > 0:
 		stamp = "%d+%d'" % [minute["base"], minute["added"]]
-	var important: bool = line["kind"] in ["goal", "penalty_goal", "own_goal", "red", "second_yellow",
-			"full_time"]
+	var important: bool = line["kind"] in ["goal", "penalty_goal", "own_goal", "red",
+			"second_yellow", "full_time"]
 	var text := "[b]%s[/b]  %s" % [stamp, line["text"]]
 	_feed.append_text(("[color=#ffd970]%s[/color]" % text if important else text) + "\n")
-	var score: Array = line["score"]
-	var parts := _score.text.split("  ")
-	if parts.size() == 3:
-		_score.text = "%s  %d x %d  %s" % [parts[0], score[0], score[1], parts[2]]
 
 
-func _finish() -> void:
+func _show_subs() -> void:
+	if not _paused:
+		_toggle_pause()
+	_subs_panel.visible = not _subs_panel.visible
+	_fill_subs()
+
+
+func _fill_subs() -> void:
+	_on_list.clear()
+	_bench_list.clear()
+	for p in _state["on_pitch"]:
+		var text := "%s  %s  %d%%" % [p["position"], p["name"], roundi(p["energy"] * 100)]
+		if p["yellow"]:
+			text += "  🟨"
+		var i := _on_list.add_item(text)
+		_on_list.set_item_metadata(i, p["player_id"])
+	for p in _state["bench"]:
+		var i := _bench_list.add_item(p["name"])
+		_bench_list.set_item_metadata(i, p["player_id"])
+	_subs_info.text = UI.t("ui.live.subs_left", {"subs": _state["subs_left"],
+			"windows": _state["windows_left"]})
+
+
+func _substitute() -> void:
+	var off := _on_list.get_selected_items()
+	var on := _bench_list.get_selected_items()
+	if off.is_empty() or on.is_empty():
+		main.message(UI.t("ui.desktop.pick_two"))
+		return
+	var state = await ask("match.substitute", {
+		"off": _on_list.get_item_metadata(off[0]), "on": _bench_list.get_item_metadata(on[0])})
+	if state != null:
+		_update({"state": state, "feed": [], "finished": _finished})
+		main.message("")
+
+
+func _open_tactics() -> void:
+	if not _paused:
+		_toggle_pause()
+	main.show_screen("tactics", {"live": true})  # not awaited: navigation frees this screen
+
+
+func _show_end() -> void:
 	_timer.stop()
-	while _shown < _lines.size():
-		_show_line(_lines[_shown])
-		_shown += 1
+	_pause_button.disabled = true
+	_subs_panel.visible = false
+	var m: Dictionary = main.live_match
+	_stats.set_column_title(1, m.get("home_name", ""))
+	_stats.set_column_title(2, m.get("away_name", ""))
+	var rows := []
+	for key in ["shots", "shots_on_target", "xg", "possession", "corners", "fouls", "yellows",
+			"reds"]:
+		var home = _state["home"][key]
+		var away = _state["away"][key]
+		if key == "possession":
+			home = "%d%%" % home
+			away = "%d%%" % away
+		rows.append([UI.t("stat." + key), str(home), str(away)])
+	UI.fill(_stats, rows)
 	_stats.visible = true
+	_continue_button.visible = true
 
 
 func _done() -> void:
-	_finish()
-	main.handle_stop(next_stop)  # navigation frees this screen: not awaited
+	_continue_button.disabled = true
+	var finished = await ask("match.finish")
+	if finished == null:
+		_continue_button.disabled = false
+		return
+	main.live_lines = []
+	main.handle_stop(finished["stop"])  # navigation frees this screen: not awaited
 
 
 func back() -> bool:
-	_done()
-	return true
+	if not _paused and not _finished:
+		_toggle_pause()
+	return true  # a live match is left only through Continuar

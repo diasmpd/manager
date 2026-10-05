@@ -3,6 +3,7 @@ extends "res://scenes/screen.gd"
 ## instructions by phase, IP and OOP roles per slot with suitability, player instructions (role
 ## locks marked) and set pieces. Double-click cycles a setting; the core validates and saves.
 
+var live := false  # opened from a live match: confirm sends the change to the match
 var _options: Dictionary = {}
 var _tactic: Dictionary = {}
 var _positions: Array = []
@@ -22,6 +23,10 @@ func open() -> void:
 	clear()
 	var options = await ask("tactic.options")
 	var tactic = await ask("tactic.current")
+	if live:
+		var state = await ask("match.state")
+		if state != null:
+			tactic = state["tactic"]
 	var current = await ask("selection.current")
 	if options == null or tactic == null or current == null:
 		return
@@ -341,6 +346,7 @@ func _confirm() -> void:
 		main.message(UI.t("ui.tactics.errors",
 				{"problems": ", ".join(issues.map(func(i): return i["code"] + " " + i["path"]))}))
 		return
-	if await ask("tactic.confirm", {"tactic": _tactic}) != null:
+	var method := "match.tactic" if live else "tactic.confirm"
+	if await ask(method, {"tactic": _tactic}) != null:
 		main.go_back()  # not awaited: frees this screen
 		main.message(UI.t("ui.tactics.confirmed"))
