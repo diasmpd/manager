@@ -517,7 +517,8 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
     dataset = _load(args.data)
     if dataset is None:
         return EXIT_INVALID
-    report = api.run_calibration(dataset, args.gate, args.baseline)
+    report = api.run_calibration(dataset, args.gate, args.baseline,
+                                 exploit=False if args.no_exploit else None)
     print(t("calibration.title", gate=args.gate))
     with_before = args.baseline is not None
     headers = ["metric", "value", *(["before"] if with_before else []), "target", "band",
@@ -837,6 +838,7 @@ def _build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--gate", choices=["pr", "milestone"], default="pr")
     cmd.add_argument("--baseline", type=Path)
     cmd.add_argument("--write", type=Path)
+    cmd.add_argument("--no-exploit", action="store_true")
     cmd.set_defaults(func=_cmd_calibrate)
     return parser
 
