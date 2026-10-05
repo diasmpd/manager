@@ -1,0 +1,102 @@
+# Parâmetros do motor posicional (spec 008). Tudo aqui é dado, ajustado pelo tuner posicional
+# (tools/tune_positional.py) contra as mesmas metas do quick sim.
+
+model_version = "0.1"
+
+[time]
+step_s = 0.25            # passo da simulação (4 Hz)
+target_every_s = 0.5     # alvos táticos recalculados a cada 0,5 s
+record_every_steps = 2   # registro posicional a 2 Hz
+
+[movement]
+speed_min = 6.0          # m/s de um jogador com pace 1
+speed_max = 9.2          # m/s com pace 20
+jog_share = 0.55         # sem a bola, fora da jogada: fração da velocidade máxima
+ball_speed_pass = 12.0   # m/s
+ball_speed_long = 22.0
+ball_speed_shot = 26.0
+
+[shape]
+ip_push = 0.55           # quanto o bloco com a bola acompanha a bola (eixo do campo)
+oop_push = 0.45
+lateral_shift = 0.35     # deslocamento lateral em direção à bola
+width_ip = 1.0
+width_oop = 0.8
+line_deeper = -7.0       # metros, linha defensiva por ajuste
+line_standard = 0.0
+line_higher = 6.0
+line_much_higher = 11.0
+engage_high_press = 75.0 # até onde (do próprio gol) se pressiona o portador
+engage_mid_block = 55.0
+engage_low_block = 38.0
+press_radius = 14.0
+
+[decide]
+decision_every_s = 1.2
+control_delay_s = 0.8
+temperature = 0.35       # ruído da escolha (escala por decisões)
+shoot_bias = 0.9
+min_shot_xg = 0.03       # chances below this are rarely taken (long shots lower it)
+pass_bias = 1.0
+dribble_bias = 0.8
+cross_bias = 0.7
+clear_bias = 0.6
+loss_cost = 0.6          # peso da ameaça entregue ao adversário ao perder a bola
+shot_range_m = 32.0
+carry_limit_m = 97.0     # o portador não corre além (8 m do gol): finaliza ou passa
+pass_max_m = 45.0
+intercept_radius = 2.2
+crowd_radius = 4.0       # defensores perto do receptor
+crowd_discount = 0.8     # cada um reduz o valor do passe para ele
+crowd_pass = 0.85        # e a chance de o passe chegar
+
+[xg]
+intercept = -1.0
+angle = 1.5
+distance = -0.12
+header_factor = 0.6
+blocker_factor = 0.65    # por defensor na linha do chute (até 2)
+
+[duel]
+tackle_base = 0.35
+dribble_skill = 0.045    # por ponto de diferença de atributos
+foul_base = 0.10
+foul_aggression = 0.02   # por ponto de agressividade acima de 10
+duel_every_s = 0.5
+duel_radius = 1.8
+block_depth = 3.0        # um defensor até 3 m à frente bloqueia o portador
+block_width = 1.8
+shield_speed = 0.15      # portador bloqueado protege a bola, quase parado
+
+[keeper]
+save_base = 0.70
+save_skill = 0.02
+
+[energy]
+drain = 0.00055          # por segundo correndo em velocidade máxima
+recover = 0.00012
+tired_speed = 0.25       # perda de velocidade com energia zero
+
+[intents]
+chase_push = 8.0         # metros a mais de bloco quando atrás no fim
+chase_risk = 0.25
+protect_drop = 6.0
+level_open = 0.10
+relaxed_drop = 0.20      # time vencendo por 2+ relaxa (ataque e concentração)
+
+[set_pieces]
+corner_header_xg = 0.06
+free_kick_direct_m = 30.0
+
+# Bola parada: o relógio corre e ninguém joga (a bola fica em jogo ~55-60 min de 90).
+[restarts]
+kick_off = 4.0
+goal = 50.0              # comemoração e nova saída
+throw_in = 10.0
+goal_kick = 20.0
+corner = 25.0
+free_kick = 20.0
+penalty = 45.0
+card = 25.0
+substitution = 30.0
+keeper_hold = 8.0

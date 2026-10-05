@@ -18,7 +18,8 @@ where = ["src"]
 [tool.setuptools.package-data]
 manager_core = ["reference/*.csv", "reference/competitions/*.toml", "reference/calendar/*.toml",
                 "reference/quicksim/*.toml", "reference/calibration/*.toml",
-                "reference/career/*.toml", "reference/tactics/*.toml", "py.typed"]
+                "reference/career/*.toml", "reference/tactics/*.toml",
+                "reference/positional/*.toml", "py.typed"]
 
 [tool.ruff]
 line-length = 100
