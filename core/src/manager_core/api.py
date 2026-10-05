@@ -836,18 +836,48 @@ def swap_in_selection(career: Career, selection: Selection, slot: int,
     return Selection(selection.formation, tuple(sorted(starters.items())), tuple(bench))
 
 
-def match_stat_lines(season: Season, match_id: str) -> list[str]:
-    """The match report's stat line as text rows (localised), for clients."""
-    report = match_view(season, match_id).result
-    if report is None or report.report is None:
+STAT_KEYS = ("shots", "shots_on_target", "xg", "possession", "corners", "fouls", "yellows",
+             "reds")
+
+
+def match_stats(season: Season, match_id: str) -> list[tuple[str, str, str]]:
+    """The match report's stat line as data rows (localised label, home, away), for clients.
+    Empty until the match is played."""
+    result = match_view(season, match_id).result
+    if result is None or result.report is None:
         return []
-    r = report.report
-    m = season.matches[match_id]
-    rows = [f"{'':14}{season.club_name(m.home_id):>16}{season.club_name(m.away_id):>16}"]
-    for key in ("shots", "shots_on_target", "xg", "possession", "corners", "fouls", "yellows",
-                "reds"):
+    r = result.report
+    rows = []
+    for key in STAT_KEYS:
         home, away = getattr(r.home, key), getattr(r.away, key)
         if key == "possession":
             home, away = f"{home}%", f"{away}%"
-        rows.append(f"{t(f'stat.{key}'):14}{home!s:>16}{away!s:>16}")
+        rows.append((t(f"stat.{key}"), str(home), str(away)))
     return rows
+
+
+def match_stat_lines(season: Season, match_id: str) -> list[str]:
+    """The match report's stat line as text rows (localised), for the terminal."""
+    rows = match_stats(season, match_id)
+    if not rows:
+        return []
+    m = season.matches[match_id]
+    lines = [f"{'':14}{season.club_name(m.home_id):>16}{season.club_name(m.away_id):>16}"]
+    lines += [f"{label:14}{home:>16}{away:>16}" for label, home, away in rows]
+    return lines
+
+
+@dataclass(frozen=True, slots=True)
+class HomeView:
+    status: CareerStatus
+    last_match: MatchView | None
+    news: tuple[NewsItem, ...]
+
+
+def home_view(career: Career, news: int = 5) -> HomeView:
+    """What a client's home screen shows: the status, the user's last match, the latest news."""
+    last = last_user_match(career)
+    items = views.career_news(career)
+    return HomeView(career_status(career),
+                    match_view(career.season, last) if last is not None else None,
+                    tuple(items[-news:][::-1]) if news > 0 else ())
