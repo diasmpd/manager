@@ -29,6 +29,12 @@ working game.
 | 011 | Real-data import for MG clubs (into `manager-data`), including an attribute-synthesis model. Also covers (moved from 001): tolerant reading of files re-saved by pt-BR Excel (format v1.1) and the manual-edit audit trail | — |
 
 ### Open items
+- **Quick-sim under-dispersion (must be fixed before Milestone 0 closes).** Real goal totals are
+  under-dispersed (variance/mean 0.89 in Série A 2024–25), but the quick sim stays near Poisson.
+  After spec 006, the milestone gate misses 3-goal games: 20.44% against a floor of 20.5% (target
+  24.5%). It needs a mechanism with negative feedback on the totals that keeps the late
+  game-state ordering. Tried in 006 and removed: a response to conceding (added spread) and game
+  management (broke the leading side's late edge). See `specs/006-tactics/research.md` R6.
 - **Confirm in the official FMF 2026 regulation** (002 used press sources): tiebreaker order,
   semifinal pairing, and the Troféu Inconfidência entrants and dates (5th–8th skipping
   semifinalists vs. the best 4 outside the semifinals). Each one is a value in

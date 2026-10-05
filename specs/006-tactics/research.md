@@ -172,7 +172,32 @@ Each entry: Decision / Rationale / Alternatives considered. Sources were retriev
     - `trend_start` stays bounded at 0.9 or above, which the late-goal share also needs.
   - **Refit settings.** The goals-per-match target is weighted 3× in the loss, so the mean
     cannot drift low.
-- **Refit result (model 1.2).** RESULT-PENDING
+- **Refit result (model 1.2, final).** Coarse rounds, then a polish on the PR sample:
+  goals per match weighted 3×, caution pinned, no `managed`, and `trend_start` bounded at 0.9 or
+  above. The final PR-sample loss is 3.80.
+  - **Main moves:**
+    - `settled` 0.105 → 0.21;
+    - `goalless` → 0.039;
+    - `strength.attack` → 0.085 and `strength.control` → 0.126;
+    - `shootout.base` → 0.72.
+  - **Late game state** (pooled 24,000 matches): trailing/level 1.101, leading/level 1.086.
+    Both are well clear of the directions checked (1.04 and 1.00).
+  - **PR gate: passes.**
+    - 3-goal games 21.2%, 0-0 games 8.1%, 2.48 goals per match;
+    - goals after minute 75: 30.5% (back inside the band);
+    - reds 0.33 per match, at the band's upper edge (0.17–0.33);
+    - exploit check: the best tactic is Attacking, +0.124 points per match; no dominant tactic.
+  - **Milestone gate: one primary miss, documented (owner-approved plan).** 3-goal games are at
+    **20.44%** against the floor of 20.5%, 0.06 points short. Everything else passes. The
+    targets are unchanged.
+  - **Why it is short.** The quick sim's design multiplies per-minute rates, so its goal totals
+    stay near Poisson. That puts it about 3 points under the real 3-goal share, which comes
+    from real under-dispersion (variance/mean 0.89). The goalless push helps the 0-0 share, but
+    not the 3-goal share.
+  - **Fix before Milestone 0 closes** (roadmap open item, "quick-sim under-dispersion"): a
+    mechanism with real negative feedback on the totals that keeps the late game-state
+    ordering. Candidates: a time-varying match tempo, or goal timing that clusters, both
+    cross-checked against the positional engine.
 - **Exploit check**: a new section of the PR gate.
   - **Setup**: a grid of the 6 style tactics plus single-option variations from neutral,
     played against each of the 6 AI styles. Mirrored strength: the same club meets itself,
