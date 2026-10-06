@@ -40,7 +40,7 @@ shoulder_m = 1.5
 decision_every_s = 1.0169492372881357
 control_delay_s = 0.6153846153846153
 temperature = 0.455
-shoot_bias = 2.8318957627118646
+shoot_bias = 3.0
 min_shot_xg = 0.039
 pass_bias = 1.0
 dribble_bias = 1.04
@@ -64,7 +64,7 @@ runs_forward = 1.0
 runs_attacking_mid = 0.7
 runs_midfielder = 0.3
 runs_defender = 0.1
-cross_bias = 0.5384615384615383
+cross_bias = 0.4563233376792698
 cross_reach_m = 8.0
 clear_bias = 0.6
 loss_cost = 1.6622837753568744
@@ -104,7 +104,7 @@ beat_advance = 5.0
 
 [keeper]
 save_base = 0.7
-save_skill = 0.011834319526627217
+save_skill = 0.02011446153846153
 
 [energy]
 drain = 0.00055
@@ -149,11 +149,11 @@ regroup_drop = 5.0
 build_k = 0.3
 patience_work = 0.8
 patience_less = 1.2
-lever_scale = 0.7692307692307692
+lever_scale = 1.0
 possession_k = 0.02
 
 [home]
 edge = 0.04
 
 [attributes]
-spread = 0.39999960000000007
+spread = 0.5199994800000001
