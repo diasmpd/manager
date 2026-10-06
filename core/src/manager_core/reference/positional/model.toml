@@ -25,7 +25,7 @@ oop_compact = 0.3
 lateral_shift = 0.35
 width_ip = 1.0
 width_oop = 0.8
-line_deeper = -7.0
+line_deeper = -5.5
 line_standard = 0.0
 line_higher = 6.0
 line_much_higher = 8.46153846153846
@@ -133,14 +133,14 @@ substitution = 30.0
 keeper_hold = 8.0
 
 [tactics]
-tempo_higher = 0.85
-tempo_lower = 1.08
-tempo_noise = 0.05
+tempo_higher = 0.95
+tempo_lower = 1.05
+tempo_noise = 0.03
 transition_s = 6.0
 trans_risk = 1.5
 trans_through = 1.5
 counter_push = 10.0
-counter_press_n = 3.0
+counter_press_n = 2.0
 regroup_drop = 5.0
 build_k = 0.3
 patience_work = 0.8

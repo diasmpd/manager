@@ -86,8 +86,6 @@ TUNABLE = [
     ("shape.engage_high_press", 60.0, 85.0),
     ("shape.engage_low_block", 30.0, 50.0),
     ("tactics.lever_scale", 0.3, 1.5),
-    ("tactics.tempo_higher", 0.85, 1.0),
-    ("tactics.tempo_lower", 1.0, 1.15),
 ]
 
 
