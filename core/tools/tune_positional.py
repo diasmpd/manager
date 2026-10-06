@@ -66,7 +66,6 @@ TUNABLE = [
     ("decide.control_delay_s", 0.4, 3.0),
     ("decide.pass_out", 0.02, 0.6),
     ("decide.cross_bias", 0.2, 5.0),
-    ("restarts.scale", 0.6, 3.0),
     ("decide.loss_cost", 0.2, 5.0),
     ("decide.lane_pass", 0.6, 0.98),
     ("decide.crowd_pass", 0.6, 0.99),

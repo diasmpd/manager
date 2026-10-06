@@ -20,8 +20,8 @@ ball_speed_shot = 26.0
 
 [shape]
 ip_push = 0.55
-oop_push = 0.46153846153846145
-oop_compact = 0.39
+oop_push = 0.5999999999999999
+oop_compact = 0.3
 lateral_shift = 0.35
 width_ip = 1.0
 width_oop = 0.8
@@ -37,19 +37,19 @@ box_pressers = 2.0
 shoulder_m = 1.5
 
 [decide]
-decision_every_s = 1.2000001
-control_delay_s = 0.7999999999999999
+decision_every_s = 1.0169492372881357
+control_delay_s = 0.6153846153846153
 temperature = 0.455
-shoot_bias = 2.1783813559322036
-min_shot_xg = 0.03
+shoot_bias = 2.8318957627118646
+min_shot_xg = 0.039
 pass_bias = 1.0
 dribble_bias = 1.04
-carry_bias = 0.5325446153846154
+carry_bias = 0.6284026461538461
 clear_spread = 30.0
 carry_pull = 0.15
 carry_pull_final = 0.45
 wide_m = 18.0
-pass_out = 0.2011446153846154
+pass_out = 0.1547266272189349
 first_touch_s = 0.4
 release_pressure = 0.6
 through_bias = 1.0
@@ -64,7 +64,7 @@ runs_forward = 1.0
 runs_attacking_mid = 0.7
 runs_midfielder = 0.3
 runs_defender = 0.1
-cross_bias = 0.7
+cross_bias = 0.5384615384615383
 cross_reach_m = 8.0
 clear_bias = 0.6
 loss_cost = 1.6622837753568744
@@ -73,7 +73,7 @@ carry_limit_m = 97.0
 pass_max_m = 45.0
 intercept_radius = 2.2
 crowd_radius = 4.0
-crowd_discount = 0.8
+crowd_discount = 0.6153846153846154
 crowd_pass = 0.99
 lane_pass = 0.6388526727509778
 pressure_pass = 0.08
@@ -84,7 +84,7 @@ angle = 1.5
 distance = -0.12
 header_factor = 0.6
 blocker_factor = 0.65
-block_lane = 1.104481522134583
+block_lane = 1.002529381629852
 
 [duel]
 tackle_base = 0.19230799999999998
@@ -104,7 +104,7 @@ beat_advance = 5.0
 
 [keeper]
 save_base = 0.7
-save_skill = 0.015384615384615384
+save_skill = 0.011834319526627217
 
 [energy]
 drain = 0.00055
@@ -124,7 +124,7 @@ corner_header_xg = 0.06
 free_kick_direct_m = 30.0
 
 [restarts]
-scale = 1.8
+scale = 1.75
 kick_off = 4.0
 goal = 50.0
 throw_in = 10.0
