@@ -97,44 +97,46 @@ def _init_worker() -> None:
     _worker = QuickSimProvider(loaded.dataset)
 
 
-def _play(n: int, home: str, away: str,
-          params: PositionalParams) -> tuple[MatchReport, int, int, float, int]:
+def _play(n: int, home: str, away: str, params: PositionalParams,
+          prefix: str = "tune") -> tuple[MatchReport, int, int, float, int]:
     """One fixture on its own seed (so the result does not depend on the process)."""
     assert _worker is not None
     p = _worker
     hs, as_ = p.team_sheet(home), p.team_sheet(away)
     ht, at = p.tactics_for(hs, as_)
     match = LiveMatch(hs, as_, p.dataset.players, params, p.params,
-                      random.Random(f"tune:{n}"), False, ht, at, record=False)
+                      random.Random(f"{prefix}:{n}"), False, ht, at, record=False)
     match.play()
     return (match.report(), match.passes, match.passes_completed, match.in_play_s,
             sum(match.crosses.values()))
 
 
-def _play_neutral(n: int, club: str, params: PositionalParams) -> int:
+def _play_neutral(n: int, club: str, params: PositionalParams, prefix: str = "neutral") -> int:
     """The club against itself, both on the default tactic: total goals."""
     assert _worker is not None
     p = _worker
     sheet = p.team_sheet(club)
     tactic = default_tactic(sheet.formation.name)
     match = LiveMatch(sheet, sheet, p.dataset.players, params, p.params,
-                      random.Random(f"neutral:{club}:{n}"), False, tactic, tactic, record=False)
+                      random.Random(f"{prefix}:{club}:{n}"), False, tactic, tactic, record=False)
     match.play()
     report = match.report()
     return report.home.goals + report.away.goals
 
 
 class Sample:
-    def __init__(self, fixtures: int) -> None:
+    def __init__(self, fixtures: int, repeats: int = 1, prefix: str = "tune",
+                 neutral_seeds: int = NEUTRAL_SEEDS) -> None:
+        self.prefix = prefix
         loaded = api.load_dataset(ROOT.parent / "data" / "sample")
         assert loaded.dataset is not None
         self.provider = QuickSimProvider(loaded.dataset)
         clubs = sorted(loaded.dataset.clubs)
         pairs = list(permutations(clubs, 2))
         step = max(1, len(pairs) // fixtures)
-        self.pairs = pairs[::step][:fixtures]
+        self.pairs = pairs[::step][:fixtures] * repeats
         self.strong = {pair: self._stronger(*pair) for pair in self.pairs}
-        self.mirrors = [(k, club) for club in clubs for k in range(NEUTRAL_SEEDS)]
+        self.mirrors = [(k, club) for club in clubs for k in range(neutral_seeds)]
         self.pool = ProcessPoolExecutor(min(len(self.pairs), os.cpu_count() or 1),
                                         initializer=_init_worker)
         TARGETS["strong_goal_share"] = (self._quick_strong_share(), 0.04, 1.0)
@@ -171,9 +173,10 @@ class Sample:
         strong_goals = all_goals = 0
         homes, aways = zip(*self.pairs, strict=True)
         mirrored = self.pool.map(_play_neutral, *zip(*self.mirrors, strict=True),
-                                 [params] * len(self.mirrors))
+                                 [params] * len(self.mirrors),
+                                 [f"{self.prefix}-neutral"] * len(self.mirrors))
         played = self.pool.map(_play, range(len(self.pairs)), homes, aways,
-                               [params] * len(self.pairs))
+                               [params] * len(self.pairs), [self.prefix] * len(self.pairs))
         crosses = 0
         for (h, a), (report, made, done, live, crossed) in zip(self.pairs, played, strict=True):
             crosses += crossed
@@ -233,9 +236,19 @@ def dump(params: PositionalParams) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rounds", type=int, default=3)
-    parser.add_argument("--fixtures", type=int, default=66)  # strong-side share needs ~160 goals
+    parser.add_argument("--fixtures", type=int, default=132)  # every ordered pair of clubs
+    parser.add_argument("--validate", action="store_true",
+                        help="measure every target on 4 fresh seeds of every pair, then stop")
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
+    if args.validate:  # a fixed-seed fit can overfit its sample: check it on fresh seeds
+        check = Sample(132, repeats=4, prefix="validate", neutral_seeds=10)
+        values = check.measure(load_params())
+        print(f"validation loss {loss(values):.3f}  {show(values)}")
+        for k, (target, tol, w) in TARGETS.items():
+            print(f"  {k:20} {values[k]:9.3f}  target {target:8.3f}  "
+                  f"term {w * ((values[k] - target) / tol) ** 2:6.2f}")
+        return
     sample = Sample(args.fixtures)
     params = load_params()
     values = sample.measure(params)

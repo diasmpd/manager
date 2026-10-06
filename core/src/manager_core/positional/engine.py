@@ -537,8 +537,8 @@ class LiveMatch:
                     tv += (bv - pitch.CENTRE_V) * s["lateral_shift"]
                 tu, tv = pitch.clamp_point(tu, tv)
                 body.tx, body.ty = self.absolute(team.side, tu, tv)
-            if not in_possession and owner is not None and not regroup:
-                self._press_targets(team, owner)
+            if not in_possession and owner is not None:  # regrouping gives up the counter-press
+                self._press_targets(team, owner)  # only (see _press_targets), not pressing
 
     def _press_targets(self, team: Team, carrier: Body) -> None:
         cu, _ = self.rel(team.side, carrier.x, carrier.y)
