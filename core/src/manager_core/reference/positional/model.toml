@@ -20,8 +20,8 @@ ball_speed_shot = 26.0
 
 [shape]
 ip_push = 0.55
-oop_push = 0.6
-oop_compact = 0.3
+oop_push = 0.46153846153846145
+oop_compact = 0.39
 lateral_shift = 0.35
 width_ip = 1.0
 width_oop = 0.8
@@ -34,10 +34,11 @@ engage_mid_block = 55.0
 engage_low_block = 38.0
 press_radius = 14.0
 box_pressers = 2.0
+shoulder_m = 1.5
 
 [decide]
-decision_every_s = 0.9230769999999999
-control_delay_s = 0.6153846153846153
+decision_every_s = 1.2000001
+control_delay_s = 0.7999999999999999
 temperature = 0.455
 shoot_bias = 2.1783813559322036
 min_shot_xg = 0.03
@@ -48,7 +49,7 @@ clear_spread = 30.0
 carry_pull = 0.15
 carry_pull_final = 0.45
 wide_m = 18.0
-pass_out = 0.1547266272189349
+pass_out = 0.2011446153846154
 first_touch_s = 0.4
 release_pressure = 0.6
 through_bias = 1.0
@@ -64,6 +65,7 @@ runs_attacking_mid = 0.7
 runs_midfielder = 0.3
 runs_defender = 0.1
 cross_bias = 0.7
+cross_reach_m = 8.0
 clear_bias = 0.6
 loss_cost = 1.6622837753568744
 shot_range_m = 32.0
@@ -85,9 +87,9 @@ blocker_factor = 0.65
 block_lane = 1.104481522134583
 
 [duel]
-tackle_base = 0.14792923076923076
+tackle_base = 0.19230799999999998
 dribble_skill = 0.045
-foul_base = 0.0999999
+foul_base = 0.2
 foul_aggression = 0.02
 duel_every_s = 0.5
 duel_radius = 1.8
@@ -154,4 +156,4 @@ possession_k = 0.02
 edge = 0.04
 
 [attributes]
-spread = 0.307692
+spread = 0.39999960000000007

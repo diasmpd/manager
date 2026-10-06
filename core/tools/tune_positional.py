@@ -53,6 +53,8 @@ TARGETS = {
     # tactics must not carry the scoring: the default tactic against itself (every club, mirrored)
     # plays a normal match too (spec 008 FR-007, Constitution: no exploit tactics)
     "neutral_goals": (2.48, 0.3, 1.0),
+    # open-play crosses a team (typical top-flight value, to be sourced)
+    "crosses_per_team": (14.0, 4.0, 0.5),
 }
 NEUTRAL_SEEDS = 3
 
@@ -63,6 +65,7 @@ TUNABLE = [
     ("decide.decision_every_s", 0.6, 3.0),
     ("decide.control_delay_s", 0.4, 3.0),
     ("decide.pass_out", 0.02, 0.6),
+    ("decide.cross_bias", 0.2, 5.0),
     ("restarts.scale", 0.6, 3.0),
     ("decide.loss_cost", 0.2, 5.0),
     ("decide.lane_pass", 0.6, 0.98),
@@ -96,7 +99,7 @@ def _init_worker() -> None:
 
 
 def _play(n: int, home: str, away: str,
-          params: PositionalParams) -> tuple[MatchReport, int, int, float]:
+          params: PositionalParams) -> tuple[MatchReport, int, int, float, int]:
     """One fixture on its own seed (so the result does not depend on the process)."""
     assert _worker is not None
     p = _worker
@@ -105,7 +108,8 @@ def _play(n: int, home: str, away: str,
     match = LiveMatch(hs, as_, p.dataset.players, params, p.params,
                       random.Random(f"tune:{n}"), False, ht, at, record=False)
     match.play()
-    return match.report(), match.passes, match.passes_completed, match.in_play_s
+    return (match.report(), match.passes, match.passes_completed, match.in_play_s,
+            sum(match.crosses.values()))
 
 
 def _play_neutral(n: int, club: str, params: PositionalParams) -> int:
@@ -171,7 +175,9 @@ class Sample:
                                  [params] * len(self.mirrors))
         played = self.pool.map(_play, range(len(self.pairs)), homes, aways,
                                [params] * len(self.pairs))
-        for (h, a), (report, made, done, live) in zip(self.pairs, played, strict=True):
+        crosses = 0
+        for (h, a), (report, made, done, live, crossed) in zip(self.pairs, played, strict=True):
+            crosses += crossed
             rows.append(report)
             goals = (report.home.goals, report.away.goals)
             strong_goals += goals[0] if self.strong[(h, a)] == "home" else goals[1]
@@ -203,6 +209,7 @@ class Sample:
             "strong_goal_share": strong_goals / all_goals if all_goals else 0.5,
             "ball_in_play_min": in_play / n / 60,
             "neutral_goals": statistics.fmean(mirrored),
+            "crosses_per_team": crosses / n / 2,
         }
 
 

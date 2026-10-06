@@ -254,6 +254,7 @@ class LiveMatch:
         self.passes = 0  # attempted passes (realism diagnostics and the tuner)
         self.passes_completed = 0
         self.in_play_s = 0.0  # ball-in-play time (diagnostics, calibration)
+        self.crosses = {HOME: 0, AWAY: 0}  # open-play crosses (diagnostics, calibration)
         self._last_toucher: Body | None = None
         self._last_window: dict[str, float] = {HOME: -1.0, AWAY: -1.0}
         self._windows_plan = {s: self._plan_subs() for s in (HOME, AWAY)}
@@ -522,6 +523,10 @@ class LiveMatch:
                     tu = u + (bu - 52.5) * push + offset
                     if in_possession and body.group in (Group.FORWARD, Group.ATTACKING_MID):
                         tu = max(tu, bu - 5)
+                        # a forward plays on the last defender's shoulder (a false 9, with
+                        # fewer forward runs, does not)
+                        if body.group is Group.FORWARD and self._runs(team, body) >= 1.0:
+                            tu = max(tu, onside - s["shoulder_m"])
                         if counter:  # break forward at once
                             tu += self.pt["counter_push"]
                             body.urgent_until = self.t + 1.0
@@ -882,6 +887,7 @@ class LiveMatch:
             mate, p_ok, tx, ty = payload
             self._through(carrier, mate, p_ok, tx, ty, opp)
         elif kind == "cross":
+            self.crosses[carrier.side] += 1
             self._cross(carrier, team, opp)
         elif kind == "clear":
             self._clear(carrier)
@@ -1203,7 +1209,14 @@ class LiveMatch:
         targets = [
             b for b in team.on_pitch() if b is not carrier and b.group is not Group.GOALKEEPER
         ]
-        box = [b for b in targets if pitch.in_box(*self.rel(team.side, b.x, b.y))]
+        # in the box, or arriving: attackers time their run into the box for the cross
+        reach = self.pd["cross_reach_m"]
+        box = [
+            b
+            for b in targets
+            if self.rel(team.side, b.x, b.y)[0] > pitch.LENGTH - pitch.BOX_DEPTH - reach
+            and abs(self.rel(team.side, b.x, b.y)[1] - pitch.CENTRE_V) < 20.0
+        ]
         if not box:
             self._next_decision = self.t + self.p["decide"]["decision_every_s"]
             return
