@@ -238,6 +238,7 @@ class LiveMatch:
         self._pending: list[Decision] = []
         self._next_decision = 0.0
         self._possession: str | None = None
+        self._owned_since = 0.0
         self.pt = self.p["tactics"]
         # (own tactic, opponent tactic) by identity: tactics are frozen and replaced on change
         self._lever_cache: dict[tuple[int, int], tuple[Tactic, Tactic, effects.Levers]] = {}
@@ -378,7 +379,10 @@ class LiveMatch:
         self._move(dt)
         if live and self.ball.owner is not None:
             self.teams[self.ball.owner.side].owned_s += dt
-            self._duels(dt)
+            if self._hurried(self.ball.owner):
+                self._decide(self.ball.owner)
+            if self.ball.owner is not None:
+                self._duels(dt)
             if self.ball.owner is not None and self.t >= self._next_decision:
                 self._decide(self.ball.owner)
         if self.recording and self._steps % int(self.p["time"]["record_every_steps"]) == 0:
@@ -417,6 +421,14 @@ class LiveMatch:
     def _lv(self, value: float) -> float:
         """A lever multiplier at the engine's strength (one exponent, calibrated)."""
         return float(value ** self.pt["lever_scale"])
+
+    def _hurried(self, carrier: Body) -> bool:
+        """A carrier closed down after his first touch releases the ball now instead of waiting
+        for his next decision (players under pressure play quickly)."""
+        if self.t >= self._next_decision or self.t - self._owned_since < self.pd["first_touch_s"]:
+            return False
+        opp = self.teams[other(carrier.side)]
+        return self._pressure(carrier, opp) >= self.pd["release_pressure"]
 
     def _tempo(self, team: Team) -> float:
         """The tempo instruction as a factor on the time on the ball."""
@@ -642,6 +654,7 @@ class LiveMatch:
             self.teams[body.side].won_at = self.t
             self.teams[self._possession].lost_at = self.t
         self._possession = body.side
+        self._owned_since = self.t
         self.ball.owner = body
         self.ball.flight = None
         self.ball.x, self.ball.y = body.x, body.y

@@ -79,12 +79,8 @@ TUNABLE = [
     ("xg.block_lane", 0.8, 3.0),
     ("keeper.save_skill", 0.0, 0.05),
     ("home.edge", 0.0, 0.12),
-    # the size of tactical effects
-    ("shape.line_higher", 2.0, 10.0),
-    ("shape.line_much_higher", 4.0, 16.0),
-    ("shape.line_deeper", -12.0, -2.0),
-    ("shape.engage_high_press", 60.0, 85.0),
-    ("shape.engage_low_block", 30.0, 50.0),
+    # the overall strength of the 006 levers (line heights, engagement and tempo are sized by
+    # tools/positional_exploit.py: points and openness, not by these targets)
     ("tactics.lever_scale", 0.3, 1.5),
 ]
 
