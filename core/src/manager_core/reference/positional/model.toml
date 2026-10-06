@@ -28,18 +28,18 @@ width_oop = 0.8
 line_deeper = -7.0
 line_standard = 0.0
 line_higher = 6.0
-line_much_higher = 11.0
-engage_high_press = 75.0
+line_much_higher = 8.46153846153846
+engage_high_press = 60.0
 engage_mid_block = 55.0
 engage_low_block = 38.0
 press_radius = 14.0
 box_pressers = 2.0
 
 [decide]
-decision_every_s = 0.7100592307692307
-control_delay_s = 0.7999999999999999
+decision_every_s = 0.9230769999999999
+control_delay_s = 0.6153846153846153
 temperature = 0.455
-shoot_bias = 1.6756779661016952
+shoot_bias = 2.1783813559322036
 min_shot_xg = 0.03
 pass_bias = 1.0
 dribble_bias = 1.04
@@ -71,7 +71,7 @@ intercept_radius = 2.2
 crowd_radius = 4.0
 crowd_discount = 0.8
 crowd_pass = 0.99
-lane_pass = 0.8305084745762712
+lane_pass = 0.6388526727509778
 pressure_pass = 0.08
 
 [xg]
@@ -100,7 +100,7 @@ beat_advance = 5.0
 
 [keeper]
 save_base = 0.7
-save_skill = 0.02
+save_skill = 0.015384615384615384
 
 [energy]
 drain = 0.00055
@@ -133,7 +133,7 @@ substitution = 30.0
 keeper_hold = 8.0
 
 [tactics]
-tempo_higher = 0.92
+tempo_higher = 0.85
 tempo_lower = 1.08
 tempo_noise = 0.05
 transition_s = 6.0
@@ -145,7 +145,7 @@ regroup_drop = 5.0
 build_k = 0.3
 patience_work = 0.8
 patience_less = 1.2
-lever_scale = 1.0
+lever_scale = 0.7692307692307692
 possession_k = 0.02
 
 [home]
