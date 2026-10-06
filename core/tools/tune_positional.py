@@ -26,6 +26,7 @@ from manager_core.positional.engine import LiveMatch
 from manager_core.positional.params import PositionalParams, load_params
 from manager_core.quicksim.provider import QuickSimProvider
 from manager_core.quicksim.report import MatchReport
+from manager_core.tactics.model import default_tactic
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "src" / "manager_core" / "reference" / "positional" / "model.toml"
@@ -49,7 +50,11 @@ TARGETS = {
     "pass_completion": (0.80, 0.04, 0.3),
     # typical top-flight ball-in-play time (to be sourced, like the passing targets)
     "ball_in_play_min": (55.0, 3.0, 0.5),
+    # tactics must not carry the scoring: the default tactic against itself (every club, mirrored)
+    # plays a normal match too (spec 008 FR-007, Constitution: no exploit tactics)
+    "neutral_goals": (2.48, 0.3, 1.0),
 }
+NEUTRAL_SEEDS = 3
 
 TUNABLE = [
     ("attributes.spread", 0.1, 1.0),
@@ -74,6 +79,15 @@ TUNABLE = [
     ("xg.block_lane", 0.8, 3.0),
     ("keeper.save_skill", 0.0, 0.05),
     ("home.edge", 0.0, 0.12),
+    # the size of tactical effects
+    ("shape.line_higher", 2.0, 10.0),
+    ("shape.line_much_higher", 4.0, 16.0),
+    ("shape.line_deeper", -12.0, -2.0),
+    ("shape.engage_high_press", 60.0, 85.0),
+    ("shape.engage_low_block", 30.0, 50.0),
+    ("tactics.lever_scale", 0.3, 1.5),
+    ("tactics.tempo_higher", 0.85, 1.0),
+    ("tactics.tempo_lower", 1.0, 1.15),
 ]
 
 
@@ -100,6 +114,19 @@ def _play(n: int, home: str, away: str,
     return match.report(), match.passes, match.passes_completed, match.in_play_s
 
 
+def _play_neutral(n: int, club: str, params: PositionalParams) -> int:
+    """The club against itself, both on the default tactic: total goals."""
+    assert _worker is not None
+    p = _worker
+    sheet = p.team_sheet(club)
+    tactic = default_tactic(sheet.formation.name)
+    match = LiveMatch(sheet, sheet, p.dataset.players, params, p.params,
+                      random.Random(f"neutral:{club}:{n}"), False, tactic, tactic, record=False)
+    match.play()
+    report = match.report()
+    return report.home.goals + report.away.goals
+
+
 class Sample:
     def __init__(self, fixtures: int) -> None:
         loaded = api.load_dataset(ROOT.parent / "data" / "sample")
@@ -110,6 +137,7 @@ class Sample:
         step = max(1, len(pairs) // fixtures)
         self.pairs = pairs[::step][:fixtures]
         self.strong = {pair: self._stronger(*pair) for pair in self.pairs}
+        self.mirrors = [(k, club) for club in clubs for k in range(NEUTRAL_SEEDS)]
         self.pool = ProcessPoolExecutor(min(len(self.pairs), os.cpu_count() or 1),
                                         initializer=_init_worker)
         TARGETS["strong_goal_share"] = (self._quick_strong_share(), 0.04, 1.0)
@@ -145,6 +173,8 @@ class Sample:
         in_play = 0.0
         strong_goals = all_goals = 0
         homes, aways = zip(*self.pairs, strict=True)
+        mirrored = self.pool.map(_play_neutral, *zip(*self.mirrors, strict=True),
+                                 [params] * len(self.mirrors))
         played = self.pool.map(_play, range(len(self.pairs)), homes, aways,
                                [params] * len(self.pairs))
         for (h, a), (report, made, done, live) in zip(self.pairs, played, strict=True):
@@ -178,6 +208,7 @@ class Sample:
             "pass_completion": completed / passes if passes else 0.0,
             "strong_goal_share": strong_goals / all_goals if all_goals else 0.5,
             "ball_in_play_min": in_play / n / 60,
+            "neutral_goals": statistics.fmean(mirrored),
         }
 
 
