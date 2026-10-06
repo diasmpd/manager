@@ -521,6 +521,10 @@ class LiveMatch:
                 else:
                     u = back + (u - back) * compact
                     tu = u + (bu - 52.5) * push + offset
+                    if in_possession and bu > pitch.LENGTH / 2 and body.group is not Group.FORWARD:
+                        # an attacking side commits more players forward (full-backs overlap,
+                        # midfielders arrive in the box); a defensive one keeps them back
+                        tu += (_mentality_index(team.tactic.mentality) - 3) * s["mentality_ip_m"]
                     if in_possession and body.group in (Group.FORWARD, Group.ATTACKING_MID):
                         tu = max(tu, bu - 5)
                         # a forward plays on the last defender's shoulder (a false 9, with
@@ -1083,7 +1087,10 @@ class LiveMatch:
             setting = dict(slot.instructions).get(
                 "forward_runs", locked.get("forward_runs", setting)
             )
-        return base * {"more": 1.5, "standard": 1.0, "fewer": 0.4}.get(setting, 1.0)
+        # mentality: how many commit forward (a defensive side keeps its forwards back too)
+        step = _mentality_index(team.tactic.mentality) - 3
+        commit = max(0.2, 1 + self.pt["mentality_runs"] * step)
+        return base * commit * {"more": 1.5, "standard": 1.0, "fewer": 0.4}.get(setting, 1.0)
 
     def _race(self, runner: Body, opp: Team, tx: float, ty: float) -> float:
         """The chance the runner gets to a ball in behind first: running time against the

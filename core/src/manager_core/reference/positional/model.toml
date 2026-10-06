@@ -21,7 +21,7 @@ ball_speed_shot = 26.0
 [shape]
 ip_push = 0.55
 oop_push = 0.5999999999999999
-oop_compact = 0.3
+oop_compact = 0.39
 lateral_shift = 0.35
 width_ip = 1.0
 width_oop = 0.8
@@ -35,15 +35,16 @@ engage_low_block = 38.0
 press_radius = 14.0
 box_pressers = 2.0
 shoulder_m = 1.5
+mentality_ip_m = 0.0
 
 [decide]
 decision_every_s = 1.0169492372881357
 control_delay_s = 0.6153846153846153
 temperature = 0.455
 shoot_bias = 3.0
-min_shot_xg = 0.039
+min_shot_xg = 0.0507
 pass_bias = 1.0
-dribble_bias = 1.04
+dribble_bias = 1.352
 carry_bias = 0.6284026461538461
 clear_spread = 30.0
 carry_pull = 0.15
@@ -67,7 +68,7 @@ runs_defender = 0.1
 cross_bias = 0.4563233376792698
 cross_reach_m = 8.0
 clear_bias = 0.6
-loss_cost = 1.6622837753568744
+loss_cost = 1.2786798271975957
 shot_range_m = 32.0
 carry_limit_m = 97.0
 pass_max_m = 45.0
@@ -84,7 +85,7 @@ angle = 1.5
 distance = -0.12
 header_factor = 0.6
 blocker_factor = 0.65
-block_lane = 1.002529381629852
+block_lane = 1.3032881961188076
 
 [duel]
 tackle_base = 0.19230799999999998
@@ -104,7 +105,7 @@ beat_advance = 5.0
 
 [keeper]
 save_base = 0.7
-save_skill = 0.02011446153846153
+save_skill = 0.02614879999999999
 
 [energy]
 drain = 0.00055
@@ -151,9 +152,10 @@ patience_work = 0.8
 patience_less = 1.2
 lever_scale = 1.0
 possession_k = 0.02
+mentality_runs = 0.0
 
 [home]
 edge = 0.04
 
 [attributes]
-spread = 0.5199994800000001
+spread = 0.3999996

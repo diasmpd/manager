@@ -80,7 +80,7 @@ TUNABLE = [
     ("duel.beat_advance", 1.0, 5.0),
     ("xg.block_lane", 0.8, 3.0),
     ("keeper.save_skill", 0.0, 0.05),
-    ("home.edge", 0.0, 0.12),
+    ("home.edge", 0.0, 0.25),
     # the overall strength of the 006 levers (line heights, engagement and tempo are sized by
     # tools/positional_exploit.py: points and openness, not by these targets)
     ("tactics.lever_scale", 0.3, 1.5),
