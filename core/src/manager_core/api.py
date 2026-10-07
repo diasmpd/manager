@@ -635,6 +635,7 @@ class CareerStatus:
     position: int | None  # place in the overall table (None before the first match)
     suspended: tuple[SuspensionView, ...]
     pending: Stop | None
+    club_colors: tuple[str, str] = ("#F2C230", "#0E2A5C")  # primary, secondary (#RRGGBB)
 
 
 def suspended_players(career: Career, club_id: str) -> list[SuspensionView]:
@@ -652,9 +653,11 @@ def career_status(career: Career) -> CareerStatus:
                 if m.id not in season.results and club in (m.home_id, m.away_id)]
     rows = season_table(season) if season.results else []
     place = next((r.place for r in rows if r.club_id == club), None)
+    colours = career.world.club(club)
     return CareerStatus(career.name, club, season.club_name(club), career.current_date,
                         season.year, _match_view(season, upcoming[0]) if upcoming else None,
-                        place, tuple(suspended_players(career, club)), career.pending)
+                        place, tuple(suspended_players(career, club)), career.pending,
+                        (colours.color_primary, colours.color_secondary))
 
 
 def career_history(career: Career) -> list[SeasonRecord]:

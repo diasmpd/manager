@@ -14,7 +14,7 @@ from manager_core.quicksim.params import load_params
 from manager_core.server.encode import selection_from_json, tactic_from_json, to_json
 from manager_core.server.protocol import Handler, Params, RpcError, Session, param
 
-CONTRACT = "1.2"  # 1.1: tactic.set_role; 1.2: live matches (spec 008)
+CONTRACT = "1.3"  # 1.1: tactic.set_role; 1.2: live matches (spec 008); 1.3: club colours
 NEWS_ON_HOME = 5
 
 

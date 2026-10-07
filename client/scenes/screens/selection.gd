@@ -35,7 +35,7 @@ func open() -> void:
 	add_child(UI.row([UI.label(UI.t("ui.desktop.formation")), _formation,
 			UI.button(UI.t("ui.desktop.assistant"), _assistant),
 			UI.button(UI.t("ui.menu.tactics"), func(): main.show_screen("tactics")),
-			UI.spacer(), UI.button(UI.t("ui.desktop.confirm_and_play"), _confirm)]))
+			UI.spacer(), UI.primary_button(UI.t("ui.desktop.confirm_and_play"), _confirm)]))
 	var titles := [UI.t("ui.select.slot"), UI.t("ui.select.player"), UI.t("ui.select.pos"),
 			UI.t("ui.select.stars"), UI.t("ui.select.status")]
 	_xi = UI.table(titles)

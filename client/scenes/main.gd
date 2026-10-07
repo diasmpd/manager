@@ -33,6 +33,9 @@ var _content: MarginContainer
 var _date_label: Label
 var _club_label: Label
 var _busy_label: Label
+var _season_label: Label
+var _stripe: Array[ColorRect] = []  # the club's colours beside its name
+var _menu_buttons := {}  # screen name -> its menu button (the current one is marked)
 var _continue_button: Button
 var _message: Label
 var _ready_to_play := false
@@ -58,23 +61,61 @@ func _ready() -> void:
 func _build() -> void:
 	theme = UI.make_theme()
 	var background := ColorRect.new()
-	background.color = Color(0.09, 0.11, 0.14)
+	background.color = UI.BG
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
+	add_child(_pitch_stripes())
 	var outer := VBoxContainer.new()
 	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(outer)
 	_top = UI.row()
-	_top.custom_minimum_size.y = 48
-	_club_label = UI.label("", 20, true)
-	_date_label = UI.label("", 16)
+	_top.custom_minimum_size.y = 44
+	_top.add_theme_constant_override("separation", 14)
+	var stripe := VBoxContainer.new()  # the club's colours, like a scarf
+	stripe.add_theme_constant_override("separation", 0)
+	for i in 2:
+		var band := ColorRect.new()
+		band.custom_minimum_size = Vector2(7, 17)
+		stripe.add_child(band)
+		_stripe.append(band)
+	stripe.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_club_label = UI.label("", 22)
+	_club_label.add_theme_font_override("font", UI.font(UI.CONDENSED_BOLD))
+	_date_label = UI.led("", 26)
+	var scoreboard := PanelContainer.new()  # the date on a stadium scoreboard
+	var board := StyleBoxFlat.new()
+	board.bg_color = Color.BLACK
+	board.border_color = Color("2a1d06")
+	board.set_border_width_all(1)
+	board.set_corner_radius_all(3)
+	board.content_margin_left = 10
+	board.content_margin_right = 10
+	scoreboard.add_theme_stylebox_override("panel", board)
+	scoreboard.add_child(_date_label)
+	scoreboard.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_season_label = UI.label("", 15)
+	_season_label.add_theme_font_override("font", UI.font(UI.CONDENSED))
+	_season_label.add_theme_color_override("font_color", UI.MUTE)
 	_busy_label = UI.label("", 14)
-	_continue_button = UI.button("Continuar", continue_game)
-	_continue_button.custom_minimum_size = Vector2(160, 40)
-	for child in [_club_label, _date_label, UI.spacer(), _busy_label, _continue_button]:
+	_busy_label.add_theme_color_override("font_color", UI.MUTE)
+	_continue_button = UI.primary_button("Continuar", continue_game)
+	_continue_button.custom_minimum_size = Vector2(170, 40)
+	for child in [stripe, _club_label, scoreboard, _season_label, UI.spacer(), _busy_label,
+			_continue_button]:
 		_top.add_child(child)
-	var top_margin := _margin(_top, 12)
-	outer.add_child(top_margin)
+	var top_bar := PanelContainer.new()
+	var bar_style := StyleBoxFlat.new()
+	bar_style.bg_color = UI.TOPBAR
+	bar_style.border_color = UI.LINE
+	bar_style.border_width_bottom = 1
+	bar_style.content_margin_left = 14
+	bar_style.content_margin_right = 14
+	bar_style.content_margin_top = 8
+	bar_style.content_margin_bottom = 8
+	top_bar.add_theme_stylebox_override("panel", bar_style)
+	top_bar.add_child(_top)
+	outer.add_child(top_bar)
+	_paint_club()
 	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_child(body)
@@ -93,6 +134,30 @@ func _build() -> void:
 	_set_playing(false)
 
 
+## Faint mowing stripes behind everything (the pitch).
+func _pitch_stripes() -> ColorRect:
+	var stripes := ColorRect.new()
+	stripes.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stripes.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var shader := Shader.new()
+	shader.code = """shader_type canvas_item;
+void fragment() {
+	float band = step(0.5, fract(FRAGCOORD.x / 140.0));
+	COLOR = vec4(0.12, 0.35, 0.24, mix(0.09, 0.035, band));
+}"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	stripes.material = material
+	return stripes
+
+
+## The top bar and every accent in the user club's colours.
+func _paint_club() -> void:
+	_stripe[0].color = UI.club_primary
+	_stripe[1].color = UI.club_secondary
+	theme = UI.make_theme()
+
+
 func _margin(child: Control, size: int) -> MarginContainer:
 	var m := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
@@ -108,7 +173,7 @@ func start_core() -> void:
 	message("")
 	_show_text(Core.LOCAL["starting"])
 	if await Core.start():
-		_continue_button.text = Core.t("ui.continue")
+		_continue_button.text = Core.t("ui.continue").to_upper()
 		_build_menu()
 		show_screen("careers")
 	else:
@@ -158,22 +223,25 @@ func close_game() -> void:
 func _build_menu() -> void:
 	for child in _menu.get_children():
 		child.queue_free()
-	for entry in MENU:
-		var b := UI.button(Core.t(entry[1]), show_screen.bind(entry[0]))
+	_menu_buttons.clear()
+	for entry in MENU + [["careers", "ui.careers.title"]]:
+		if entry[0] == "careers":
+			_menu.add_child(UI.spacer())
+		var b := UI.button(Core.t(entry[1]).to_upper(), show_screen.bind(entry[0]))
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.custom_minimum_size.y = 36
+		b.theme_type_variation = "Nav"
 		_menu.add_child(b)
-	_menu.add_child(UI.spacer())
-	var careers := UI.button(Core.t("ui.careers.title"), show_screen.bind("careers"))
-	careers.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_menu.add_child(careers)
+		_menu_buttons[entry[0]] = b
 
 
 func _set_playing(playing: bool) -> void:
 	_ready_to_play = playing
 	_menu.visible = playing
 	_continue_button.visible = playing
-	_date_label.visible = playing
+	_date_label.get_parent().visible = playing  # the scoreboard panel
+	_season_label.visible = playing
+	_stripe[0].get_parent().visible = playing
 	_club_label.visible = playing
 
 
@@ -193,6 +261,8 @@ func show_screen(name: String, args: Dictionary = {}) -> Screen:
 		screen.set(key, args[key])
 	current = screen
 	current_name = name
+	for key in _menu_buttons:
+		_menu_buttons[key].theme_type_variation = "NavCurrent" if key == name else "Nav"
 	_set_content(screen)
 	message("")
 	await screen.open()
@@ -231,9 +301,12 @@ func career_opened(new_status: Dictionary) -> void:
 
 func update_status(new_status: Dictionary) -> void:
 	status = new_status
-	_club_label.text = str(status.get("club_name", ""))
-	_date_label.text = Core.t("ui.home.date", {
-		"date": UI.date_text(str(status.get("current_date", ""))), "year": status.get("year", "")})
+	if status.has("club_colors"):
+		UI.set_club_colors(status["club_colors"])
+		_paint_club()
+	_club_label.text = str(status.get("club_name", "")).to_upper()
+	_date_label.text = UI.date_text(str(status.get("current_date", ""))).to_upper()
+	_season_label.text = Core.t("ui.top.season", {"year": status.get("year", "")}).to_upper()
 
 
 func refresh_status() -> void:

@@ -97,7 +97,10 @@ def test_careers(client: Client, tmp_path: Path) -> None:
     assert opened["status"]["name"] == "minha" and opened["notices"] == []
     assert client.error("career.open", name="ghost")["code"] == "NOT_FOUND"
     assert client.call("career.save")["path"].endswith("minha.sqlite")
-    assert client.call("career.status")["current_date"]
+    status = client.call("career.status")
+    assert status["current_date"]
+    # contract 1.3: the user club's colours, from the dataset (alvorada: red and white)
+    assert status["club_colors"] == ["#C8102E", "#FFFFFF"]
 
 
 def test_continue_and_progress(playing: Client) -> None:

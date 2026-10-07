@@ -50,7 +50,9 @@ Both sides then exchange **one JSON object per line**, UTF-8, over the child's s
 The client refuses to run on a different major version (spec FR-005).
 
 History: 1.0 (spec 007); 1.1 adds `tactic.set_role` (the role-change rule moved from the clients
-into the core); 1.2 adds the live-match methods (spec 008).
+into the core); 1.2 adds the live-match methods (spec 008); 1.3 adds `club_colors` to
+`CareerStatus` (the user club's primary and secondary colours, `#RRGGBB`, which the client's
+look uses).
 
 **Packaging note**: the server finds the repo (saves, sample data) from its source location
 (`server/__main__.py`, `parents[4]`), so it runs from a source checkout. An installed package

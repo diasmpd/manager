@@ -251,6 +251,7 @@ MESSAGES: dict[str, str] = {
     "ui.too_small": "Aumente o terminal para pelo menos 100 x 30.",
     "ui.no_career": "Nenhuma carreira encontrada. Crie uma com: python -m manager_core career new NOME --club CLUBE",
     "ui.home.date": "{date} · temporada {year}",
+    "ui.top.season": "temporada {year}",
     "ui.home.next_match": "Próximo jogo",
     "ui.home.no_match": "Sem jogos marcados.",
     "ui.home.position": "Posição na classificação geral: {place}º",

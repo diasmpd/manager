@@ -50,4 +50,20 @@ func _run() -> void:
 	var answer: Dictionary = await root.get_node("/root/Core").request("view.squad")
 	await main.show_screen("player", {"player_id": answer["result"][0]["player_id"]})
 	await _shot("player")
+	# the live match: continue to the user's match day, confirm the team, let the clock run
+	await main.show_screen("home")
+	for i in 30:
+		await main.continue_game()
+		if main.current_name == "selection":
+			break
+	if main.current_name == "selection":
+		var selection = main.current
+		selection._confirm()
+		await _wait(func(): return main.current_name == "match_day", 30.0)
+		if main.current_name == "selection":  # a warning to confirm again
+			selection._confirm()
+			await _wait(func(): return main.current_name == "match_day", 30.0)
+		var day = main.current
+		await _wait(func(): return day._state.get("minute", {}).get("base", 0) > 25, 90.0)
+		await _shot("match_day")
 	quit(0)

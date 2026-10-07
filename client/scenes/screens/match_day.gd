@@ -8,8 +8,11 @@ const SPEEDS := {1: 7.5, 2: 15.0, 3: 45.0, 4: 900.0}  # match seconds per 0.25 s
 const TICK := 0.25
 
 var _feed: RichTextLabel
-var _score: Label
+var _score: Label  # LED digits on the scoreboard
 var _clock: Label
+var _home_name: Label
+var _away_name: Label
+var _half_time: Label
 var _pause_button: Button
 var _subs_panel: VBoxContainer
 var _on_list: ItemList
@@ -31,9 +34,7 @@ func open() -> void:
 	if started == null:
 		return
 	add_child(UI.title(UI.t("ui.match.title")))
-	_score = UI.label("", 26, true)
-	_clock = UI.label("", 16)
-	add_child(UI.row([_score, UI.spacer(), _clock]))
+	add_child(_scoreboard())
 	var controls := UI.row([UI.label(UI.t("ui.desktop.speed"))])
 	for s in [1, 2, 3, 4]:
 		controls.add_child(UI.button(str(s), _set_speed.bind(s)))
@@ -42,7 +43,7 @@ func open() -> void:
 	controls.add_child(UI.button(UI.t("ui.live.subs"), _show_subs))
 	controls.add_child(UI.button(UI.t("ui.menu.tactics"), _open_tactics))
 	controls.add_child(UI.spacer())
-	_continue_button = UI.button(UI.t("ui.continue"), _done)
+	_continue_button = UI.primary_button(UI.t("ui.continue"), _done)
 	_continue_button.visible = false
 	controls.add_child(_continue_button)
 	add_child(controls)
@@ -129,6 +130,38 @@ func _tick() -> void:
 		_timer.start()
 
 
+## The stadium scoreboard: names either side, the score and the clock in LED digits.
+func _scoreboard() -> PanelContainer:
+	_home_name = UI.label("", 26)
+	_away_name = UI.label("", 26)
+	for name in [_home_name, _away_name]:
+		name.add_theme_font_override("font", UI.font(UI.CONDENSED_BOLD))
+		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_home_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_score = UI.led("", 54)
+	_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_clock = UI.led("", 30)
+	_half_time = UI.led("", 22)
+	var clock_row := UI.row([_clock, _half_time])
+	clock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var middle := UI.column([_score, clock_row])
+	middle.custom_minimum_size.x = 220
+	var board := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color.BLACK
+	style.border_color = Color("2a1d06")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 6
+	style.content_margin_bottom = 8
+	board.add_theme_stylebox_override("panel", style)
+	board.add_child(UI.row([_home_name, middle, _away_name]))
+	return board
+
+
 func _update(step: Dictionary) -> void:
 	for line in step.get("feed", []):
 		main.live_lines.append(line)
@@ -137,12 +170,13 @@ func _update(step: Dictionary) -> void:
 	_finished = step.get("finished", false)
 	var m: Dictionary = main.live_match
 	var score: Array = _state["score"]
-	_score.text = "%s  %d x %d  %s" % [m.get("home_name", ""), score[0], score[1], m.get("away_name", "")]
+	_home_name.text = str(m.get("home_name", "")).to_upper()
+	_away_name.text = str(m.get("away_name", "")).to_upper()
+	_score.text = "%d-%d" % [score[0], score[1]]
 	var minute: Dictionary = _state["minute"]
 	_clock.text = ("%d+%d'" % [minute["base"], minute["added"]]) if minute["added"] > 0 \
 			else ("%d'" % minute["base"])
-	if _state["at_half_time"]:
-		_clock.text += "  " + UI.t("ui.live.half_time")
+	_half_time.text = UI.t("ui.live.half_time").to_upper() if _state["at_half_time"] else ""
 	for p in _state["on_pitch"] + _state["bench"]:
 		_names[p["player_id"]] = p["name"]
 	if _subs_panel != null and _subs_panel.visible:
