@@ -270,6 +270,8 @@ def main() -> None:
                 if score < best:
                     best, params, values = score, trial, trial_values
                     print(f"  {path} -> {value:.4g}  loss {best:.3f}", flush=True)
+                    if args.write:  # a checkpoint: a stopped run keeps every accepted change
+                        MODEL.write_text(dump(params), "utf-8", newline="\n")
                     break
         print(f"round {round_index + 1}: loss {best:.3f} ({time.time() - start:.0f} s)  "
               f"{show(values)}", flush=True)
