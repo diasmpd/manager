@@ -17,8 +17,8 @@ func open() -> void:
 			state = UI.t("ui.select.suspended")
 		elif r["yellows"] > 0:
 			state = UI.t("ui.squad.yellows_count", {"n": r["yellows"]})
-		rows.append([r["position"], r["name"], str(r["age"]), UI.stars(r["stars"]), state,
-				str(r["appearances"]), str(r["goals"]), str(r["assists"]),
+		rows.append([r["position"], r["name"], UI.num(r["age"]), UI.stars(r["stars"]), state,
+				UI.num(r["appearances"]), UI.num(r["goals"]), UI.num(r["assists"]),
 				"%d/%d" % [r["yellow_cards"], r["red_cards"]]])
 		keys.append(r["player_id"])
 	var table := UI.table([UI.t("ui.select.pos"), UI.t("ui.select.player"), UI.t("ui.squad.age"),
@@ -26,7 +26,7 @@ func open() -> void:
 			UI.t("ui.squad.goals"), UI.t("ui.squad.assists"), UI.t("ui.squad.cards")], rows, keys)
 	table.item_activated.connect(func(): _profile(UI.selected_key(table)))
 	add_child(table)
-	add_child(UI.label(UI.t("ui.desktop.open_profile"), 13))
+	add_child(UI.paragraph(UI.t("ui.desktop.open_profile"), 13))
 
 
 func _profile(player_id) -> void:

@@ -148,7 +148,8 @@ func test_closing_while_busy_waits_for_the_answer(t) -> void:
 	await main.show_screen("home")
 	var finished := [false]
 	var long_request := func():
-		await t.core().request("career.continue", {"to_season_end": true})
+		await t.core().request("career.continue")  # a real request; a whole season (positional
+		# user matches, spec 008) would outlast the test timeout
 		finished[0] = true
 	long_request.call()
 	await main.close_game()

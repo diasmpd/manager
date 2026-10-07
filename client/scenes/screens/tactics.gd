@@ -65,7 +65,7 @@ func open() -> void:
 			UI.button(UI.t("ui.desktop.reset"), _reset), UI.spacer(),
 			UI.button(UI.t("ui.desktop.back"), main.go_back),
 			UI.button(UI.t("ui.desktop.confirm"), _confirm)]))
-	add_child(UI.label(UI.t("ui.desktop.tactics_help"), 13))
+	add_child(UI.paragraph(UI.t("ui.desktop.tactics_help"), 13))
 	_render()
 
 

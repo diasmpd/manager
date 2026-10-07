@@ -30,4 +30,4 @@ func open() -> void:
 	add_child(HSeparator.new())
 	add_child(UI.label(UI.t("ui.home.latest_news"), 18, true))
 	for item in home["news"]:
-		add_child(UI.label("%s  %s" % [UI.date_text(item["day"]), item["text"]]))
+		add_child(UI.paragraph("%s  %s" % [UI.date_text(item["day"]), item["text"]]))

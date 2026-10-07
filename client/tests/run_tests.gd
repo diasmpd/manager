@@ -11,6 +11,14 @@ var _current := ""
 
 
 func _initialize() -> void:
+	# never the owner's saves: an empty scratch folder unless MANAGER_SAVES says otherwise
+	if OS.get_environment("MANAGER_SAVES") == "":
+		var scratch := OS.get_user_data_dir().path_join("test-saves")
+		if DirAccess.dir_exists_absolute(scratch):
+			for file in DirAccess.get_files_at(scratch):
+				DirAccess.remove_absolute(scratch.path_join(file))
+		DirAccess.make_dir_recursive_absolute(scratch)
+		OS.set_environment("MANAGER_SAVES", scratch)
 	_run.call_deferred()
 
 

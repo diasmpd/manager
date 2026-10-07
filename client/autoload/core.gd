@@ -115,7 +115,13 @@ static func compatible(version: String) -> bool:
 ## A localised string from the core's catalogue, with {placeholders}.
 func t(key: String, params: Dictionary = {}) -> String:
 	var text: String = strings.get(key, key)
-	return text.format(params) if not params.is_empty() else text
+	if params.is_empty():
+		return text
+	var shown := {}
+	for name in params:  # JSON numbers are floats: 2027.0 is shown as 2027
+		var value = params[name]
+		shown[name] = str(int(value)) if value is float and value == floorf(value) else value
+	return text.format(shown)
 
 
 func is_busy() -> bool:

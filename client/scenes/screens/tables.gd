@@ -48,9 +48,9 @@ func _load_table() -> void:
 	var rows := []
 	var keys := []
 	for r in rows_data:
-		rows.append([str(r["place"]), r["club_name"], str(r["played"]), str(r["won"]),
-				str(r["drawn"]), str(r["lost"]), str(r["goals_for"]), str(r["goals_against"]),
-				str(r["goal_difference"]), str(r["points"])])
+		rows.append([UI.num(r["place"]), r["club_name"], UI.num(r["played"]), UI.num(r["won"]),
+				UI.num(r["drawn"]), UI.num(r["lost"]), UI.num(r["goals_for"]), UI.num(r["goals_against"]),
+				UI.num(r["goal_difference"]), UI.num(r["points"])])
 		keys.append(r["club_id"])
 	UI.fill(_table, rows, keys)
 	UI.select_key(_table, main.status.get("club_id", ""))

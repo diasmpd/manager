@@ -40,7 +40,9 @@ var _navigating_back := false
 var _closing := false
 var live_lines: Array = []  # the live match's feed so far (kept across screens)
 var live_match: Dictionary = {}  # the live match's MatchView
-const CLOSE_WAIT_MS := 60000  # a whole-season continue can take a few seconds
+# a whole-season continue plays the user's matches on the positional engine (spec 008 SC-004:
+# up to 2 minutes), so closing waits up to 3 minutes for it
+const CLOSE_WAIT_MS := 180000
 
 
 func _ready() -> void:
@@ -54,6 +56,7 @@ func _ready() -> void:
 
 
 func _build() -> void:
+	theme = UI.make_theme()
 	var background := ColorRect.new()
 	background.color = Color(0.09, 0.11, 0.14)
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -84,7 +87,7 @@ func _build() -> void:
 	for side in ["left", "right", "top", "bottom"]:
 		_content.add_theme_constant_override("margin_" + side, 12)
 	body.add_child(_content)
-	_message = UI.label("", 14)
+	_message = UI.paragraph("", 14)
 	_message.add_theme_color_override("font_color", Color(1, 0.6, 0.5))
 	outer.add_child(_margin(_message, 8))
 	_set_playing(false)
@@ -120,7 +123,7 @@ func _show_failure(text: String) -> void:
 
 
 func _show_text(text: String) -> void:
-	_set_content(UI.column([UI.label(text, 18)]))
+	_set_content(UI.column([UI.paragraph(text, 18)]))
 
 
 func _on_core_state(state: String) -> void:

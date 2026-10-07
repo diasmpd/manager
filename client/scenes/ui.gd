@@ -10,15 +10,31 @@ static func t(key: String, params: Dictionary = {}) -> String:
 	return core.t(key, params)
 
 
+## A one-line label. It does not wrap: a wrapping label in a row asks for no width and the row
+## squeezes it to one letter a line. Long text goes in `paragraph`.
 static func label(text: String, size: int = 0, bold := false) -> Label:
 	var l := Label.new()
 	l.text = text
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if size > 0:
 		l.add_theme_font_size_override("font_size", size)
 	if bold:
 		l.add_theme_color_override("font_color", Color(1, 0.86, 0.45))
 	return l
+
+
+## Text that wraps: it takes the width it is given (news, help, messages).
+static func paragraph(text: String, size: int = 0) -> Label:
+	var l := label(text, size)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return l
+
+
+## A number as the core meant it: JSON gives every number as a float, so 2027 arrives as 2027.0.
+static func num(value: Variant) -> String:
+	if value is float and is_finite(value) and value == floorf(value):
+		return str(int(value))
+	return str(value)
 
 
 static func title(text: String) -> Label:
@@ -77,9 +93,53 @@ static func fill(tree: Tree, rows: Array, keys: Array = []) -> void:
 	for i in rows.size():
 		var item := tree.create_item(root)
 		for c in rows[i].size():
-			item.set_text(c, str(rows[i][c]))
+			item.set_text(c, num(rows[i][c]))
 		if i < keys.size():
 			item.set_metadata(0, keys[i])
+	_fit_columns(tree, rows)
+
+
+## Columns that do not expand get the width of their longest text (title or cell): otherwise
+## Godot cuts the cells ("0." for a number, "qui 31/" for a date).
+static func _fit_columns(tree: Tree, rows: Array) -> void:
+	var font := tree.get_theme_font("font")
+	var size := tree.get_theme_font_size("font_size")
+	for c in tree.columns:
+		if tree.is_column_expanding(c):
+			continue
+		var widest := font.get_string_size(tree.get_column_title(c), HORIZONTAL_ALIGNMENT_LEFT,
+				-1, size).x
+		for row in rows:
+			if c < row.size():
+				widest = maxf(widest, font.get_string_size(num(row[c]), HORIZONTAL_ALIGNMENT_LEFT,
+						-1, size).x)
+		tree.set_column_custom_minimum_width(c, int(widest) + 24)
+
+
+## The window's look: buttons that read as buttons (spec 007 polish).
+static func make_theme() -> Theme:
+	var theme := Theme.new()
+	var states := {
+		"normal": [Color(0.17, 0.2, 0.25), Color(0.3, 0.35, 0.42)],
+		"hover": [Color(0.22, 0.26, 0.32), Color(0.45, 0.5, 0.58)],
+		"pressed": [Color(0.35, 0.29, 0.12), Color(1, 0.86, 0.45)],
+		"disabled": [Color(0.13, 0.14, 0.16), Color(0.2, 0.22, 0.25)],
+		"focus": [Color(0, 0, 0, 0), Color(1, 0.86, 0.45)],
+	}
+	for state in states:
+		var box := StyleBoxFlat.new()
+		box.bg_color = states[state][0]
+		box.border_color = states[state][1]
+		box.set_border_width_all(1)
+		box.set_corner_radius_all(6)
+		box.content_margin_left = 12
+		box.content_margin_right = 12
+		box.content_margin_top = 6
+		box.content_margin_bottom = 6
+		for type in ["Button", "OptionButton"]:
+			theme.set_stylebox(state, type, box)
+	theme.set_color("font_disabled_color", "Button", Color(0.45, 0.47, 0.5))
+	return theme
 
 
 static func selected_key(tree: Tree) -> Variant:

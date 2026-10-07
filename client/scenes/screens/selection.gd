@@ -49,7 +49,7 @@ func open() -> void:
 	lists.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(lists)
 	add_child(UI.row([UI.button(UI.t("ui.desktop.swap"), _swap),
-			UI.label(UI.t("ui.desktop.selection_help"), 13)]))
+			UI.paragraph(UI.t("ui.desktop.selection_help"), 13)]))
 	_render()
 
 

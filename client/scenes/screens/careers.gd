@@ -13,6 +13,12 @@ func open() -> void:
 	var saves = await ask("career.list")
 	if saves == null:
 		return
+	var clubs = await ask("career.clubs")  # names for the list, and the new-career choice
+	if clubs == null:
+		return
+	var club_names := {}
+	for club in clubs:
+		club_names[club["id"]] = club["name"]
 	if saves.is_empty():
 		add_child(UI.label(UI.t("ui.careers.none"), 16))
 	else:
@@ -21,13 +27,15 @@ func open() -> void:
 		for s in saves:
 			if s["name"] == "autosave":
 				continue
-			rows.append([s["name"], s["user_club_id"], UI.date_text(s["current_date"]),
-					str(s["year"]), str(s["saved_at"]).left(16).replace("T", " ")])
+			rows.append([s["name"], club_names.get(s["user_club_id"], s["user_club_id"]),
+					UI.date_text(s["current_date"]),
+					UI.num(s["year"]), str(s["saved_at"]).left(16).replace("T", " ")])
 			keys.append(s["name"])
 		_saves = UI.table([UI.t("ui.careers.name"), UI.t("ui.careers.club"),
 				UI.t("ui.careers.date"), UI.t("ui.careers.season"), UI.t("ui.careers.saved_at")],
 				rows, keys)
 		_saves.custom_minimum_size.y = 220
+		_saves.size_flags_vertical = Control.SIZE_FILL  # leave room for the new-career form
 		_saves.item_activated.connect(_open_selected)
 		add_child(_saves)
 		add_child(UI.row([UI.button(UI.t("ui.careers.open"), _open_selected)]))
@@ -39,9 +47,6 @@ func open() -> void:
 	_name.placeholder_text = UI.t("ui.careers.name_hint")
 	_name.custom_minimum_size.x = 260
 	_clubs = OptionButton.new()
-	var clubs = await ask("career.clubs")
-	if clubs == null:
-		return
 	for club in clubs:
 		_clubs.add_item("%s  %s" % [club["name"], UI.stars(club["reputation"] / 4.0)])
 		_club_ids.append(club["id"])
