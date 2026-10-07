@@ -60,10 +60,15 @@ These are the reference for SC-003, the synthesis model's strength ranking.
   Rosters are facts.
 
 **ogol.com.br (zerozero network)**
-- **Coverage**: the largest football database (2 M players), with deep lower-league coverage. ✅
-  Mineiro squads still need checking ⏳.
+- **Coverage**: the largest football database (2 M players), with deep lower-league coverage.
+  Even Pouso Alegre has a full current squad with a season selector (back to 1913). ✅
+- **Fields**: per player: shirt number, position, name (linking to a player page), age,
+  nationality, games, market value where known. The club page also gives the stadium and
+  capacity, but no colours as text. ✅
 - **Terms and robots**: ✅ robots disallows only `/zzmap_v3.php` and lists sitemaps for players and
-  teams. The terms page has moved ⏳.
+  teams. The footer says: "© 2003-2026 ZOS, Lda. - Todos os direitos reservados. A utilização deste
+  site implica o seu acordo com o Termos e Condições". The terms page refuses automated reads
+  (HTTP 403), so it **needs a browser check** ⏳.
 
 **FootyStats**
 - **Coverage**: CSV downloads (league, matches, teams, players) per competition, the state leagues
@@ -106,6 +111,9 @@ These are the reference for SC-003, the synthesis model's strength ranking.
 
 - **Clubs**: Wikipedia for identity, stadiums and results (open licence). The owner's review fills
   in colours where text is missing.
-- **Squads**: Wikipedia lacks small clubs, so squads need ogol, ESPN, Brasileirinho FC rosters or
-  CBF BID. Their terms decide which.
+- **Squads**: Wikipedia lacks small clubs. ogol is the most complete source (numbers, nationality,
+  games, values, even for Pouso Alegre), so its terms are the key open question. Fallbacks:
+  Brasileirinho FC rosters (facts only), ESPN, CBF BID.
+- **Pages that refuse automated reads** (403): the zerozero, FootyStats and Sports Reference terms.
+  They need reading in a browser.
 - **Model signals** (minutes, goals, appearances): FootyStats, ogol or ESPN.
