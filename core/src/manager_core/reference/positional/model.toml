@@ -39,7 +39,7 @@ mentality_ip_m = 0.0
 
 [decide]
 decision_every_s = 1.0169492372881357
-control_delay_s = 0.6153846153846153
+control_delay_s = 0.726153846153846
 temperature = 0.455
 shoot_bias = 3.0
 min_shot_xg = 0.0507
@@ -50,7 +50,7 @@ clear_spread = 30.0
 carry_pull = 0.15
 carry_pull_final = 0.45
 wide_m = 18.0
-pass_out = 0.1547266272189349
+pass_out = 0.2011446153846154
 first_touch_s = 0.4
 release_pressure = 0.6
 through_bias = 1.0
@@ -105,7 +105,7 @@ beat_advance = 5.0
 
 [keeper]
 save_base = 0.7
-save_skill = 0.02614879999999999
+save_skill = 0.04011225919999998
 
 [energy]
 drain = 0.00055
