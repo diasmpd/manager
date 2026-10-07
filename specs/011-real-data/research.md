@@ -48,7 +48,9 @@ These are the reference for SC-003, the synthesis model's strength ranking.
     none either. ✅
 
 **Brasileirinho FC (public pages)**
-- **Coverage**: 279 clubs, Série A to D, 27 state championships. ✅
+- **Coverage**: it claims 279 clubs (Série A to D, 27 state championships). ✅ The `/clubes`
+  listing shows only Atlético-MG (id 2) and Cruzeiro (id 8) from Minas: perhaps Série A only, or a
+  paginated list. Coverage of the other 10 Módulo I clubs is unconfirmed ⏳.
 - **Terms and robots**: ✅
   - robots allows `/clubes` and disallows only `/carreira`, `/chat/` and `/admin`;
   - the terms say: "O programa, as telas, os textos e as artes próprias do jogo pertencem ao
