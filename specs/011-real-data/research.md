@@ -43,9 +43,9 @@ These are the reference for SC-003, the synthesis model's strength ranking.
 - **Fields**: ✅
   - club name, city, stadium, capacity, founding date, and the competition's results and
     standings;
-  - colours are shown as kit images, not text. The colours infobox field still needs checking ⏳;
-  - **no squad section for smaller clubs** (Pouso Alegre has none). The big three probably have one
-    ⏳.
+  - colours are shown as kit images, not text: Cruzeiro's infobox has no colours field. ✅
+  - **no current squad**, even for Cruzeiro (perhaps on separate season pages ⏳). Pouso Alegre has
+    none either. ✅
 
 **Brasileirinho FC (public pages)**
 - **Coverage**: 279 clubs, Série A to D, 27 state championships. ✅
@@ -88,11 +88,12 @@ These are the reference for SC-003, the synthesis model's strength ranking.
 - **Terms and robots**: the terms page has moved (404). ⏳ Its known stance is no automated access.
 - **Fields**: ratings and match stats. ⏳
 
-**CBF BID**
-- **Coverage**: the official, public record of every registered professional (contracts,
-  transfers, eligibility). ✅
-- **Terms and robots**: ⏳ query interface and terms.
-- **Fields**: registrations. ⏳
+**CBF BID** ([bid.cbf.com.br](https://bid.cbf.com.br/))
+- **Coverage**: the official, public daily bulletin of every professional registration, searched by
+  date and state (UF). ✅
+- **Terms and robots**: ⏳
+- **Fields**: contract registrations (athlete, club, contract type, date). No age or position.
+  Best used to check who is registered where, not as the squad source.
 
 **FBref (Sports Reference)**
 - **Coverage**: ⏳ (probably Série A only).
