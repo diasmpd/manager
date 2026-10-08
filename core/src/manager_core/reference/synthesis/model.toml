@@ -1,0 +1,48 @@
+# The attribute-synthesis model (spec 011 R4). Public: the method is ours and tunable; the data
+# it is applied to is private. CA is FM's 1-200 scale, as `ratings.ability.current_ability`.
+model_version = "synthesis 0.1"
+
+# A regular first-teamer's CA by the club's national division (state-league-only clubs: "none").
+[division_ca]
+A = 125.0
+B = 105.0
+C = 92.0
+D = 82.0
+none = 74.0
+
+[offsets]
+# share of the club's games in the season (0..1): a regular starter (1.0) gains, a rarely used
+# player (0.0) loses; 0.5 is neutral
+games_share = 12.0
+# log10(market value / the club's median value), clamped to [-1, 1]
+value = 10.0
+# goals per game, for attacking players only (forwards, attacking midfielders), capped at 0.6
+attacking_output = 10.0
+# CA lost per year below the peak / above it
+age_peak_low = 25
+age_peak_high = 30
+young_per_year = 2.0
+old_per_year = 2.5
+min_ca = 30.0
+max_ca = 190.0
+
+[attributes]
+# key attributes of the position (weight / max weight) sit up to `profile` above the level, the
+# others `off_profile` below it; goalkeepers' outfield technique sits `gk_outfield` below
+profile = 3.0
+off_profile = 1.5
+gk_outfield = 6.0
+# deterministic per-player variation (standard deviation, attribute points)
+spread = 1.2
+# age shifts by group, in attribute points, at the age band's extremes
+young_physical = 1.0   # at 18
+young_mental = -1.5
+old_physical = -2.0    # at 35
+old_mental = 1.5
+
+[potential]
+# headroom above CA by age
+under_21 = 40.0
+under_24 = 22.0
+under_27 = 8.0
+over_27 = 0.0
