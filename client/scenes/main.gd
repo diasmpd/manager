@@ -353,8 +353,7 @@ func play_match_day() -> void:
 
 
 func _on_busy(busy: bool) -> void:
-	_busy_label.text = Core.t("ui.desktop.busy") if busy else ""
-	_continue_button.disabled = busy
+	_continue_button.disabled = busy  # no "Processando…" text: the button says it is busy
 
 
 func _on_progress(params: Dictionary) -> void:
