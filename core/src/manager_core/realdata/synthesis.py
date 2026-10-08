@@ -112,10 +112,10 @@ def _age_shift(group: AttributeGroup, age: int | None) -> float:
     physical = group is AttributeGroup.PHYSICAL
     if age < 24:
         t = min(1.0, (24 - age) / 6)
-        return t * (a["young_physical"] if physical else a["young_mental"])
+        return t * float(a["young_physical"] if physical else a["young_mental"])
     if age > 29:
         t = min(1.0, (age - 29) / 6)
-        return t * (a["old_physical"] if physical else a["old_mental"])
+        return t * float(a["old_physical"] if physical else a["old_mental"])
     return 0.0
 
 
@@ -161,7 +161,7 @@ def potential(ca: float, age: int | None) -> int:
         room = pot["under_27"]
     else:
         room = pot["over_27"]
-    return round(min(200.0, ca + room))
+    return round(min(200.0, ca + float(room)))
 
 
 def synthesise(s: Signals) -> Synthesis:
