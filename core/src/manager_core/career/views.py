@@ -7,6 +7,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import date
 
+from manager_core.career import press
 from manager_core.career.career import Career
 from manager_core.career.discipline import YELLOWS_PER_BAN, Discipline
 from manager_core.competition.season import Season
@@ -127,6 +128,8 @@ def career_news(career: Career) -> list[NewsItem]:
         for pid in sorted(sent):
             items.append(NewsItem(m.kickoff.date(), "suspension", t(
                 "news.suspended_red", player=season.dataset.player(pid).display_name)))
+    for day, kind, text in press.stories(season, club, career.current_date):
+        items.append(NewsItem(day, kind, text))
     for record in career.history:
         world = career.world
         champion = (world.club(record.champion).short_name if record.champion in world.clubs
