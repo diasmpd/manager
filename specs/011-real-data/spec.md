@@ -44,6 +44,15 @@ always our own synthesis.
 - Q: Which clubs first? → A: Minas Gerais: the Campeonato Mineiro, Módulo I first.
 - Q: Where do squads come from? → A: Not decided. Survey the sources first, then the owner
   picks ("spend a day collecting").
+- Q: ogol has the most complete Mineiro squads but publishes no terms of use. Its content is "all
+  rights reserved", and as a Portuguese company it is covered by the EU database right. How should
+  we use it? → A (owner, 2026-10-07): **use it now, gently**:
+  - private use only, never published;
+  - Mineiro clubs only;
+  - at least a few seconds between requests;
+  - an honest user agent;
+  - robots obeyed;
+  - every page cached in the private data repository, so nothing is fetched twice.
 
 ## User Scenarios & Testing *(mandatory)*
 

@@ -69,8 +69,12 @@ These are the reference for SC-003, the synthesis model's strength ranking.
   capacity, but no colours as text. ✅
 - **Terms and robots**: ✅ robots disallows only `/zzmap_v3.php` and lists sitemaps for players and
   teams. The footer says: "© 2003-2026 ZOS, Lda. - Todos os direitos reservados. A utilização deste
-  site implica o seu acordo com o Termos e Condições". The terms page refuses automated reads
-  (HTTP 403), so it **needs a browser check** ⏳.
+  site implica o seu acordo com o Termos e Condições". ✅ **ogol publishes no terms of use.** The
+  footer's "Termos e Condições" is plain text, not a link. The help desk (`helpdesk.php?type=1..4`)
+  holds contact forms, and type=3 is a GDPR privacy policy only (checked by the owner and by us,
+  2026-10-07). What applies is "todos os direitos reservados" and the EU database right (ZOS, Lda.
+  is Portuguese), which protects extracting a substantial part. **Owner decision (2026-10-07): use
+  it now, gently** (see the spec's Clarifications).
 
 **FootyStats**
 - **Coverage**: CSV downloads (league, matches, teams, players) per competition, the state leagues
