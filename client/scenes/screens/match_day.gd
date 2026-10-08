@@ -20,6 +20,7 @@ var _bench_list: ItemList
 var _subs_info: Label
 var _stats: Tree
 var _continue_button: Button
+var _paused_for_subs := false
 var _timer: Timer
 var _speed := 2
 var _paused := false
@@ -95,7 +96,8 @@ func _build_subs_panel() -> void:
 		UI.column([UI.label(UI.t("ui.live.on_pitch")), _on_list]),
 		UI.column([UI.label(UI.t("ui.live.bench")), _bench_list]),
 	]))
-	_subs_panel.add_child(UI.row([UI.button(UI.t("ui.live.substitute"), _substitute), _subs_info]))
+	_subs_panel.add_child(UI.row([UI.button(UI.t("ui.live.substitute"), _substitute), _subs_info,
+			UI.spacer(), UI.button(UI.t("ui.desktop.back"), _close_subs)]))
 	_subs_panel.visible = false
 	add_child(_subs_panel)
 
@@ -195,10 +197,22 @@ func _show_line(line: Dictionary) -> void:
 
 
 func _show_subs() -> void:
-	if not _paused:
+	if _subs_panel.visible:
+		_close_subs()
+		return
+	_paused_for_subs = not _paused
+	if _paused_for_subs:
 		_toggle_pause()
-	_subs_panel.visible = not _subs_panel.visible
+	_subs_panel.visible = true
 	_fill_subs()
+
+
+## Back out of the substitutions: resume if opening them had paused the match.
+func _close_subs() -> void:
+	_subs_panel.visible = false
+	if _paused_for_subs and _paused and not _finished:
+		_toggle_pause()
+	_paused_for_subs = false
 
 
 func _fill_subs() -> void:
@@ -268,6 +282,9 @@ func _done() -> void:
 
 
 func back() -> bool:
+	if _subs_panel.visible:
+		_close_subs()
+		return true
 	if not _paused and not _finished:
 		_toggle_pause()
 	return true  # a live match is left only through Continuar

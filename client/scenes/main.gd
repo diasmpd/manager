@@ -261,6 +261,8 @@ func show_screen(name: String, args: Dictionary = {}) -> Screen:
 		screen.set(key, args[key])
 	current = screen
 	current_name = name
+	# during a live match the screen's own Continuar is the way on: no second one up here
+	_continue_button.visible = _ready_to_play and name != "match_day"
 	for key in _menu_buttons:
 		_menu_buttons[key].theme_type_variation = "NavCurrent" if key == name else "Nav"
 	_set_content(screen)

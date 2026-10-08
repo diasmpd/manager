@@ -66,4 +66,7 @@ func _run() -> void:
 		var day = main.current
 		await _wait(func(): return day._state.get("minute", {}).get("base", 0) > 25, 90.0)
 		await _shot("match_day")
+		day._show_subs()
+		await _shot("match_day_subs")
+		day._close_subs()
 	quit(0)
