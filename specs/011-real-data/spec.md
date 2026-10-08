@@ -61,6 +61,9 @@ always our own synthesis.
   (coverage, freshness, terms, robots, fields) before collecting there.
 - Q: Which divisions? → A (owner, 2026-10-08, the recommendation): Brazil Série A to D; South
   America: each country's top two divisions.
+- Q: South America, given no open source with clear permission? → A (owner, 2026-10-08): stop at
+  Brazil and the big leagues for now. South America waits until permissions are settled (asking
+  league or federation bodies for private, non-commercial use). Brazil continues.
   - Rough volume: about 11.6 s per ogol page measured (not 4 s: server time dominates). Módulo I
     is about 2 h. South America's top divisions are about 20 h more. The whole world is about a
     week of unattended running, spread over days.
