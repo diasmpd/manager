@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from manager_core.realdata.fetch import USER_AGENT, Fetcher, SourceStopped
+from manager_core.realdata.fetch import USER_AGENT, Fetcher, SourceStopped, decode
 
 ROBOTS = b"User-agent: *\nDisallow: /carreira\n"
 
@@ -82,3 +82,10 @@ def test_refusal_stops_the_source(tmp_path: Path, status: int) -> None:
     with pytest.raises(SourceStopped):  # stopped for the rest of the run: no more requests
         f.get("https://x.org/b")
     assert len(web.calls) == calls
+
+
+def test_pages_decode_in_their_declared_charset() -> None:
+    latin = '<meta charset="iso-8859-1"><h2>Transferências</h2>'.encode("latin-1")
+    assert "Transferências" in decode(latin)
+    assert decode("<p>São João</p>".encode()) == "<p>São João</p>"
+    assert "Atlético" in decode("Atlético".encode("cp1252"))  # nothing declared, not UTF-8

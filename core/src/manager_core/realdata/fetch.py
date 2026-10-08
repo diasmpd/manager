@@ -10,6 +10,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import random
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -42,6 +43,22 @@ def _urllib_open(url: str, user_agent: str) -> tuple[int, bytes]:
         return int(error.code), b""
 
 
+def decode(body: bytes) -> str:
+    """Page bytes as text, in the charset the page declares (ogol is not UTF-8); UTF-8 when it
+    declares none, Windows-1252 when that fails."""
+    head = body[:16384].decode("ascii", errors="ignore").lower()
+    match = re.search(r"""charset=["']?([a-z0-9_-]+)""", head)
+    if match:
+        try:
+            return body.decode(match.group(1), errors="replace")
+        except LookupError:
+            pass
+    try:
+        return body.decode("utf-8")
+    except UnicodeDecodeError:
+        return body.decode("cp1252", errors="replace")
+
+
 @dataclass
 class Fetcher:
     cache_dir: Path  # <data repo>/cache/<source>
@@ -64,7 +81,7 @@ class Fetcher:
         path = self.cache_path(url)
         if path.exists() and not self.refresh:
             self.cached += 1
-            return gzip.decompress(path.read_bytes()).decode("utf-8", errors="replace")
+            return decode(gzip.decompress(path.read_bytes()))
         if not self._allowed(url):
             raise SourceStopped(f"robots.txt disallows {url}")
         status, body = self._polite_open(url)
@@ -77,7 +94,7 @@ class Fetcher:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(gzip.compress(body, mtime=0))
         self.fetched += 1
-        return body.decode("utf-8", errors="replace")
+        return decode(body)
 
     def cache_path(self, url: str) -> Path:
         return self.cache_dir / (hashlib.sha1(url.encode("utf-8")).hexdigest() + ".html.gz")
