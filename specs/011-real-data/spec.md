@@ -57,6 +57,10 @@ always our own synthesis.
   order: Minas Gerais (Módulo I, then II), then the rest of Brazil, then the rest of South
   America, then the world. Each step is cached and reviewed before the next. Active players only;
   monthly refresh.
+- Q: Other regions' sources? → A (owner, 2026-10-08): survey them the same way as Brazil
+  (coverage, freshness, terms, robots, fields) before collecting there.
+- Q: Which divisions? → A (owner, 2026-10-08, the recommendation): Brazil Série A to D; South
+  America: each country's top two divisions.
   - Rough volume: about 11.6 s per ogol page measured (not 4 s: server time dominates). Módulo I
     is about 2 h. South America's top divisions are about 20 h more. The whole world is about a
     week of unattended running, spread over days.
