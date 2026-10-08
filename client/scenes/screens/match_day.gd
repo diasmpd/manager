@@ -109,6 +109,7 @@ func _set_speed(speed: int) -> void:
 
 
 func _toggle_pause() -> void:
+	_paused_for_subs = false  # a pause by hand (button, Esc) is the user's: Voltar keeps it
 	if _finished:
 		return
 	_paused = not _paused
@@ -200,9 +201,10 @@ func _show_subs() -> void:
 	if _subs_panel.visible:
 		_close_subs()
 		return
-	_paused_for_subs = not _paused
-	if _paused_for_subs:
+	var pausing := not _paused
+	if pausing:
 		_toggle_pause()
+	_paused_for_subs = pausing  # set after the toggle, which clears it
 	_subs_panel.visible = true
 	_fill_subs()
 

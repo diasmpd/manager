@@ -238,7 +238,7 @@ func _build_menu() -> void:
 func _set_playing(playing: bool) -> void:
 	_ready_to_play = playing
 	_menu.visible = playing
-	_continue_button.visible = playing
+	_refresh_continue()
 	_date_label.get_parent().visible = playing  # the scoreboard panel
 	_season_label.visible = playing
 	_stripe[0].get_parent().visible = playing
@@ -262,7 +262,7 @@ func show_screen(name: String, args: Dictionary = {}) -> Screen:
 	current = screen
 	current_name = name
 	# during a live match the screen's own Continuar is the way on: no second one up here
-	_continue_button.visible = _ready_to_play and name != "match_day"
+	_refresh_continue()
 	for key in _menu_buttons:
 		_menu_buttons[key].theme_type_variation = "NavCurrent" if key == name else "Nav"
 	_set_content(screen)
@@ -354,6 +354,14 @@ func play_match_day() -> void:
 
 func _on_busy(busy: bool) -> void:
 	_continue_button.disabled = busy  # no "Processando…" text: the button says it is busy
+	if not busy:
+		_busy_label.text = ""  # clear the last progress text once the work has ended
+
+
+## The top bar's Continuar: shown when a career is open, but not while a match is on screen (the
+## match has its own Continuar then).
+func _refresh_continue() -> void:
+	_continue_button.visible = _ready_to_play and current_name != "match_day"
 
 
 func _on_progress(params: Dictionary) -> void:

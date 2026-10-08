@@ -351,7 +351,6 @@ MESSAGES: dict[str, str] = {
     "ui.careers.season": "Temporada",
     "ui.careers.saved_at": "Salva em",
     "ui.careers.create": "Criar",
-    "ui.desktop.busy": "Processando…",
     "ui.live.pause": "Pausar",
     "ui.live.resume": "Continuar a partida",
     "ui.live.subs": "Substituições",
