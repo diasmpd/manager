@@ -21,6 +21,7 @@ FEET = {"Destro": "right", "Canhoto": "left", "Ambidestro": "both"}
 @dataclass(frozen=True, slots=True)
 class SquadEntry:
     ogol_id: int
+    slug: str  # the player page is /jogador/<slug>/<ogol_id>
     name: str
     group: str  # GK, D, M, A or ? (unknown)
     number: int | None
@@ -112,14 +113,15 @@ def parse_club(page: str) -> RawClub:
         for match in re.finditer(r'<div class="staff( inactive)?">(.*?)(?=<div class="staff|$)',
                                  section, re.S):
             row = match.group(2)
-            link = re.search(r'href="/jogador/[a-z0-9-]+/(\d+)[^"]*">(.*?)</a>', row, re.S)
+            link = re.search(r'href="/jogador/([a-z0-9-]+)/(\d+)[^"]*">(.*?)</a>', row, re.S)
             if not link:
                 continue
             number = re.search(r'<div class="number">(.*?)</div>', row)
             nation = re.search(r'<a title="([^"]+)" href="/pais/', row)
             age = re.search(r"(\d+) anos", row)
             squad.append(SquadEntry(
-                ogol_id=int(link.group(1)), name=_text(link.group(2)), group=group,
+                ogol_id=int(link.group(2)), slug=link.group(1), name=_text(link.group(3)),
+                group=group,
                 number=int(number.group(1)) if number and number.group(1).isdigit() else None,
                 nationality=nation.group(1) if nation else "",
                 age=int(age.group(1)) if age else None,
