@@ -53,6 +53,13 @@ always our own synthesis.
   - an honest user agent;
   - robots obeyed;
   - every page cached in the private data repository, so nothing is fetched twice.
+- Q: Scope beyond Minas Gerais? → A (owner, 2026-10-08): keep the 4 s pace. Scope grows in
+  order: Minas Gerais (Módulo I, then II), then the rest of Brazil, then the rest of South
+  America, then the world. Each step is cached and reviewed before the next. Active players only;
+  monthly refresh.
+  - Rough volume: about 11.6 s per ogol page measured (not 4 s: server time dominates). Módulo I
+    is about 2 h. South America's top divisions are about 20 h more. The whole world is about a
+    week of unattended running, spread over days.
 
 ## User Scenarios & Testing *(mandatory)*
 
