@@ -124,3 +124,113 @@ These are the reference for SC-003, the synthesis model's strength ranking.
 - **Pages that refuse automated reads** (403): the zerozero, FootyStats and Sports Reference terms.
   They need reading in a browser.
 - **Model signals** (minutes, goals, appearances): FootyStats, ogol or ESPN.
+
+## R2. Collecting gently (FR-003)
+
+- **Decision**: a single fetcher for every source.
+  - It reads robots.txt (`urllib.robotparser`) and refuses disallowed paths.
+  - It sends an honest user agent: `manager-private-import/0.1 (personal, non-public football game;
+    github.com/diasmpd/manager)`.
+  - It waits at least 4 s between requests to the same host, plus random jitter.
+  - It stops a source on HTTP 403 or 429 and reports it, never retrying in a loop.
+  - It caches every page gzipped, under `manager-data/cache/<source>/`, with a fetch log (URL, date,
+    status).
+  - Nothing is fetched again unless `--refresh` asks for it.
+- **Why**: the owner's decision to use ogol "gently". A re-import never touches the network.
+- **Alternatives**:
+  - no cache, which fetches on every build: rejected;
+  - parallel fetching, which is impolite: rejected.
+
+## R3. Identity, precedence and provenance (FR-006, FR-008)
+
+- **Decision**:
+  - **Player ids**: a player's game id comes from his ogol id (`p-og<id>`), so it is stable across
+    re-imports even when names change.
+  - **Club ids**: slugs (`cruzeiro`, `pouso-alegre`). Each record's id in each source goes to
+    `external_refs.csv`. Each source, with its retrieval date and a licence note, goes to
+    `sources.csv` (the 001 format).
+  - **Precedence**: owner correction, then ogol (players), then Wikipedia (club identity). Every
+    disagreement is listed in the import report.
+  - **Name collisions**: same-name players at different clubs are told apart by ogol id. Unresolved
+    cases (no id) are flagged, never merged.
+- **Why**: the 001 format already models provenance. Stable ids keep owner corrections and saved
+  careers valid across seasons.
+
+## R4. The attribute-synthesis model (FR-009 to FR-011)
+
+- **Decision**: two steps, with all parameters in `reference/synthesis/*.toml` (public).
+
+  1. **Overall level (CA, 1–200, FM-like).**
+
+     **Club baseline.** Each club starts from the national division it plays in. The values below
+     are a first-fit set and are calibrated:
+     - Série A: 125;
+     - Série B: 105;
+     - Série C: 90;
+     - Série D: 80;
+     - state league only: 72.
+
+     **Player offsets** around the club baseline:
+     - **share of the club's minutes**: regular starter about +12, rarely used about −12;
+     - **market value** against the club's median (log scale), when known;
+     - **age**: peak 26–30, lower when young or old;
+     - **output**: a small bonus for goals and assists per 90 by position.
+
+     **Confidence**:
+     - high: minutes and value;
+     - medium: one of them;
+     - low: neither (only age, position and club).
+
+  2. **Attributes (1–20).**
+     - **CA gives a base level**: an attribute mean (about 10.5 at CA 100) that rises with CA.
+     - **Position profiles** add per-attribute offsets: a centre-back's heading and marking up, a
+       winger's pace, crossing and dribbling up, a goalkeeper's goalkeeping attributes in place of
+       outfield ones.
+     - **Age curves** shift attribute groups: young players have physical attributes up and mental
+       ones down; veterans the reverse.
+     - **Variation** is seeded by player id (deterministic), so two players of the same profile
+       still differ.
+     - **Potential (PA)** comes from CA plus an age-based headroom.
+- **Calibration**: SC-003, a Spearman rank correlation of 0.7 or more between the clubs'
+  synthesised strength (the game's team strength) and the 2026 Módulo I final table. The model is
+  unit-tested on the fictional sample (distribution, profiles and determinism), so tests never need
+  private data.
+- **Alternatives**:
+  - converting other games' ratings: rejected (owner decision);
+  - a learned model: no labelled real data to train on.
+
+## R5. Owner corrections and the audit trail (FR-012, FR-013)
+
+- **Decision**: `manager-data/corrections.csv` is append-only, one row per change:
+  - columns: `record_type`, `record_id`, `field`, `old_value`, `new_value`, `date`, `note`;
+  - the owner edits it in Excel or a text editor, or with `realdata correct …`, which appends a row;
+  - the build applies corrections last;
+  - each corrected record gets a `manually_edited` flag in `record_flags.csv` (the 001 mechanism).
+
+  On a re-import:
+  - a correction whose `old_value` no longer matches the fresh source value is kept, and reported
+    as "source changed under a correction";
+  - a correction whose record disappeared is kept, and reported.
+
+  The file itself is the field-level history (the open item from 001).
+- **Why**: owner values always win. The history shows field, old value, new value and date.
+
+## R6. pt-BR Excel tolerance (format v1.1, FR-015)
+
+- **Decision**: reading tolerates:
+  - a byte-order mark;
+  - UTF-8 or Windows-1252;
+  - `;` or `,` separators (detected from the header);
+  - decimal commas;
+  - `dd/mm/yyyy` dates;
+  - stray spaces.
+
+  Writing stays canonical (format v1). Tested with files re-saved the way pt-BR Excel saves them.
+
+## R7. Keeping real data out of the public repository (SC-006)
+
+- **Decision**: three guards:
+  - the CLI refuses to write caches or datasets inside the public repository;
+  - a test checks that every dataset tracked in the public repository declares `fictional=true`;
+  - the same test checks that no tracked file matches the private repository's layout (`cache/`,
+    `corrections.csv`, `datasets/`).
