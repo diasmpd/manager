@@ -917,9 +917,11 @@ class LiveMatch:
         if blocker is None:
             options.append((0.95 * forward * d["carry_bias"], "dribble", 0.95))
         else:
+            # a failed take-on loses the ball where it is, as a failed pass does
             beat = self._beat_chance(carrier, opp, blocker)
+            lost = (1 - beat) * d["loss_cost"] * self._threat(pitch.LENGTH - u, pitch.WIDTH - v)
             options.append(
-                (beat * forward * d["dribble_bias"] * (1 + 0.04 * risk), "dribble", beat)
+                (beat * forward * d["dribble_bias"] * (1 + 0.04 * risk) - lost, "dribble", beat)
             )
         # cross from wide in the final third, valued by the header it can find: only when a
         # teammate is in the box or arriving

@@ -74,6 +74,21 @@
   is too wide (var/mean 1.21, real 0.89), because totals depend on the fixture (between-fixture
   variance 0.76, quick sim 0.10), driven by tactical imbalance. This is being fixed first.
 
+## Progress notes (2026-10-09)
+
+- Tuner run 14 left passes (620 a team), crosses (7.7), corners (7.3) and xG per shot (0.135)
+  outside their bands. Most of the counted crosses went to an empty box and did nothing (about
+  1 a team was real). Fixed: box runs (near post, penalty spot, far post) when the ball is wide
+  in the final third, and a cross is offered only with a target, valued by the header.
+- Possession diagnostic: about 229 possessions a team (real is roughly half), under 7 s each;
+  about 145 a team end in midfield (92 lost passes, 52 lost take-ons). Final-third reach (about
+  57 a team) is near real. Midfield is too chaotic: the tuner now has a take-on target, and the
+  threat curve's depth term is tunable (`decide.threat_u`). Raising it alone barely moved play
+  forward.
+- xG per shot is high because shots from beyond about 20 m almost never pass `min_shot_xg`.
+- The local Python had lost the editable installs (`pip install -e "core[dev]" -e "tui[dev]"`
+  restored them; the desktop client needs them to start the core).
+
 ## Dependencies
 
 - T001 → T002 → T003 → T004 → T005 → T006 → T007–T010 → T011–T013.
