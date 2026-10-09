@@ -97,3 +97,45 @@ def test_a_substitution_decision_is_applied_at_its_moment(provider: QuickSimProv
     again.apply(Decision(again.t, "home", "substitution", off=off, on=on))
     again.play()
     assert again.report() == match.report()
+
+
+def _fresh(provider: QuickSimProvider) -> LiveMatch:
+    home, away = provider.team_sheet("mineracao"), provider.team_sheet("rio-turvo")
+    return LiveMatch(
+        home,
+        away,
+        provider.dataset.players,
+        load_params(),
+        provider.params,
+        random.Random(3),
+        False,
+        record=False,
+    )
+
+
+def test_with_the_ball_wide_in_the_final_third_the_forwards_attack_the_box(
+    provider: QuickSimProvider,
+) -> None:
+    match = _fresh(provider)
+    team = match.teams["home"]
+    carrier = next(b for b in team.on_pitch() if b.group.value == "midfielder")
+    carrier.x, carrier.y = match.absolute("home", 85.0, 62.0)
+    match._give(carrier)
+    match._targets()
+    forwards = [b for b in team.on_pitch() if b.group.value == "forward"]
+    assert forwards
+    for body in forwards:
+        tu, tv = match.rel("home", body.tx, body.ty)
+        assert tu >= 105 - 16.5 and abs(tv - 34) <= 20.16  # inside the box
+    # in the middle third, or central, nobody makes a box run
+    assert match._box_runs(team, carrier, 50.0, 62.0) == {}
+    assert match._box_runs(team, carrier, 85.0, 34.0) == {}
+
+
+def test_nobody_to_cross_to_means_no_cross(provider: QuickSimProvider) -> None:
+    match = _fresh(provider)
+    team = match.teams["home"]
+    carrier = next(b for b in team.on_pitch() if b.group.value == "midfielder")
+    for body in team.on_pitch():  # everyone in their own half
+        body.x, body.y = match.absolute("home", 30.0, body.y)
+    assert match._cross_target(carrier, team) is None

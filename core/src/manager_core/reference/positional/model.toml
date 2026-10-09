@@ -36,6 +36,8 @@ press_radius = 14.0
 box_pressers = 2.0
 shoulder_m = 1.5
 mentality_ip_m = 0.0
+box_from_u = 70.0
+box_runners = 3.0
 
 [decide]
 decision_every_s = 1.0169492372881357
@@ -65,9 +67,11 @@ runs_forward = 1.0
 runs_attacking_mid = 0.7
 runs_midfielder = 0.3
 runs_defender = 0.1
-cross_bias = 0.4563233376792698
+cross_bias = 3.0
 cross_reach_m = 8.0
+cross_wide_m = 14.0
 clear_bias = 0.6
+threat_u = 0.01
 loss_cost = 1.2786798271975957
 shot_range_m = 32.0
 carry_limit_m = 97.0

@@ -255,6 +255,7 @@ class LiveMatch:
         self.passes_completed = 0
         self.in_play_s = 0.0  # ball-in-play time (diagnostics, calibration)
         self.crosses = {HOME: 0, AWAY: 0}  # open-play crosses (diagnostics, calibration)
+        self.takeons = {HOME: 0, AWAY: 0}  # dribbles at a defender (diagnostics, calibration)
         self._last_toucher: Body | None = None
         self._last_window: dict[str, float] = {HOME: -1.0, AWAY: -1.0}
         self._windows_plan = {s: self._plan_subs() for s in (HOME, AWAY)}
@@ -511,6 +512,7 @@ class LiveMatch:
             )
             if regroup:
                 offset -= self.pt["regroup_drop"]
+            box = self._box_runs(team, owner, bu, bv) if in_possession else {}
             for body in team.on_pitch():
                 if body is owner:
                     continue
@@ -539,10 +541,58 @@ class LiveMatch:
                     tu = min(tu, onside)
                     tv = pitch.CENTRE_V + (v - pitch.CENTRE_V) * width
                     tv += (bv - pitch.CENTRE_V) * s["lateral_shift"]
+                    if body.pid in box:  # the ball is wide: attack the box for the cross
+                        tu, tv = box[body.pid]
+                        tu = min(tu, onside)
                 tu, tv = pitch.clamp_point(tu, tv)
                 body.tx, body.ty = self.absolute(team.side, tu, tv)
             if not in_possession and owner is not None:  # regrouping gives up the counter-press
                 self._press_targets(team, owner)  # only (see _press_targets), not pressing
+
+    def _box_runs(
+        self, team: Team, owner: Body | None, bu: float, bv: float
+    ) -> dict[str, tuple[float, float]]:
+        """With the ball wide in the final third, the forwards (then the attacking midfielders)
+        attack the near post, the penalty spot and the far post. The wide player on the ball's
+        side stays to support it. An attacking mentality sends one more, a defensive one one
+        fewer."""
+        s = self.p["shape"]
+        side = bv - pitch.CENTRE_V
+        if owner is None or bu < s["box_from_u"] or abs(side) <= self.pd["cross_wide_m"]:
+            return {}
+        count = int(s["box_runners"]) + (_mentality_index(team.tactic.mentality) - 3 > 0) - (
+            _mentality_index(team.tactic.mentality) - 3 < 0
+        )
+        candidates = []
+        for body in team.on_pitch():
+            if body is owner:
+                continue
+            _, sv = self._slot_uv(team, body, "ip")
+            wide = abs(sv - pitch.CENTRE_V) > 12
+            if wide and (sv - pitch.CENTRE_V) * side > 0:
+                continue  # the ball-side wide player
+            if body.group is Group.FORWARD:
+                rank = 0
+            elif wide and body.group in (Group.MIDFIELDER, Group.ATTACKING_MID):
+                rank = 1  # the far-side wide player arrives at the far post
+            elif body.group is Group.ATTACKING_MID:
+                rank = 2
+            else:
+                continue
+            candidates.append((rank, body.pid, body))
+        candidates.sort(key=lambda c: (c[0], c[1]))
+        near = 1.0 if side > 0 else -1.0
+        spots = [
+            (pitch.LENGTH - 6.0, pitch.CENTRE_V + near * 3.0),  # near post
+            (pitch.LENGTH - 12.0, pitch.CENTRE_V),  # penalty spot
+            (pitch.LENGTH - 6.0, pitch.CENTRE_V - near * 4.5),  # far post
+            (pitch.LENGTH - 17.0, pitch.CENTRE_V - near * 6.0),  # edge of the box
+        ]
+        runs = {}
+        for (_, pid, body), spot in zip(candidates[: max(0, count)], spots, strict=False):
+            runs[pid] = spot
+            body.urgent_until = self.t + 1.0  # a run into the box is a sprint
+        return runs
 
     def _press_targets(self, team: Team, carrier: Body) -> None:
         cu, _ = self.rel(team.side, carrier.x, carrier.y)
@@ -871,10 +921,15 @@ class LiveMatch:
             options.append(
                 (beat * forward * d["dribble_bias"] * (1 + 0.04 * risk), "dribble", beat)
             )
-        # cross from wide in the final third
-        if u > 75 and abs(v - pitch.CENTRE_V) > 18:
-            value = 0.35 * self.p["set_pieces"]["corner_header_xg"] * 2 * d["cross_bias"]
-            options.append((value, "cross", None))
+        # cross from wide in the final third, valued by the header it can find: only when a
+        # teammate is in the box or arriving
+        if u > 75 and abs(v - pitch.CENTRE_V) > d["cross_wide_m"]:
+            target = self._cross_target(carrier, team)
+            if target is not None:
+                tu, tv = self.rel(team.side, target.x, target.y)
+                header = pitch.xg(tu, tv, self.px, header=True)
+                claim, reach = self._cross_odds(carrier, target, opp)
+                options.append(((1 - claim) * reach * header * d["cross_bias"], "cross", None))
         # clear under pressure near the own goal
         if u < 25 and pressure > 0.5:
             options.append((0.004 * d["clear_bias"], "clear", None))
@@ -906,6 +961,7 @@ class LiveMatch:
                 self.teams[carrier.side]
             )
             return
+        self.takeons[carrier.side] += 1
         if self.rng.random() < self._beat_chance(carrier, opp, blocker):
             u, v = self.rel(carrier.side, carrier.x, carrier.y)
             past_u, past_v = pitch.clamp_point(
@@ -946,7 +1002,10 @@ class LiveMatch:
 
     def _threat(self, u: float, v: float) -> float:
         """The value of having the ball at (u, v): mostly the chance of a good shot from there."""
-        return 0.004 + 0.01 * (u / pitch.LENGTH) ** 2 + 0.5 * pitch.xg(u, v, self.p["xg"])
+        d = self.pd
+        return (
+            0.004 + d["threat_u"] * (u / pitch.LENGTH) ** 2 + 0.5 * pitch.xg(u, v, self.p["xg"])
+        )
 
     def offside_line(self, side: str) -> float:
         """In `side`'s view: how far forward an attacker may be when the ball is played (Law
@@ -1212,31 +1271,41 @@ class LiveMatch:
         self._kickoff(other(scorer.side))
         self._stoppage("goal")
 
-    def _cross(self, carrier: Body, team: Team, opp: Team) -> None:
-        targets = [
-            b for b in team.on_pitch() if b is not carrier and b.group is not Group.GOALKEEPER
-        ]
-        # in the box, or arriving: attackers time their run into the box for the cross
+    def _cross_target(self, carrier: Body, team: Team) -> Body | None:
+        """The best header in the box, or arriving: attackers time their run for the cross."""
         reach = self.pd["cross_reach_m"]
         box = [
             b
-            for b in targets
-            if self.rel(team.side, b.x, b.y)[0] > pitch.LENGTH - pitch.BOX_DEPTH - reach
+            for b in team.on_pitch()
+            if b is not carrier
+            and b.group is not Group.GOALKEEPER
+            and self.rel(team.side, b.x, b.y)[0] > pitch.LENGTH - pitch.BOX_DEPTH - reach
             and abs(self.rel(team.side, b.x, b.y)[1] - pitch.CENTRE_V) < 20.0
         ]
         if not box:
-            self._next_decision = self.t + self.p["decide"]["decision_every_s"]
-            return
-        target = max(box, key=lambda b: (b.attr("heading") + b.attr("jumping_reach"), b.pid))
+            return None
+        return max(box, key=lambda b: (b.attr("heading") + b.attr("jumping_reach"), b.pid))
+
+    def _cross_odds(self, carrier: Body, target: Body, opp: Team) -> tuple[float, float]:
+        """The keeper's chance to claim the cross, and the target's chance to win the header."""
         keeper = opp.keeper()
         claim = 0.15 if keeper is None else 0.08 + 0.01 * keeper.attr("command_of_area")
         quality = (carrier.attr("crossing") + target.attr("heading")) / 40
+        return claim, 0.25 + 0.25 * quality
+
+    def _cross(self, carrier: Body, team: Team, opp: Team) -> None:
+        target = self._cross_target(carrier, team)
+        if target is None:  # a set piece with nobody forward: played short
+            self._next_decision = self.t + self.p["decide"]["decision_every_s"]
+            return
+        keeper = opp.keeper()
+        claim, reach = self._cross_odds(carrier, target, opp)
         if self.rng.random() < claim:
             if keeper is not None:
                 self._give(keeper)
                 self._next_decision = self.t + 1.5
             return
-        if self.rng.random() < 0.25 + 0.25 * quality:
+        if self.rng.random() < reach:
             tu, tv = self.rel(team.side, target.x, target.y)
             self.ball.passer = carrier
             self._give(target)
