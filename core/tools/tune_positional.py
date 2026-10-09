@@ -129,7 +129,7 @@ def _play_neutral(n: int, club: str, params: PositionalParams, prefix: str = "ne
 
 class Sample:
     def __init__(self, fixtures: int, repeats: int = 1, prefix: str = "tune",
-                 neutral_seeds: int = NEUTRAL_SEEDS) -> None:
+                 neutral_seeds: int = NEUTRAL_SEEDS, workers: int = 0) -> None:
         self.prefix = prefix
         loaded = api.load_dataset(ROOT.parent / "data" / "sample")
         assert loaded.dataset is not None
@@ -140,7 +140,7 @@ class Sample:
         self.pairs = pairs[::step][:fixtures] * repeats
         self.strong = {pair: self._stronger(*pair) for pair in self.pairs}
         self.mirrors = [(k, club) for club in clubs for k in range(neutral_seeds)]
-        self.pool = ProcessPoolExecutor(min(len(self.pairs), os.cpu_count() or 1),
+        self.pool = ProcessPoolExecutor(min(len(self.pairs), workers or os.cpu_count() or 1),
                                         initializer=_init_worker)
         TARGETS["strong_goal_share"] = (self._quick_strong_share(), 0.04, 1.0)
 
@@ -240,6 +240,18 @@ def dump(params: PositionalParams) -> str:
     return "\n".join(lines)
 
 
+def _lower_priority() -> None:
+    """Below-normal priority for this process; the match workers inherit it."""
+    if os.name == "nt":
+        import ctypes
+
+        below_normal = 0x4000
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), below_normal)
+    else:
+        os.nice(10)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rounds", type=int, default=3)
@@ -247,16 +259,23 @@ def main() -> None:
     parser.add_argument("--validate", action="store_true",
                         help="measure every target on 4 fresh seeds of every pair, then stop")
     parser.add_argument("--write", action="store_true")
+    parser.add_argument("--workers", type=int, default=0,
+                        help="processes to play matches in (default: one per CPU)")
+    parser.add_argument("--low-priority", action="store_true",
+                        help="run below normal priority so the PC stays responsive")
     args = parser.parse_args()
+    if args.low_priority:
+        _lower_priority()
     if args.validate:  # a fixed-seed fit can overfit its sample: check it on fresh seeds
-        check = Sample(132, repeats=4, prefix="validate", neutral_seeds=10)
+        check = Sample(132, repeats=4, prefix="validate", neutral_seeds=10,
+                       workers=args.workers)
         values = check.measure(load_params())
         print(f"validation loss {loss(values):.3f}  {show(values)}")
         for k, (target, tol, w) in TARGETS.items():
             print(f"  {k:20} {values[k]:9.3f}  target {target:8.3f}  "
                   f"term {w * ((values[k] - target) / tol) ** 2:6.2f}")
         return
-    sample = Sample(args.fixtures)
+    sample = Sample(args.fixtures, workers=args.workers)
     params = load_params()
     values = sample.measure(params)
     best = loss(values)
