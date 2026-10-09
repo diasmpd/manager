@@ -93,8 +93,10 @@ TUNABLE = [
 _worker: QuickSimProvider | None = None
 
 
-def _init_worker() -> None:
+def _init_worker(low_priority: bool = False) -> None:
     global _worker
+    if low_priority:  # Windows does not pass a lowered priority on to child processes
+        _lower_priority()
     loaded = api.load_dataset(ROOT.parent / "data" / "sample")
     assert loaded.dataset is not None
     _worker = QuickSimProvider(loaded.dataset)
@@ -129,7 +131,8 @@ def _play_neutral(n: int, club: str, params: PositionalParams, prefix: str = "ne
 
 class Sample:
     def __init__(self, fixtures: int, repeats: int = 1, prefix: str = "tune",
-                 neutral_seeds: int = NEUTRAL_SEEDS, workers: int = 0) -> None:
+                 neutral_seeds: int = NEUTRAL_SEEDS, workers: int = 0,
+                 low_priority: bool = False) -> None:
         self.prefix = prefix
         loaded = api.load_dataset(ROOT.parent / "data" / "sample")
         assert loaded.dataset is not None
@@ -141,7 +144,7 @@ class Sample:
         self.strong = {pair: self._stronger(*pair) for pair in self.pairs}
         self.mirrors = [(k, club) for club in clubs for k in range(neutral_seeds)]
         self.pool = ProcessPoolExecutor(min(len(self.pairs), workers or os.cpu_count() or 1),
-                                        initializer=_init_worker)
+                                        initializer=_init_worker, initargs=(low_priority,))
         TARGETS["strong_goal_share"] = (self._quick_strong_share(), 0.04, 1.0)
 
     def _stronger(self, home: str, away: str) -> str:
@@ -268,14 +271,14 @@ def main() -> None:
         _lower_priority()
     if args.validate:  # a fixed-seed fit can overfit its sample: check it on fresh seeds
         check = Sample(132, repeats=4, prefix="validate", neutral_seeds=10,
-                       workers=args.workers)
+                       workers=args.workers, low_priority=args.low_priority)
         values = check.measure(load_params())
         print(f"validation loss {loss(values):.3f}  {show(values)}")
         for k, (target, tol, w) in TARGETS.items():
             print(f"  {k:20} {values[k]:9.3f}  target {target:8.3f}  "
                   f"term {w * ((values[k] - target) / tol) ** 2:6.2f}")
         return
-    sample = Sample(args.fixtures, workers=args.workers)
+    sample = Sample(args.fixtures, workers=args.workers, low_priority=args.low_priority)
     params = load_params()
     values = sample.measure(params)
     best = loss(values)
