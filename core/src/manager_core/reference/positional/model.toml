@@ -44,7 +44,7 @@ decision_every_s = 1.0169492372881357
 control_delay_s = 0.726153846153846
 temperature = 0.455
 shoot_bias = 3.0
-min_shot_xg = 0.0507
+min_shot_xg = 0.039
 pass_bias = 1.0
 dribble_bias = 0.35
 carry_bias = 0.6284026461538461
@@ -163,4 +163,4 @@ mentality_runs = 0.0
 edge = 0.04
 
 [attributes]
-spread = 0.30769199999999997
+spread = 0.2366861538461538
