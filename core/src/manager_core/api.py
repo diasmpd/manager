@@ -550,10 +550,10 @@ def season_scorers(season: Season, limit: int | None = None) -> list[ScorerRow]:
 
 
 def run_calibration(dataset: Dataset, gate: str = "pr", baseline: Path | None = None,
-                    exploit: bool | None = None) -> CalibrationReport:
+                    exploit: bool | None = None, engine: str = "quick") -> CalibrationReport:
     """Run a calibration gate (deterministic; writes nothing). `exploit` (default: on for the
-    PR gate) runs the tactical exploit check."""
-    return harness.run(dataset, gate, baseline=baseline, exploit=exploit)
+    PR gate) runs the tactical exploit check. `engine` is "quick" or "positional" (spec 008)."""
+    return harness.run(dataset, gate, baseline=baseline, exploit=exploit, engine=engine)
 
 
 # ---- careers (spec 004) ----------------------------------------------------------------------

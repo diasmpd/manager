@@ -49,20 +49,39 @@ class LeagueMatch:
     result: Result
 
 
-def league_sample(dataset: Dataset, provider: ResultProvider,
-                  seasons: int) -> list[LeagueMatch]:
+@dataclass(frozen=True, slots=True)
+class LeagueFixture:
+    season: int
+    seed: int  # the season's seed: the match's context and the root of its random stream
+    match_id: str
+    home_id: str
+    away_id: str
+
+    def rng(self) -> random.Random:
+        return random.Random(sub_seed(self.seed, f"match:{self.match_id}"))
+
+
+def league_fixtures(dataset: Dataset, seasons: int) -> list[LeagueFixture]:
+    """The league sample's matches in playing order. Both engines play this list (spec 008)."""
     clubs = tuple(sorted(dataset.clubs))
-    matches: list[LeagueMatch] = []
+    fixtures: list[LeagueFixture] = []
     for n in range(seasons):
         seed = sub_seed(SEED, f"calibration:league:{n}")
         days = build_group_fixtures([Group("A", clubs)], Matching.ALL, 2, seed)
         for day_index, day in enumerate(days, start=1):
             for home, away in sorted(day):
                 match_id = f"league-{n}-r{day_index:02d}-{home}-{away}"
-                rng = random.Random(sub_seed(seed, f"match:{match_id}"))
-                result = provider.play(match_id, dataset.club(home), dataset.club(away),
-                                       MatchContext(seed, "league"), rng)
-                matches.append(LeagueMatch(n, home, away, result))
+                fixtures.append(LeagueFixture(n, seed, match_id, home, away))
+    return fixtures
+
+
+def league_sample(dataset: Dataset, provider: ResultProvider,
+                  seasons: int) -> list[LeagueMatch]:
+    matches: list[LeagueMatch] = []
+    for f in league_fixtures(dataset, seasons):
+        result = provider.play(f.match_id, dataset.club(f.home_id), dataset.club(f.away_id),
+                               MatchContext(f.seed, "league"), f.rng())
+        matches.append(LeagueMatch(f.season, f.home_id, f.away_id, result))
     return matches
 
 

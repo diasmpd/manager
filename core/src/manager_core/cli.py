@@ -11,6 +11,7 @@ from pathlib import Path
 
 from manager_core import api
 from manager_core.calibration.exploit import MAX_GAIN as EXPLOIT_LIMIT
+from manager_core.calibration.harness import ENGINES
 from manager_core.career.career import Career, Stop
 from manager_core.career.store import SaveError
 from manager_core.competition.calendar import CalendarDay
@@ -513,13 +514,17 @@ def _cmd_season_scorers(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _cross_unit(metric: str) -> str:
+    return "per_match" if metric == "goals_per_match" else "ratio"
+
+
 def _cmd_calibrate(args: argparse.Namespace) -> int:
     dataset = _load(args.data)
     if dataset is None:
         return EXIT_INVALID
     report = api.run_calibration(dataset, args.gate, args.baseline,
-                                 exploit=False if args.no_exploit else None)
-    print(t("calibration.title", gate=args.gate))
+                                 exploit=False if args.no_exploit else None, engine=args.engine)
+    print(t(f"calibration.title.{args.engine}", gate=args.gate))
     with_before = args.baseline is not None
     headers = ["metric", "value", *(["before"] if with_before else []), "target", "band",
                "verdict", "source"]
@@ -550,6 +555,15 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
         print(t("calibration.exploit", best=best, gain=f"{gain:+.3f}",
                 limit=f"{EXPLOIT_LIMIT:.2f}", dominant=e.dominant or "–",
                 matches=e.matches_per_venue * 2))
+    if report.cross is not None:
+        print(t("calibration.cross", matches=report.cross.matches))
+        cross_headers = ("metric", "positional", "quick", "tolerance", "verdict")
+        _print_table(
+            [t(f"calibration.{h}") for h in cross_headers],
+            [[t(f"metric.{row.id}"), fmt(row.positional, _cross_unit(row.id)),
+              fmt(row.quick, _cross_unit(row.id)), fmt(row.tolerance, _cross_unit(row.id)),
+              t("calibration.pass" if row.ok else "calibration.fail")]
+             for row in report.cross.rows])
     print(t("calibration.versions", core=report.core_version, python=report.python_version,
             model=report.model_version, hash=report.params_hash))
     if args.write is not None:
@@ -839,6 +853,7 @@ def _build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--baseline", type=Path)
     cmd.add_argument("--write", type=Path)
     cmd.add_argument("--no-exploit", action="store_true")
+    cmd.add_argument("--engine", choices=ENGINES, default="quick")
     cmd.set_defaults(func=_cmd_calibrate)
     return parser
 
