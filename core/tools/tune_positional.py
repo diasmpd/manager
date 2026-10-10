@@ -95,7 +95,7 @@ _worker: QuickSimProvider | None = None
 
 def _init_worker(low_priority: bool = False) -> None:
     global _worker
-    if low_priority:  # Windows does not pass a lowered priority on to child processes
+    if low_priority:  # normally inherited from the parent; set again so it never depends on that
         _lower_priority()
     loaded = api.load_dataset(ROOT.parent / "data" / "sample")
     assert loaded.dataset is not None
@@ -244,13 +244,18 @@ def dump(params: PositionalParams) -> str:
 
 
 def _lower_priority() -> None:
-    """Below-normal priority for this process; the match workers inherit it."""
+    """Below-normal priority for this process (the match workers call it too)."""
     if os.name == "nt":
         import ctypes
 
         below_normal = 0x4000
-        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
-        kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), below_normal)
+        # Typed handles: with ctypes' default int the 64-bit process handle is truncated and the
+        # call fails without a word (error 6), which left every run at normal priority.
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)  # type: ignore[attr-defined]
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.SetPriorityClass.argtypes = (ctypes.c_void_p, ctypes.c_uint32)
+        if not kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), below_normal):
+            raise ctypes.WinError(ctypes.get_last_error())  # type: ignore[attr-defined]
     else:
         os.nice(10)
 
