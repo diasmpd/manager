@@ -99,12 +99,15 @@
 - T012: the milestone gate also plays the same fixtures through the quick sim and compares
   goals per match, the home, draw and away shares and each total-goals share against the SC-003
   tolerances. A miss fails the gate (`cross_validation:<metric>`).
-- Decisions to confirm with the owner:
+- Owner decisions (2026-10-10, on the agent's recommendation):
   - The Mineiro sample's three targets (first-phase draws and goals, shootout conversion) are
     not measured for the positional engine: the first phase is the same engine on the same
     clubs, and the shootout is the model both engines share.
-  - The positional exploit check is still the dev tool (`tools/positional_exploit.py`), not
-    part of the gate.
+  - The positional exploit check joins the **milestone** gate only, so the PR gate stays at
+    about 3.5 minutes. It is still the dev tool (`tools/positional_exploit.py`) today: moving
+    it into `calibration/positional.py` is part of T011, once the engine is fitted (its
+    numbers mean little while the model moves).
+  - Test careers stay on the quick sim by default, with `@pytest.mark.positional` to opt in.
   - The two gate tests are `milestone`-marked until the engine is fitted. The PR gate then has
     to join the CI run (about 3.5 minutes for 300 matches on 12 threads).
 - First PR-gate run, on the model as run 16 was stopped: goals 2.80, home 40.7%, draw 22.0%,
