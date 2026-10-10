@@ -46,13 +46,13 @@ temperature = 0.455
 shoot_bias = 3.0
 min_shot_xg = 0.039
 pass_bias = 1.0
-dribble_bias = 0.35
+dribble_bias = 0.26923076923076916
 carry_bias = 0.6284026461538461
 clear_spread = 30.0
 carry_pull = 0.15
 carry_pull_final = 0.45
 wide_m = 18.0
-pass_out = 0.2011446153846154
+pass_out = 0.261488
 first_touch_s = 0.4
 release_pressure = 0.6
 through_bias = 1.0
@@ -89,7 +89,7 @@ angle = 1.5
 distance = -0.12
 header_factor = 0.6
 blocker_factor = 0.65
-block_lane = 1.3032881961188076
+block_lane = 1.69427465495445
 
 [duel]
 tackle_base = 0.19230799999999998
@@ -109,7 +109,7 @@ beat_advance = 5.0
 
 [keeper]
 save_base = 0.7
-save_skill = 0.04011225919999998
+save_skill = 0.05
 
 [energy]
 drain = 0.00055
@@ -163,4 +163,4 @@ mentality_runs = 0.0
 edge = 0.04
 
 [attributes]
-spread = 0.2366861538461538
+spread = 0.30769199999999997
