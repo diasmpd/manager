@@ -13,6 +13,7 @@ from manager_core.server.methods import METHODS, Config, map_errors
 from manager_core.server.protocol import Session, handle_line
 
 SAMPLE = Path(__file__).resolve().parents[3] / "data" / "sample"
+pytestmark = pytest.mark.positional  # these are the user's matches on the positional engine
 
 
 class Client:

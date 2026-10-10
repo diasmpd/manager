@@ -86,6 +86,19 @@ def test_season_suspensions_are_served(world: Dataset) -> None:
 
 
 @pytest.mark.slow
+@pytest.mark.positional
+def test_season_suspensions_are_served_with_positional_matches(world: Dataset) -> None:
+    """The same on one career whose own matches are played by the positional engine (spec 008):
+    its cards feed the same bans."""
+    career = api.new_career(world, "d", "alvorada", master_seed=3)
+    assert career.positional
+    career.season.advance_to(date(2027, 12, 31))
+    sources = {r.source for r in career.season.results.values()}
+    assert "positional" in sources and len(sources) == 2
+    _check_bans(career.season, world)
+
+
+@pytest.mark.slow
 def test_season_suspensions_are_served_100(world: Dataset) -> None:
     for seed in range(10, 100):
         career = api.new_career(world, "d", "alvorada", master_seed=seed)

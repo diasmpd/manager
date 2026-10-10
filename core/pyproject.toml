@@ -44,4 +44,5 @@ pythonpath = ["src", "."]
 markers = [
     "slow: slower checks (performance); still run in CI",
     "milestone: milestone-gate checks (Constitution I), run before closing a milestone, not in CI",
+    "positional: the test's careers play the user's matches on the positional engine (the game's default; tests default to the quick sim, see conftest)",
 ]

@@ -117,6 +117,7 @@ def test_a_season_is_fast(world: Dataset, tmp_path: Path) -> None:
 
 
 @pytest.mark.slow
+@pytest.mark.positional
 def test_a_season_with_positional_matches_is_within_budget(world: Dataset,
                                                            tmp_path: Path) -> None:
     """Spec 008 SC-004: a full season with the user's matches on the positional engine in at
