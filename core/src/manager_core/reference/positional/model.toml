@@ -115,6 +115,7 @@ save_skill = 0.04011225919999998
 drain = 0.00055
 recover = 0.00012
 tired_speed = 0.25
+conserve = 1.0
 
 [intents]
 chase_push = 8.0

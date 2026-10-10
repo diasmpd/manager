@@ -670,7 +670,9 @@ class LiveMatch:
     def _recovering(self, team: Team, body: Body) -> bool:
         """Runs at full speed in the shape: out of possession with the ball behind him (nearer
         his own goal) he sprints back goal-side; in possession with his place well ahead of
-        him he sprints forward in support."""
+        him he sprints forward in support. A tired player saves his legs for the first: the
+        further his energy has dropped, the further behind the play he lets himself fall
+        before he sprints to join it (he arrives later, so the attack has fewer options)."""
         owner = self.ball.owner
         if owner is None or body.group is Group.GOALKEEPER:
             return False
@@ -679,7 +681,8 @@ class LiveMatch:
             bu, _ = self.rel(team.side, self.ball.x, self.ball.y)
             return mu > bu + self.pm["recover_gap_m"]
         tu, _ = self.rel(team.side, body.tx, body.ty)
-        return tu > mu + self.pm["support_gap_m"]
+        gap = self.pm["support_gap_m"] * (1 + self.pe["conserve"] * (1 - body.energy))
+        return tu > mu + gap
 
     @staticmethod
     def _tire(
@@ -1386,8 +1389,10 @@ class LiveMatch:
                 opp.tactic.setting("tackling"), 1.0
             )
             foul *= self._lv(self._lev(opp).foul_rate)
-            if body.yellow:
-                foul *= 1 - (1 - self.q.caution.foul) * caution_strength(body.player, self.q)
+            if body.yellow:  # a booked player holds back: fewer fouls, and he wins the ball less
+                eased = caution_strength(body.player, self.q)
+                foul *= 1 - (1 - self.q.caution.foul) * eased
+                win *= 1 - self.q.caution.cost * eased
             r = self.rng.random()
             if r < foul:
                 self._foul(body, carrier)
