@@ -103,10 +103,27 @@ def test_save_and_load_anywhere_continues_identically(world: Dataset, tmp_path: 
 
 @pytest.mark.slow
 def test_a_season_is_fast(world: Dataset, tmp_path: Path) -> None:
-    """SC-002: a new career to the season end in under 5 s, autosaves included."""
+    """SC-002: a new career to the season end in under 5 s, autosaves included. This is the
+    day loop's budget, so the user's matches stay on the quick sim here; on the positional
+    engine they have their own budget (below)."""
     start = time.perf_counter()
     career = api.new_career(world, "rapido", "alvorada", master_seed=1)
+    career.positional = False
+    api.apply_selection(career)
     api.continue_career(career, tmp_path, to_season_end=True)
     # the budget is on the reference PC; CI runners scale it like the quick-sim budgets
     scale = float(os.environ.get("MANAGER_PERF_LIMIT_S", "2.0")) / 2.0
     assert time.perf_counter() - start < 5.0 * scale
+
+
+@pytest.mark.slow
+def test_a_season_with_positional_matches_is_within_budget(world: Dataset,
+                                                           tmp_path: Path) -> None:
+    """Spec 008 SC-004: a full season with the user's matches on the positional engine in at
+    most 2 minutes."""
+    start = time.perf_counter()
+    career = api.new_career(world, "posicional", "alvorada", master_seed=1)
+    assert career.positional
+    api.continue_career(career, tmp_path, to_season_end=True)
+    scale = float(os.environ.get("MANAGER_PERF_LIMIT_S", "2.0")) / 2.0
+    assert time.perf_counter() - start < 120.0 * scale
