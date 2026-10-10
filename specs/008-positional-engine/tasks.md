@@ -129,6 +129,18 @@
 - Tuner run 16 was stopped after two steps (attribute spread 0.31 to 0.24, minimum shot xG
   0.051 to 0.039, loss 51.7 to 31.1) so that it fits the engine with the two trade-offs, and
   restarted from there.
+- The core suite had become unrunnable: every career a test makes played the user's matches
+  on the positional engine (about 50 s a season), so `test_season_suspensions_are_served_100`
+  alone took about 70 minutes and the whole run over two hours. Test careers now play the
+  user's matches on the quick sim (an autouse fixture in `tests/conftest.py`), and a test about
+  the user's matches themselves asks for the engine with `@pytest.mark.positional`: the live
+  match tests, the SC-004 season budget and one career of the suspension check. To confirm with
+  the owner: this is less implicit coverage of positional seasons in exchange for a suite that
+  runs in minutes.
+- The tuner's `--low-priority` never worked on 64-bit Python: the priority call failed without
+  a word (a truncated process handle), so the long runs took the whole PC. Fixed, with a
+  regression test (`tests/unit/test_tools.py`). The earlier note that Windows does not pass a
+  lowered priority on to child processes was this same failure: it does.
 - A positional match takes about 3.4 s on the home PC (budget 10 s). `test_a_season_is_fast`
   (spec 004, 5 s) had been failing since the user's matches moved to the positional engine (a
   season took 48 s). It now measures the day loop with the user's matches on the quick sim,
