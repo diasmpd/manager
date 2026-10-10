@@ -141,6 +141,31 @@
   a word (a truncated process handle), so the long runs took the whole PC. Fixed, with a
   regression test (`tests/unit/test_tools.py`). The earlier note that Windows does not pass a
   lowered priority on to child processes was this same failure: it does.
+- Tuner run 16 round 1 on the engine with the trade-offs: loss 54.3 to 27.5, home advantage
+  back (1.49 home, 1.19 away goals). What it left is structural, and one parameter at a time
+  cannot reach it (measured on the tuner's 132 fixtures):
+  - **Fouls and restart time move together.** Fouls were 14.7 (target 26), so yellows 3.1
+    (5.2), and the ball was in play 49.6 minutes: more fouls alone means more dead time. The
+    restart scale was set by hand for a match with too few stoppages. `duel.foul_base` 0.34
+    with `restarts.scale` 1.30 gives fouls 24.9, yellows 5.0 and 54.1 minutes in play.
+  - **Players almost never shot from distance**: 27% of shots from outside the box, none beyond
+    25 m, 7.8 a match from 5 to 10 m, 78% with nobody in the shooting lane. An attack went on
+    until it made a close chance or lost the ball. `decide.min_shot_xg` 0.039 to 0.025 gives
+    45% from outside the box, xG per shot 0.115 (0.131) and corners 9.4 (7.3).
+  - With both, goals rise to 3.31 (xG 3.30 from 28.7 shots): more live play, and the same
+    close chances. This candidate is **not** the committed model (the owner's matches would be
+    too high-scoring until a refit): the tuner runs from it in the tuner worktree, and its
+    result is brought over only if the gate is better for it.
+  - **Red cards are the wrong kind**: 0.44 second yellows and 0.04 straight reds a match (the
+    target is 0.25 in all). About one booked player in ten is sent off, so fouls are
+    concentrated on too few players. Next: the fouls-per-player distribution, and a source for
+    the real split of second yellows and straight reds.
+  - Still structural: passes 693 a team (420), crosses 2.9 (14), take-ons 27 (19).
+  - Tried and removed: a centre-back stepping into the shooting lane near the box. It took
+    away long shots (the blocked shot is not attempted) and total shots (22.7 to 19.6), left
+    the close ones (7.8 to 6.4 from 5 to 10 m) and did not move xG per shot (0.127).
+- Tuner: the yellow-card target weighs 1.0 (it is a primary gate target), and the foul-rate
+  bound is 0.45 (26 fouls need about 0.34).
 - A positional match takes about 3.4 s on the home PC (budget 10 s). `test_a_season_is_fast`
   (spec 004, 5 s) had been failing since the user's matches moved to the positional engine (a
   season took 48 s). It now measures the day loop with the user's matches on the quick sim,

@@ -41,7 +41,7 @@ TARGETS = {
     "xg_per_shot": (0.10, 0.02, 1.0),
     "corners": (9.8, 1.25, 0.5),
     "fouls": (26.0, 4.0, 0.5),
-    "yellows": (5.2, 0.75, 0.5),
+    "yellows": (5.2, 0.75, 1.0),  # a primary target of the gate, like the goals
     "reds": (0.25, 0.08, 0.3),
     "passes_per_team": (420.0, 60.0, 0.3),
     # cross-validation inside the fit: the stronger side's share of goals, as in the quick sim
@@ -79,7 +79,7 @@ TUNABLE = [
     ("shape.oop_compact", 0.3, 1.0),
     ("shape.oop_push", 0.2, 0.9),
     ("duel.tackle_base", 0.05, 0.6),
-    ("duel.foul_base", 0.02, 0.3),
+    ("duel.foul_base", 0.02, 0.45),  # 26 fouls a match need about 0.34
     ("duel.beat_advance", 1.0, 5.0),
     ("xg.block_lane", 0.8, 3.0),
     ("keeper.save_skill", 0.0, 0.05),
