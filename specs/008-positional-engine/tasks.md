@@ -89,6 +89,51 @@
 - The local Python had lost the editable installs (`pip install -e "core[dev]" -e "tui[dev]"`
   restored them; the desktop client needs them to start the core).
 
+## Progress notes (2026-10-10)
+
+- T011, the harness half: `calibrate --engine positional` runs the positional gates
+  (`calibration/positional.py`). The sample is the head of the league sample's fixture list
+  (PR 300 matches, milestone 1,500), on the quick sim's match seeds, played in parallel
+  processes and merged in fixture order. The PR gate fails only on the robust metrics of
+  research R6; the other primary targets warn there and gate at the milestone.
+- T012: the milestone gate also plays the same fixtures through the quick sim and compares
+  goals per match, the home, draw and away shares and each total-goals share against the SC-003
+  tolerances. A miss fails the gate (`cross_validation:<metric>`).
+- Decisions to confirm with the owner:
+  - The Mineiro sample's three targets (first-phase draws and goals, shootout conversion) are
+    not measured for the positional engine: the first phase is the same engine on the same
+    clubs, and the shootout is the model both engines share.
+  - The positional exploit check is still the dev tool (`tools/positional_exploit.py`), not
+    part of the gate.
+  - The two gate tests are `milestone`-marked until the engine is fitted. The PR gate then has
+    to join the CI run (about 3.5 minutes for 300 matches on 12 threads).
+- First PR-gate run, on the model as run 16 was stopped: goals 2.80, home 40.7%, draw 22.0%,
+  away 37.3% (home 1.41 and away 1.40 goals), yellows 3.20, reds 0.16, shots 20.9, corners
+  6.5, fouls 16.2, late goals 20.8%. The failed-take-on fix removed many duels, so fouls, cards
+  and the home edge have to be refitted: tuner run 16 was restarted from that model.
+- SC-006 had no tests: T007 and T009 list behaviour tests that were never written. They are
+  now in `tests/integration/test_positional_behaviour.py` (card caution, tired duels, the
+  relaxed leader, distances and the late sprint share, chasing and protecting, line height and
+  width). Measuring them found two behaviours without their trade-off, both fixed in the
+  engine:
+  - A booked player fouled less and lost nothing. He now also wins the ball less
+    (`caution.cost` of spec 003, by his caution strength), as the pain-point log promises.
+  - Tired players sprinted as often as fresh ones: the late sprint share rose (0.10 to 0.11).
+    Three quarters of all sprinting is the support run in possession, so a tired player now
+    lets the play get further ahead before he sprints to join it (`energy.conserve`, 1.0: the
+    late share is about 0.77 of the early one). The size of the real decline still needs a
+    source, like the passing targets.
+  - Not confirmed: "a trailing side concedes better chances" (the leader's xG after minute 70
+    was 1.90 against 1.96 level, 6 matches). The line of engagement has no test yet: its effect
+    on positions was inside the noise of 3 matches.
+- Tuner run 16 was stopped after two steps (attribute spread 0.31 to 0.24, minimum shot xG
+  0.051 to 0.039, loss 51.7 to 31.1) so that it fits the engine with the two trade-offs, and
+  restarted from there.
+- A positional match takes about 3.4 s on the home PC (budget 10 s). `test_a_season_is_fast`
+  (spec 004, 5 s) had been failing since the user's matches moved to the positional engine (a
+  season took 48 s). It now measures the day loop with the user's matches on the quick sim,
+  and a new test holds SC-004 (a season with positional matches in at most 2 minutes).
+
 ## Dependencies
 
 - T001 → T002 → T003 → T004 → T005 → T006 → T007–T010 → T011–T013.
