@@ -30,6 +30,7 @@ python -m manager_core season rules                     # bundled competition ru
 python -m manager_core season match primeira-fase-r01-01 # a match report (stats, goals, cards)
 python -m manager_core season scorers                   # top scorers
 python -m manager_core calibrate                        # quick-sim calibration vs real data
+python -m manager_core calibrate --engine positional    # the positional engine's gate (spec 008, ~4 min)
 
 # a career (saved in saves/, autosaved weekly)
 python -m manager_core career new minha --club alvorada  # choose your club
