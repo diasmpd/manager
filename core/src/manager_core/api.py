@@ -862,6 +862,7 @@ class FrameEvent:
     player_id: str
     other_id: str | None
     score: tuple[int, int]  # after the event
+    minute: Minute
 
 
 @dataclass(frozen=True, slots=True)
@@ -906,7 +907,8 @@ def _frames(chunk: RecordChunk, events: Sequence[MatchEvent], pitch: PitchView) 
     return Frames(
         chunk.first, len(chunk.samples), record_mod.samples_base64(chunk.samples),
         tuple(FrameEvent(sample, events[i].kind, events[i].side, events[i].player_id,
-                         events[i].other_player_id, scores[i]) for sample, i in chunk.events),
+                         events[i].other_player_id, scores[i], events[i].minute)
+              for sample, i in chunk.events),
         tuple(FrameSub(sample, slot, pid, known[pid].name, known[pid].number)
               for sample, slot, pid in chunk.subs),
         tuple(FrameShot(sample, slot, hit) for sample, slot, hit in chunk.shots))
@@ -931,6 +933,63 @@ def live_frames(career: Career, session: LiveSession, first: int) -> Frames:
     chunk = record_mod.chunk(first, match.samples, match.event_samples, match.sub_samples,
                              match.shot_samples, match.finished)
     return _frames(chunk, match.events, live_pitch(career, session))
+
+
+@dataclass(frozen=True, slots=True)
+class MatchReplay:
+    """A played match for the 2D view (spec 008b): the whole record, and what the record does
+    not hold."""
+
+    match: MatchView
+    pitch: PitchView
+    frames: Frames
+    clock: tuple[tuple[int, int, int], ...]  # (sample, minute, added) at each change of minute
+    final_score: tuple[int, int]
+
+
+def _replay(career: Career, match_id: str, record: PositionalRecord,
+            report: MatchReport) -> MatchReplay:
+    season = career.season
+    m = season.matches[match_id]
+    home = tuple(pid for pid, side in record.players if side == "home")
+    away = tuple(pid for pid, side in record.players if side == "away")
+    came_on: tuple[list[str], list[str]] = ([], [])
+    for _, slot, pid in record.subs:
+        came_on[slot >= len(home)].append(pid)
+    keepers = match_view_mod.keepers_at_kick_off(record.samples[0]) if record.samples else (0, 0)
+    pitch = match_view_mod.pitch_view(season.dataset, record.hz, m.home_id, m.away_id,
+                                      (home, away), (came_on[0], came_on[1]), keepers)
+    half = match_view_mod.second_half_sample(record.samples, pitch.length_cm)
+    return MatchReplay(_match_view(season, m), pitch,
+                       _frames(record.chunk(), report.events, pitch),
+                       match_view_mod.clock(len(record.samples), record.hz, half),
+                       (report.home.goals, report.away.goals))
+
+
+def match_replay(career: Career, match_id: str) -> MatchReplay | None:
+    """One of the user's played matches of this season, ready to be watched again, or None for
+    a match with no positional record (a background match, a save from before spec 008)."""
+    season = career.season
+    if match_id not in season.matches:
+        raise NotFoundError("match", match_id)
+    result = season.results.get(match_id)
+    record = match_record(career, match_id)
+    if record is None or result is None or result.report is None:
+        return None
+    return _replay(career, match_id, record, result.report)
+
+
+def live_replay(career: Career, session: LiveSession) -> MatchReplay:
+    """The live match so far as a replay: after full time the owner can watch it again before
+    going on."""
+    match = session.match
+    return _replay(career, session.match_id, match.record(), match.report())
+
+
+def has_match_record(career: Career, match_id: str) -> bool:
+    """Whether a match of this season can be watched again (cheap: nothing is decoded)."""
+    return (match_id in career.live_provider.records
+            or (career.season.year, match_id) in career.records)
 
 
 def start_live_match(career: Career) -> LiveSession:

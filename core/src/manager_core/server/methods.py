@@ -300,6 +300,15 @@ def match_finish(s: Session, p: Params) -> Any:
     return {"stop": stop, "match_id": session.match_id}
 
 
+def match_record(s: Session, p: Params) -> Any:
+    """A played match to watch again (spec 008b): the one named, or the live match as played so
+    far. `null` when the match has no positional record."""
+    career = _career(s)
+    if "match_id" in p:
+        return api.match_replay(career, param(p, "match_id", str))
+    return api.live_replay(career, _live(s))
+
+
 # ---- views -----------------------------------------------------------------------------------
 
 
@@ -339,6 +348,7 @@ def view_calendar(s: Session, p: Params) -> Any:
                 if club in (season.matches[mid].home_id, season.matches[mid].away_id)]
         days.append({"day": day.day,
                      "user_match": api.match_view(season, mine[0]) if mine else None,
+                     "user_match_replay": bool(mine) and api.has_match_record(career, mine[0]),
                      "match_count": len(day.match_ids),
                      "windows": list(dict.fromkeys(w.name for w in day.windows)),
                      "events": day.events})
@@ -377,7 +387,7 @@ METHODS: dict[str, Handler] = {
     "tactic.validate": tactic_validate, "tactic.confirm": tactic_confirm,
     "match.start": match_start, "match.advance": match_advance, "match.state": match_state,
     "match.substitute": match_substitute, "match.tactic": match_tactic,
-    "match.finish": match_finish,
+    "match.finish": match_finish, "match.record": match_record,
     "view.home": view_home, "view.squad": view_squad, "view.player": view_player,
     "view.table": view_table, "view.groups": view_groups, "view.fixtures": view_fixtures,
     "view.calendar": view_calendar, "view.news": view_news, "view.match": view_match,

@@ -135,6 +135,34 @@ def pitch_view(dataset: Dataset, hz: float, home_id: str, away_id: str,
         _side(dataset, away, away_kit, HOME_SLOTS, starters[1], others[1], keepers[1]))
 
 
+def second_half_sample(samples: Sequence[Sequence[int]], length_cm: int) -> int | None:
+    """The first sample of the second half: the sides change ends, so the home goalkeeper is
+    suddenly in the other half. None for a record that stops before half-time."""
+    if not samples:
+        return None
+    index = 3 + 2 * keepers_at_kick_off(samples[0])[0]
+    for i, sample in enumerate(samples):
+        if sample[index] > length_cm / 2:
+            return i
+    return None
+
+
+def clock(count: int, hz: float, second_half: int | None) -> tuple[tuple[int, int, int], ...]:
+    """The match clock of a record: (sample, minute, added) at every change of minute, as the
+    scoreboard shows it (45+2, 90+4)."""
+    rows: list[tuple[int, int, int]] = []
+    per_minute = 60 * hz
+    for sample in range(count):
+        if second_half is None or sample < second_half:
+            minute, end = int(sample // per_minute) + 1, 45
+        else:
+            minute, end = int((sample - second_half) // per_minute) + 46, 90
+        row = (min(minute, end), max(0, minute - end))
+        if not rows or rows[-1][1:] != row:
+            rows.append((sample, *row))
+    return tuple(rows)
+
+
 def keepers_at_kick_off(sample: Sequence[int]) -> tuple[int, int]:
     """Each side's goalkeeper slot (0-10) from a record's first sample: the player nearest his
     own goal line. The home side defends x = 0 in the first half."""
