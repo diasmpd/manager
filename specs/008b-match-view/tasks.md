@@ -56,7 +56,7 @@ neighbours.
   live, chunk by chunk, equal the finished record's passages; the match is identical with and
   without the scout (SC-008); a decision rebuilds the scout and later passages follow the new
   match.
-- [ ] T015 [US4] The passage player in `playback.gd` and both screens: Jogo completo / Melhores
+- [x] T015 [US4] The passage player in `playback.gd` and both screens: Jogo completo / Melhores
   momentos, the fast clock and the feed between passages, pause between passages, switching
   modes in mid-match, half-time and full time. Headless tests; time a whole match (SC-007).
 

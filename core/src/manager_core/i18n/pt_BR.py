@@ -364,6 +364,8 @@ MESSAGES: dict[str, str] = {
     "ui.live.view_pitch": "Campo",
     "ui.live.view_text": "Texto",
     "ui.live.to_end": "Até o fim",
+    "ui.live.mode_full": "Jogo completo",
+    "ui.live.mode_highlights": "Melhores momentos",
     "ui.pitch.goal": "GOL!",
     "ui.replay.title": "Rever a partida",
     "ui.replay.watch": "Rever",

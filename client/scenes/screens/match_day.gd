@@ -16,6 +16,8 @@ const PITCH_SPEEDS := {1: 1.0, 2: 2.0, 3: 4.0, 4: 8.0}  # pitch: times real time
 const TICK := 0.25
 const AHEAD_S := 0.75  # real seconds of match the pitch keeps ahead of the screen
 const SETTINGS := "user://settings.cfg"
+const SKIP_S := 30.0  # highlights: match seconds per tick between two passages
+const LOOK_AHEAD_S := 180.0  # highlights: how far ahead the core is asked to look
 
 var _feed: RichTextLabel
 var _score: Label  # LED digits on the scoreboard
@@ -50,6 +52,13 @@ var _rush := false  # playing to the end without drawing
 var _catch_up := false  # the positions missed while the text view ran are due
 var _ended := false
 var _replay_button: Button
+# Highlights (spec 008b US4): the pitch shows only the passages the core names; between them the
+# clock runs on with the feed. The core looks ahead on a copy of the match, so the match itself
+# is never ahead of the screen and a pause acts from the minute shown.
+var _highlights := false
+var _show_until := -1.0  # showing a passage up to this match time; below zero: between passages
+var _skip_to := -1.0  # between passages: the match time to run to; below zero: ask the core
+var _mode_button: Button
 
 
 func open() -> void:
@@ -73,6 +82,9 @@ func open() -> void:
 	_view_button = UI.button("", _toggle_view)
 	_view_button.visible = _playback != null
 	controls.add_child(_view_button)
+	_highlights = _saved("mode", "full") == "highlights"
+	_mode_button = UI.button("", _toggle_highlights)
+	controls.add_child(_mode_button)
 	controls.add_child(UI.button(UI.t("ui.live.subs"), _show_subs))
 	controls.add_child(UI.button(UI.t("ui.menu.tactics"), _open_tactics))
 	controls.add_child(UI.spacer())
@@ -141,14 +153,69 @@ func _start_or_resume() -> Variant:
 func _run() -> void:
 	if _paused or _finished:
 		return
-	if not _pitch_view or _rush:
+	if not _pitch_view or _rush or _skipping():
 		_timer.start()
 
 
-func _saved_view() -> bool:
+func _saved(key: String, default: String) -> String:
 	var config := ConfigFile.new()
 	config.load(SETTINGS)
-	return config.get_value("match", "view", "pitch") == "pitch"
+	return config.get_value("match", key, default)
+
+
+func _save(key: String, value: String) -> void:
+	var config := ConfigFile.new()
+	config.load(SETTINGS)
+	config.set_value("match", key, value)
+	config.save(SETTINGS)
+
+
+func _saved_view() -> bool:
+	return _saved("view", "pitch") == "pitch"
+
+
+## Between two passages of the highlights: the timer runs the clock, the pitch waits.
+func _skipping() -> bool:
+	return _highlights and _pitch_view and _show_until < 0.0 and not _finished
+
+
+func _toggle_highlights() -> void:
+	_set_highlights(not _highlights)
+
+
+func _set_highlights(on: bool) -> void:
+	if on == _highlights:
+		return
+	_highlights = on
+	_save("mode", "highlights" if on else "full")
+	_show_until = -1.0
+	_skip_to = -1.0
+	if not on and _pitch_view and not _rush:
+		_timer.stop()
+		_catch_up = true  # back to the whole match, from the current moment
+	_apply_view()
+	_run()
+
+
+## Highlights: ask the core what is coming, then either show the passage that has started or
+## run the clock to the next one (or as far as the core looked).
+func _plan() -> void:
+	_asking = true
+	var ahead = await ask("match.passages", {"horizon_s": LOOK_AHEAD_S})
+	_asking = false
+	if ahead == null or not _skipping():
+		return
+	var now: float = ahead["from_s"]
+	if not ahead["passages"].is_empty():
+		var next: Array = ahead["passages"][0]
+		if next[0] <= now + 0.5:
+			_show_until = next[1]
+			_catch_up = true  # the pitch takes up the match here
+			_timer.stop()
+		else:
+			_skip_to = next[0]
+		return
+	_skip_to = ahead["until_s"] if ahead["until_s"] > now + 0.5 else now + SKIP_S
 
 
 func _toggle_view() -> void:
@@ -159,10 +226,9 @@ func _set_view(pitch: bool) -> void:
 	if pitch == _pitch_view or _playback == null:
 		return
 	_pitch_view = pitch
-	var config := ConfigFile.new()
-	config.load(SETTINGS)
-	config.set_value("match", "view", "pitch" if _pitch_view else "text")
-	config.save(SETTINGS)
+	_save("view", "pitch" if _pitch_view else "text")
+	_show_until = -1.0
+	_skip_to = -1.0
 	_apply_view()
 	if _pitch_view:
 		_timer.stop()
@@ -180,6 +246,8 @@ func _apply_view() -> void:
 	_info.visible = _pitch_view
 	_feed.visible = not _pitch_view
 	_view_button.text = UI.t("ui.live.view_text" if _pitch_view else "ui.live.view_pitch")
+	_mode_button.visible = _pitch_view
+	_mode_button.text = UI.t("ui.live.mode_full" if _highlights else "ui.live.mode_highlights")
 	for i in _speed_buttons.size():
 		_speed_buttons[i].text = ("%d×" % PITCH_SPEEDS[i + 1]) if _pitch_view else str(i + 1)
 	_paint_score()
@@ -195,6 +263,7 @@ func _process(delta: float) -> void:
 		_playback.advance(delta, speed)
 	_release_due()
 	_paint_score()
+	_pitch.modulate.a = 0.45 if _skipping() and not _rush else 1.0
 	_pitch.queue_redraw()
 	if _finished and not _ended and not _catch_up and _playback.at_end():
 		_show_end()
@@ -202,7 +271,17 @@ func _process(delta: float) -> void:
 		return
 	if _catch_up:
 		_fetch(0.0)  # only what was missed: no match time passes
-	elif not _paused and not _finished and _playback.buffered_s() < speed * AHEAD_S:
+		return
+	if _highlights and not _finished:
+		if _show_until < 0.0:
+			return  # between passages: the timer runs the clock
+		if float(_state.get("time_s", 0.0)) >= _show_until:
+			if _playback.at_end():  # the passage has been shown: on to the next
+				_show_until = -1.0
+				_skip_to = -1.0
+				_run()
+			return
+	if not _paused and not _finished and _playback.buffered_s() < speed * AHEAD_S:
 		_fetch(speed)
 
 
@@ -308,7 +387,18 @@ func _toggle_pause() -> void:
 
 func _tick() -> void:
 	_timer.stop()
-	var step = await ask("match.advance", {"seconds": SPEEDS[_speed]})
+	var seconds: float = SPEEDS[_speed]
+	if _skipping() and not _rush:
+		if _skip_to < 0.0:
+			await _plan()
+			_run()
+			return
+		seconds = minf(SKIP_S, _skip_to - float(_state.get("time_s", 0.0)))
+		if seconds <= 0.01:
+			_skip_to = -1.0
+			_run()
+			return
+	var step = await ask("match.advance", {"seconds": seconds})
 	if step == null:
 		return
 	_update(step)

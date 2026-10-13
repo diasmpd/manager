@@ -22,6 +22,8 @@ var _speed := 1.0
 var _paused := false
 var _dragging := false
 var _names := {}
+var _highlights := false
+var _mode_button: Button
 
 
 func open() -> void:
@@ -48,6 +50,9 @@ func open() -> void:
 		controls.add_child(UI.button("%d×" % speed, _set_speed.bind(speed)))
 	_pause_button = UI.button(UI.t("ui.live.pause"), toggle_pause)
 	controls.add_child(_pause_button)
+	_mode_button = UI.button(UI.t("ui.live.mode_highlights"), toggle_highlights)
+	_mode_button.visible = not _replay.get("passages", []).is_empty()
+	controls.add_child(_mode_button)
 	controls.add_child(UI.spacer())
 	controls.add_child(UI.button(UI.t("ui.desktop.back"), main.go_back))
 	add_child(controls)
@@ -87,7 +92,30 @@ func _process(delta: float) -> void:
 		return
 	if not _paused and not _dragging:
 		playback.advance(delta, _speed)
+		if _highlights:
+			_keep_to_passages()
 	_paint()
+
+
+## Highlights: outside a passage, go to the start of the next one; after the last, stop.
+func _keep_to_passages() -> void:
+	var now: float = playback.time_s()
+	for passage in _replay["passages"]:
+		if now < passage[0]:
+			playback.seek(passage[0] * playback.hz)
+			return
+		if now <= passage[1]:
+			return
+	playback.seek(playback.count)
+	if not _paused:
+		toggle_pause()
+
+
+func toggle_highlights() -> void:
+	_highlights = not _highlights
+	_mode_button.text = UI.t("ui.live.mode_full" if _highlights else "ui.live.mode_highlights")
+	if _highlights and _paused:
+		toggle_pause()
 
 
 func _paint() -> void:
@@ -128,6 +156,8 @@ func toggle_pause() -> void:
 
 ## Go to a few seconds before an event and play.
 func jump_to(sample: int) -> void:
+	if _highlights:  # a card is not a highlight: show what was asked for
+		toggle_highlights()
 	playback.seek(sample - LEAD_S * playback.hz)
 	if _paused:
 		toggle_pause()

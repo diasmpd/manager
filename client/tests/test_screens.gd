@@ -113,6 +113,7 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	# the pitch (spec 008b): positions arrive a little ahead of the screen and are played back
 	t.check(day._playback != null, "the match came with its pitch")
 	day._set_view(true)
+	day._set_highlights(false)
 	day._set_speed(4)  # 8x
 	var playing: bool = await _wait(t, func(): return day._playback.playhead > 6.0, 30.0)
 	t.check(playing, "the pitch plays the positions it receives")
@@ -135,6 +136,28 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	t.check(day._info.text != "" and day._info.text != UI.t("ui.pitch.pick"),
 			"a picked disc shows the player")
 	day._toggle_pause()
+	# highlights: the clock runs to the next passage, then the pitch shows it (spec 008b US4)
+	var before_s: float = day._state["time_s"]
+	day._set_highlights(true)
+	t.check(day._skipping(), "between passages at first")
+	var showing: bool = await _wait(t, func(): return day._show_until >= 0.0, 90.0)
+	t.check(showing, "a passage is reached and shown")
+	t.check(day._state["time_s"] > before_s + 30.0, "the clock ran on to it")
+	t.check(day._state["time_s"] <= day._show_until, "the match is not past the passage")
+	var caught: bool = await _wait(t, func(): return not day._catch_up, 10.0)
+	t.check(caught and absf(day._playback.time_s() - day._state["time_s"]) <= 8.0 * 2.0,
+			"the pitch takes up the match at the passage")
+	var after: bool = await _wait(t, func(): return day._show_until < 0.0, 60.0)
+	t.check(after, "after the passage the clock runs on again")
+	day._toggle_pause()
+	await _wait(t, func(): return not day._asking and day._timer.is_stopped(), 10.0)
+	var paused_at: float = day._state["time_s"]
+	for i in 30:
+		await t.process_frame
+	t.check(day._state["time_s"] == paused_at, "a pause between passages stops the clock")
+	day._toggle_pause()
+	day._set_highlights(false)
+	t.check(not day._skipping(), "back to the whole match")
 	# the text view of the same match
 	day._set_view(false)
 	day._set_speed(2)
@@ -190,6 +213,21 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	t.check(not replay._paused, "a jump plays on")
 	t.check(replay.playback.playhead < sub_sample and replay.playback.playhead > sub_sample - 20,
 			"a jump lands a few seconds before the event")
+	# highlights in the replay: only the passages are played
+	var passages: Array = replay._replay["passages"]
+	t.check(not passages.is_empty() and replay._mode_button.visible, "the replay has passages")
+	replay.playback.seek(0.0)
+	replay.toggle_highlights()
+	for i in 5:
+		await t.process_frame
+	var at: float = replay.playback.time_s()
+	t.check(at >= passages[0][0] - 0.01 and at <= passages[0][1], "it starts at the first passage")
+	replay.playback.seek(passages[0][1] * 2.0 + 2.0)
+	for i in 5:
+		await t.process_frame
+	if passages.size() > 1:
+		t.check(replay.playback.time_s() >= passages[1][0] - 0.01, "and goes on to the next one")
+	replay.toggle_highlights()
 	await main.go_back()
 	var returned: bool = await _wait(t, func(): return (main.current_name == "match_day"
 			and main.current._ended), 30.0)
