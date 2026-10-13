@@ -53,7 +53,8 @@ History: 1.0 (spec 007); 1.1 adds `tactic.set_role` (the role-change rule moved 
 into the core); 1.2 adds the live-match methods (spec 008); 1.3 adds `club_colors` to
 `CareerStatus` (the user club's primary and secondary colours, `#RRGGBB`, which the client's
 look uses); 1.4 adds what the 2D match view draws (spec 008b): `pitch` in `match.start`,
-`frames_from` in `match.advance`, and `time_s` in `LiveState`.
+`frames_from` in `match.advance`, `time_s` in `LiveState`, `match.record`, and
+`user_match_replay` in the calendar's days.
 
 **Packaging note**: the server finds the repo (saves, sample data) from its source location
 (`server/__main__.py`, `parents[4]`), so it runs from a source checkout. An installed package
@@ -136,11 +137,18 @@ resumes before that match day.
   22 (x, y) in slot order; (−1, −1) is "not on the pitch". Positions are absolute: the sides
   change ends at half-time. The origin is the corner of the goal line the home side defends
   first; x runs along the pitch.
-  - `events`: `{sample, kind, side, player_id, other_id, score}` (`score` after the event);
+  - `events`: `{sample, kind, side, player_id, other_id, score, minute}` (`score` after the
+    event);
   - `subs`: `{sample, slot, player_id, name, number}` (the player coming on takes the slot);
   - `shots`: `{sample, slot, on_target}`.
   Every `sample` is an index into the whole match, so chunks asked for end to end
   (`frames_from` = the samples received so far) add up to the stored record.
+- **`match.record`** (`match_id?`) → `{match, pitch, frames, clock, final_score}` or `null`: a
+  played user match of this season as a replay, with its whole record in `frames`; without
+  `match_id`, the live match as played so far. `clock` is `[[sample, minute, added]]` at each
+  change of minute. `null` for a match with no positional record; `NOT_FOUND` for an unknown one.
+- **`view.calendar`** days carry `user_match_replay`: whether the day's user match can be
+  watched again.
 
 ### Views
 

@@ -169,9 +169,58 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	t.check(int(on_pitch[0]) == int(final[0]) and int(on_pitch[1]) == int(final[1]),
 			"the score on the pitch is the final score (%s, %s)" % [on_pitch, final])
 	t.check(day._playback.subs.size() >= 1, "the substitution is in the positions")
+	# watch it again before going on (spec 008b US3)
+	t.check(day._replay_button.visible, "Rever is offered at full time")
+	var final_text := "%d-%d" % [int(final[0]), int(final[1])]
+	var sub_sample := int(day._playback.subs[0]["sample"])
+	day._watch_again()
+	var replaying: bool = await _wait(t, func(): return (main.current_name == "replay"
+			and main.current.playback != null and main.current._info != null), 30.0)
+	t.check(replaying, "the replay of the match just played opens")
+	var replay = main.current
+	t.check(replay.playback.count > 90 * 60 * 2, "it holds the whole match")
+	t.check(replay.clock_text(0.0) == "1'", "the clock starts at 1'")
+	t.check(not main._continue_button.visible, "no Continuar over a replay")
+	replay.toggle_pause()
+	replay._slider.value = replay.playback.count - 1.0
+	t.check(replay.playback.at_end(), "dragging the timeline moves the pitch")
+	t.check(replay._board["score"].text == final_text, "the score at the end is the final score")
+	t.check(replay.clock_text(replay.playback.playhead).begins_with("90"), "the clock ends at 90'")
+	replay.jump_to(sub_sample)
+	t.check(not replay._paused, "a jump plays on")
+	t.check(replay.playback.playhead < sub_sample and replay.playback.playhead > sub_sample - 20,
+			"a jump lands a few seconds before the event")
+	await main.go_back()
+	var returned: bool = await _wait(t, func(): return (main.current_name == "match_day"
+			and main.current._ended), 30.0)
+	t.check(returned, "Voltar comes back to full time")
+	day = main.current
+	t.check(day._continue_button.visible, "and Continuar is still there")
 	day._done()
 	var moved: bool = await _wait(t, func(): return main.current_name in ["home", "selection"])
 	t.check(moved, "on to the next stop")
+	# and later from the calendar
+	await main.show_screen("calendar")
+	var calendar = main.current
+	var listed := -1
+	for i in calendar._list.item_count:
+		if calendar._list.get_item_metadata(i) is String:
+			listed = i
+	t.check(listed >= 0, "the played match is marked in the calendar")
+	t.check(calendar._replay_button.disabled, "Rever needs a match with a replay selected")
+	if listed >= 0:
+		calendar._list.select(listed)
+		calendar._refresh_replay()
+		t.check(not calendar._replay_button.disabled, "Rever is offered for it")
+		calendar._watch()
+		var opened: bool = await _wait(t, func(): return (main.current_name == "replay"
+				and main.current.playback != null and main.current._info != null), 30.0)
+		t.check(opened, "the replay opens from the calendar")
+		t.check(main.current.match_id != "" and main.current.playback.count > 90 * 60 * 2,
+				"with the whole match")
+		t.check(main.current._board["home"].text != "", "and the clubs on the scoreboard")
+		await main.go_back()
+		t.check(main.current_name == "calendar", "Voltar returns to the calendar")
 
 
 func test_a_role_change_goes_through_the_core(t) -> void:

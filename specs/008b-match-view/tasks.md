@@ -40,12 +40,12 @@ neighbours.
 
 ## Phase 4: Replay (US3)
 
-- [ ] T010 [US3] `api.match_replay` and `match.record` (pitch, frames, events with the running
+- [x] T010 [US3] `api.match_replay` and `match.record` (pitch, frames, events with the running
   score, passages, final score; `null` without a record). Tests: after save and load; an older
   season; a background match.
-- [ ] T011 [US3] `replay.gd`: timeline with event marks, drag to seek, jump to goals, cards and
+- [x] T011 [US3] `replay.gd`: timeline with event marks, drag to seek, jump to goals, cards and
   penalties (a few seconds before), speeds, pause; no match controls. Headless tests of seeking.
-- [ ] T012 [US3] Entry points: Rever after full time and on the user's played matches in the
+- [x] T012 [US3] Entry points: Rever after full time and on the user's played matches in the
   calendar, only when the match has a record.
 
 ## Phase 5: Highlights (US4)

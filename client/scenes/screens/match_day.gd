@@ -49,6 +49,7 @@ var _asking := false
 var _rush := false  # playing to the end without drawing
 var _catch_up := false  # the positions missed while the text view ran are due
 var _ended := false
+var _replay_button: Button
 
 
 func open() -> void:
@@ -75,6 +76,9 @@ func open() -> void:
 	controls.add_child(UI.button(UI.t("ui.live.subs"), _show_subs))
 	controls.add_child(UI.button(UI.t("ui.menu.tactics"), _open_tactics))
 	controls.add_child(UI.spacer())
+	_replay_button = UI.button(UI.t("ui.replay.watch"), _watch_again)
+	_replay_button.visible = false
+	controls.add_child(_replay_button)
 	_continue_button = UI.primary_button(UI.t("ui.continue"), _done)
 	_continue_button.visible = false
 	controls.add_child(_continue_button)
@@ -318,36 +322,14 @@ func _tick() -> void:
 		_run()
 
 
-## The stadium scoreboard: names either side, the score and the clock in LED digits.
 func _scoreboard() -> PanelContainer:
-	_home_name = UI.label("", 26)
-	_away_name = UI.label("", 26)
-	for name in [_home_name, _away_name]:
-		name.add_theme_font_override("font", UI.font(UI.CONDENSED_BOLD))
-		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_home_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_score = UI.led("", 54)
-	_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_clock = UI.led("", 30)
-	_half_time = UI.led("", 22)
-	var clock_row := UI.row([_clock, _half_time])
-	clock_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	var middle := UI.column([_score, clock_row])
-	middle.custom_minimum_size.x = 220
-	var board := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color.BLACK
-	style.border_color = Color("2a1d06")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
-	style.content_margin_left = 18
-	style.content_margin_right = 18
-	style.content_margin_top = 6
-	style.content_margin_bottom = 8
-	board.add_theme_stylebox_override("panel", style)
-	board.add_child(UI.row([_home_name, middle, _away_name]))
-	return board
+	var board := UI.scoreboard()
+	_home_name = board["home"]
+	_away_name = board["away"]
+	_score = board["score"]
+	_clock = board["clock"]
+	_half_time = board["note"]
+	return board["panel"]
 
 
 func _update(step: Dictionary) -> void:
@@ -469,6 +451,12 @@ func _show_end() -> void:
 	UI.fill(_stats, rows)
 	_stats.visible = true
 	_continue_button.visible = true
+	_replay_button.visible = _playback != null
+
+
+## The match just played, again (it is committed only by Continuar, and Voltar comes back here).
+func _watch_again() -> void:
+	main.show_screen("replay")  # not awaited: navigation frees this screen
 
 
 func _done() -> void:

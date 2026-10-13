@@ -5,6 +5,7 @@ extends "res://scenes/screen.gd"
 var month := 0
 var _list: ItemList
 var _heading: Label
+var _replay_button: Button
 
 
 func open() -> void:
@@ -15,7 +16,13 @@ func open() -> void:
 	add_child(UI.row([UI.button("◀", _move.bind(-1)), _heading, UI.button("▶", _move.bind(1))]))
 	_list = ItemList.new()
 	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_list.item_selected.connect(func(_index): _refresh_replay())
+	_list.item_activated.connect(func(_index): _watch())
 	add_child(_list)
+	# a played match of the club that has a positional record can be watched again (spec 008b)
+	_replay_button = UI.button(UI.t("ui.replay.watch"), _watch)
+	_replay_button.disabled = true
+	add_child(UI.row([_replay_button]))
 	await _load()
 
 
@@ -43,3 +50,25 @@ func _load() -> void:
 		var index := _list.add_item(text)
 		if mine != null:
 			_list.set_item_custom_fg_color(index, Color(1, 0.86, 0.45))
+			if d.get("user_match_replay", false):
+				_list.set_item_metadata(index, mine["id"])
+				_list.set_item_text(index, text + "   ▶")
+	_refresh_replay()
+
+
+func _selected_match() -> String:
+	var picked := _list.get_selected_items()
+	if picked.is_empty():
+		return ""
+	var match_id = _list.get_item_metadata(picked[0])
+	return match_id if match_id is String else ""
+
+
+func _refresh_replay() -> void:
+	_replay_button.disabled = _selected_match() == ""
+
+
+func _watch() -> void:
+	var match_id := _selected_match()
+	if match_id != "":
+		main.show_screen("replay", {"match_id": match_id})  # not awaited: frees this screen

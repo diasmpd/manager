@@ -114,6 +114,40 @@ static func led(text: String, size: int = 24) -> Label:
 	return l
 
 
+## The stadium scoreboard: names either side, the score and the clock in LED digits. Returns
+## the panel and its labels: `panel`, `home`, `away`, `score`, `clock`, `note`.
+static func scoreboard() -> Dictionary:
+	var home := label("", 26)
+	var away := label("", 26)
+	for name in [home, away]:
+		name.add_theme_font_override("font", font(CONDENSED_BOLD))
+		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	home.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var score := led("", 54)
+	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var clock := led("", 30)
+	var note := led("", 22)
+	var clock_row := row([clock, note])
+	clock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var middle := column([score, clock_row])
+	middle.custom_minimum_size.x = 220
+	var board := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color.BLACK
+	style.border_color = Color("2a1d06")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 6
+	style.content_margin_bottom = 8
+	board.add_theme_stylebox_override("panel", style)
+	board.add_child(row([home, middle, away]))
+	return {"panel": board, "home": home, "away": away, "score": score, "clock": clock,
+			"note": note}
+
+
 static func button(text: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.text = text

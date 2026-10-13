@@ -19,6 +19,7 @@ const SCREENS := {
 	"selection": preload("res://scenes/screens/selection.gd"),
 	"tactics": preload("res://scenes/screens/tactics.gd"),
 	"match_day": preload("res://scenes/screens/match_day.gd"),
+	"replay": preload("res://scenes/screens/replay.gd"),
 }
 
 var Core: Node
@@ -363,7 +364,7 @@ func _on_busy(busy: bool) -> void:
 ## The top bar's Continuar: shown when a career is open, but not while a match is on screen (the
 ## match has its own Continuar then).
 func _refresh_continue() -> void:
-	_continue_button.visible = _ready_to_play and current_name != "match_day"
+	_continue_button.visible = _ready_to_play and current_name not in ["match_day", "replay"]
 
 
 func _on_progress(params: Dictionary) -> void:
@@ -379,6 +380,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_SPACE:
 			if current_name == "match_day":
 				current._toggle_pause()
+				get_viewport().set_input_as_handled()
+			elif current_name == "replay":
+				if current.playback != null:
+					current.toggle_pause()
 				get_viewport().set_input_as_handled()
 			elif current_name not in ["selection", "tactics", "careers"]:
 				continue_game()

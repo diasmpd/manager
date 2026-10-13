@@ -78,4 +78,14 @@ func _run() -> void:
 		day._show_subs()
 		await _shot("match_day_subs")
 		day._close_subs()
+		# full time, then the replay (spec 008b)
+		day._to_end()
+		await _wait(func(): return day._ended, 120.0)
+		day._watch_again()
+		await _wait(func(): return (main.current_name == "replay"
+				and main.current.playback != null and main.current._info != null), 30.0)
+		var replay = main.current
+		replay.toggle_pause()
+		replay._slider.value = replay.playback.count * 0.6
+		await _shot("replay")
 	quit(0)
