@@ -1,10 +1,12 @@
 extends SceneTree
 ## Headless test runner for the desktop client (spec 007 T013); no add-on needed.
 ##   godot --headless --path client -s res://tests/run_tests.gd
+## Names after `--` pick suites: `... -s res://tests/run_tests.gd -- test_playback`.
 ## Each suite is a script with `test_*` methods taking the runner; they may await.
 
 const TEST_TIMEOUT_MS := 120000
-const SUITES := ["res://tests/test_core.gd", "res://tests/test_screens.gd"]
+const SUITES := ["res://tests/test_playback.gd", "res://tests/test_core.gd",
+		"res://tests/test_screens.gd"]
 
 var failures: Array[String] = []
 var _current := ""
@@ -33,8 +35,11 @@ func core() -> Node:
 
 func _run() -> void:
 	var count := 0
+	var only := OS.get_cmdline_user_args()
 	for path in SUITES:
 		if not ResourceLoader.exists(path):
+			continue
+		if not only.is_empty() and path.get_file().get_basename() not in only:
 			continue
 		var script = load(path)
 		if script == null or not script.can_instantiate():

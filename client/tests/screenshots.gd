@@ -64,6 +64,15 @@ func _run() -> void:
 			selection._confirm()
 			await _wait(func(): return main.current_name == "match_day", 30.0)
 		var day = main.current
+		await _wait(func(): return day._timer != null, 30.0)
+		day._set_view(true)  # the pitch (spec 008b)
+		day._set_speed(4)
+		await _wait(func(): return day._playback.playhead > 400.0, 90.0)
+		day._pitch.slot_picked.emit(8)
+		day._pitch.selected = 8
+		await _shot("match_day_pitch")
+		day._set_view(false)
+		day._set_speed(2)
 		await _wait(func(): return day._state.get("minute", {}).get("base", 0) > 25, 90.0)
 		await _shot("match_day")
 		day._show_subs()

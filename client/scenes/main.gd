@@ -43,6 +43,8 @@ var _navigating_back := false
 var _closing := false
 var live_lines: Array = []  # the live match's feed so far (kept across screens)
 var live_match: Dictionary = {}  # the live match's MatchView
+var live_pitch: Dictionary = {}  # its pitch description (spec 008b)
+var live_playback: RefCounted  # the positions received so far (kept across screens)
 # a whole-season continue plays the user's matches on the positional engine (spec 008 SC-004:
 # up to 2 minutes), so closing waits up to 3 minutes for it
 const CLOSE_WAIT_MS := 180000

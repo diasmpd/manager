@@ -110,6 +110,35 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	t.check(shown, "the match day is shown")
 	await _wait(t, func(): return main.current._timer != null)
 	var day = main.current
+	# the pitch (spec 008b): positions arrive a little ahead of the screen and are played back
+	t.check(day._playback != null, "the match came with its pitch")
+	day._set_view(true)
+	day._set_speed(4)  # 8x
+	var playing: bool = await _wait(t, func(): return day._playback.playhead > 6.0, 30.0)
+	t.check(playing, "the pitch plays the positions it receives")
+	t.check(day._playback.ball() != null and day._playback.position(0) != null
+			and day._playback.position(21) != null, "the ball and both sides are on the pitch")
+	t.check(day._pitch.visible and not day._feed.visible, "the pitch is shown, not the feed")
+	t.check(day._playback.buffered_s() <= 8.0 * 2.0, "the core is not far ahead of the screen")
+	# pausing: the screen plays out what it holds and stops at the core's moment
+	day._toggle_pause()
+	var stopped: bool = await _wait(t, func(): return (day._playback.at_end()
+			and not day._asking), 10.0)
+	t.check(stopped, "the pitch stops when paused")
+	var held: int = day._playback.count
+	t.check(absf(day._state["time_s"] - held / 2.0) <= 1.0,
+			"the moment on screen is the core's moment")
+	for i in 20:
+		await t.process_frame
+	t.check(day._playback.count == held, "nothing runs while paused")
+	day._pitch.slot_picked.emit(3)
+	t.check(day._info.text != "" and day._info.text != UI.t("ui.pitch.pick"),
+			"a picked disc shows the player")
+	day._toggle_pause()
+	# the text view of the same match
+	day._set_view(false)
+	day._set_speed(2)
+	t.check(day._feed.visible and not day._pitch.visible, "the feed is shown, not the pitch")
 	var some: bool = await _wait(t, func(): return day._state["minute"]["base"] > 5, 30.0)
 	t.check(some, "the live clock runs")
 	# pause, substitute while paused, resume
@@ -130,6 +159,16 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	t.check(ended, "the match reaches full time")
 	t.check(day._feed.get_parsed_text().length() > 50, "the feed was written")
 	t.check(day._stats.visible and day._continue_button.visible, "the stats and Continuar")
+	# back on the pitch after full time: the whole match is there, at the final whistle
+	day._set_view(true)
+	var whole: bool = await _wait(t, func(): return (day._playback.count > 90 * 60 * 2
+			and day._playback.at_end()), 30.0)
+	t.check(whole, "the pitch holds the whole match")
+	var on_pitch: Array = day._playback.score()
+	var final: Array = day._state["score"]
+	t.check(int(on_pitch[0]) == int(final[0]) and int(on_pitch[1]) == int(final[1]),
+			"the score on the pitch is the final score (%s, %s)" % [on_pitch, final])
+	t.check(day._playback.subs.size() >= 1, "the substitution is in the positions")
 	day._done()
 	var moved: bool = await _wait(t, func(): return main.current_name in ["home", "selection"])
 	t.check(moved, "on to the next stop")

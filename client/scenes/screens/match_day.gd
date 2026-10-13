@@ -3,9 +3,19 @@ extends "res://scenes/screen.gd"
 ## (`match.advance`); Pausar stops it. While paused: substitutions (here) and the tactic (the
 ## tactics screen in live mode). After full time: the stats, then Continuar commits the match and
 ## goes on to the next stop. Every rule is the core's.
+##
+## Two views of the same match (spec 008b): the pitch, drawn from the positions the core sends
+## with each step, and the text feed. The pitch asks for the match a little ahead of the screen
+## and plays it back; pausing stops the asking, and the screen stops when it has shown what it
+## holds, so a change made while paused acts from the moment on screen.
 
-const SPEEDS := {1: 7.5, 2: 15.0, 3: 45.0, 4: 900.0}  # match seconds per 0.25 s tick
+const Playback := preload("res://scenes/match/playback.gd")
+const Pitch := preload("res://scenes/match/pitch.gd")
+const SPEEDS := {1: 7.5, 2: 15.0, 3: 45.0, 4: 900.0}  # text: match seconds per 0.25 s tick
+const PITCH_SPEEDS := {1: 1.0, 2: 2.0, 3: 4.0, 4: 8.0}  # pitch: times real time
 const TICK := 0.25
+const AHEAD_S := 0.75  # real seconds of match the pitch keeps ahead of the screen
+const SETTINGS := "user://settings.cfg"
 
 var _feed: RichTextLabel
 var _score: Label  # LED digits on the scoreboard
@@ -27,6 +37,18 @@ var _paused := false
 var _state: Dictionary = {}
 var _finished := false
 var _names := {}
+var _pitch_view := true
+var _playback: RefCounted
+var _pitch: Control
+var _line: Label  # the latest feed line, under the pitch
+var _info: Label  # the disc the owner clicked
+var _view_button: Button
+var _speed_buttons: Array = []
+var _due: Array = []  # feed lines waiting for the screen to reach them: [match seconds, line]
+var _asking := false
+var _rush := false  # playing to the end without drawing
+var _catch_up := false  # the positions missed while the text view ran are due
+var _ended := false
 
 
 func open() -> void:
@@ -36,11 +58,20 @@ func open() -> void:
 		return
 	add_child(UI.title(UI.t("ui.match.title")))
 	add_child(_scoreboard())
+	_playback = main.live_playback
+	_pitch_view = _saved_view() and _playback != null
+	_catch_up = _playback != null
 	var controls := UI.row([UI.label(UI.t("ui.desktop.speed"))])
+	_speed_buttons = []
 	for s in [1, 2, 3, 4]:
-		controls.add_child(UI.button(str(s), _set_speed.bind(s)))
+		_speed_buttons.append(UI.button(str(s), _set_speed.bind(s)))
+		controls.add_child(_speed_buttons[-1])
+	controls.add_child(UI.button(UI.t("ui.live.to_end"), _to_end))
 	_pause_button = UI.button(UI.t("ui.live.pause"), _toggle_pause)
 	controls.add_child(_pause_button)
+	_view_button = UI.button("", _toggle_view)
+	_view_button.visible = _playback != null
+	controls.add_child(_view_button)
 	controls.add_child(UI.button(UI.t("ui.live.subs"), _show_subs))
 	controls.add_child(UI.button(UI.t("ui.menu.tactics"), _open_tactics))
 	controls.add_child(UI.spacer())
@@ -48,6 +79,16 @@ func open() -> void:
 	_continue_button.visible = false
 	controls.add_child(_continue_button)
 	add_child(controls)
+	_pitch = Pitch.new()
+	_pitch.playback = _playback
+	_pitch.slot_picked.connect(_show_disc)
+	add_child(_pitch)
+	_line = UI.label("", 16, true)
+	_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(_line)
+	_info = UI.label(UI.t("ui.pitch.pick"))
+	_info.add_theme_color_override("font_color", UI.MUTE)
+	add_child(_info)
 	_feed = RichTextLabel.new()
 	_feed.bbcode_enabled = true
 	_feed.scroll_following = true
@@ -65,10 +106,11 @@ func open() -> void:
 	_timer.timeout.connect(_tick)
 	add_child(_timer)
 	_update(started)
-	if _finished:
+	_apply_view()
+	if _finished and not _pitch_view:
 		_show_end()
-	elif not _paused:
-		_timer.start()
+	else:
+		_run()
 
 
 ## The live match: resume the one in progress (after visiting the tactics screen), or start it.
@@ -79,10 +121,144 @@ func _start_or_resume() -> Variant:
 		_paused = true  # coming back from the tactics screen: still paused
 		return {"state": state["result"], "feed": [], "finished": state["result"]["finished"]}
 	main.live_lines = []
+	main.live_playback = null
 	var started = await ask("match.start")
 	if started != null:
 		main.live_match = started["match"]
+		if started.has("pitch"):
+			main.live_pitch = started["pitch"]
+			main.live_playback = Playback.new()
+			main.live_playback.setup(main.live_pitch)
 	return started
+
+
+## Start whatever drives the clock in this view: the timer for the text (and for playing to the
+## end); the pitch asks from `_process`.
+func _run() -> void:
+	if _paused or _finished:
+		return
+	if not _pitch_view or _rush:
+		_timer.start()
+
+
+func _saved_view() -> bool:
+	var config := ConfigFile.new()
+	config.load(SETTINGS)
+	return config.get_value("match", "view", "pitch") == "pitch"
+
+
+func _toggle_view() -> void:
+	_set_view(not _pitch_view)
+
+
+func _set_view(pitch: bool) -> void:
+	if pitch == _pitch_view or _playback == null:
+		return
+	_pitch_view = pitch
+	var config := ConfigFile.new()
+	config.load(SETTINGS)
+	config.set_value("match", "view", "pitch" if _pitch_view else "text")
+	config.save(SETTINGS)
+	_apply_view()
+	if _pitch_view:
+		_timer.stop()
+		_catch_up = true
+	else:
+		_flush_due()
+		if _finished and not _ended:
+			_show_end()
+	_run()
+
+
+func _apply_view() -> void:
+	_pitch.visible = _pitch_view
+	_line.visible = _pitch_view
+	_info.visible = _pitch_view
+	_feed.visible = not _pitch_view
+	_view_button.text = UI.t("ui.live.view_text" if _pitch_view else "ui.live.view_pitch")
+	for i in _speed_buttons.size():
+		_speed_buttons[i].text = ("%d×" % PITCH_SPEEDS[i + 1]) if _pitch_view else str(i + 1)
+	_paint_score()
+
+
+## The pitch: move the playhead, show what it reached, and ask for more of the match when the
+## screen is about to run out of it.
+func _process(delta: float) -> void:
+	if not _pitch_view or _playback == null or _timer == null:
+		return
+	var speed: float = PITCH_SPEEDS[_speed]
+	if not _catch_up:
+		_playback.advance(delta, speed)
+	_release_due()
+	_paint_score()
+	_pitch.queue_redraw()
+	if _finished and not _ended and not _catch_up and _playback.at_end():
+		_show_end()
+	if _asking or _rush:
+		return
+	if _catch_up:
+		_fetch(0.0)  # only what was missed: no match time passes
+	elif not _paused and not _finished and _playback.buffered_s() < speed * AHEAD_S:
+		_fetch(speed)
+
+
+func _fetch(seconds: float) -> void:
+	_asking = true
+	var step = await ask("match.advance", {"seconds": seconds, "frames_from": _playback.count})
+	_asking = false
+	if step == null:
+		return
+	_update(step)
+
+
+func _release_due() -> void:
+	while not _due.is_empty() and _due[0][0] <= _playback.time_s() + 0.01:
+		_show_line(_due.pop_front()[1])
+
+
+func _flush_due() -> void:
+	for pair in _due:
+		_show_line(pair[1])
+	_due = []
+
+
+## The score on the pitch view is the playhead's, so a goal is not on the board before the ball
+## is in the net.
+func _paint_score() -> void:
+	if _score == null or _state.is_empty():
+		return
+	var score: Array = _state["score"]
+	if _pitch_view and _playback != null and not _catch_up and _playback.count > 0:
+		score = _playback.score()
+	_score.text = "%d-%d" % [score[0], score[1]]
+
+
+## Play to full time without drawing (the pitch shows the final whistle afterwards).
+func _to_end() -> void:
+	if _finished:
+		return
+	_rush = true
+	_speed = 4
+	if _paused:
+		_toggle_pause()
+	else:
+		_run()
+
+
+func _show_disc(slot: int) -> void:
+	if slot < 0:
+		_info.text = UI.t("ui.pitch.pick")
+		return
+	var who: Dictionary = _playback.player(slot)
+	var text := "%d  %s" % [int(who.get("number", 0)), who.get("name", "")]
+	for p in _state.get("on_pitch", []):
+		if p["player_id"] == who.get("player_id", ""):
+			text = "%d  %s  %s  %s %d%%" % [int(who["number"]), p["position"], p["name"],
+					UI.t("ui.live.energy"), roundi(p["energy"] * 100)]
+	var card: String = _playback.cards().get(who.get("player_id", ""), "")
+	if card != "":
+		text += "  🟨" if card == "yellow" else "  🟥"
+	_info.text = text
 
 
 func _build_subs_panel() -> void:
@@ -104,6 +280,11 @@ func _build_subs_panel() -> void:
 
 func _set_speed(speed: int) -> void:
 	_speed = speed
+	if _rush:  # choosing a speed ends "to the end": back to watching
+		_rush = false
+		if _pitch_view:
+			_catch_up = true
+			_timer.stop()
 	if _paused and not _finished:
 		_toggle_pause()
 
@@ -118,7 +299,7 @@ func _toggle_pause() -> void:
 		_timer.stop()
 	else:
 		_subs_panel.visible = false
-		_timer.start()
+		_run()
 
 
 func _tick() -> void:
@@ -128,9 +309,13 @@ func _tick() -> void:
 		return
 	_update(step)
 	if _finished:
-		_show_end()
-	elif not _paused:
-		_timer.start()
+		_rush = false
+		if _pitch_view:
+			_catch_up = true  # the pitch fetches what it missed and shows the final whistle
+		else:
+			_show_end()
+	else:
+		_run()
 
 
 ## The stadium scoreboard: names either side, the score and the clock in LED digits.
@@ -166,16 +351,25 @@ func _scoreboard() -> PanelContainer:
 
 
 func _update(step: Dictionary) -> void:
-	for line in step.get("feed", []):
-		main.live_lines.append(line)
-		_show_line(line)
 	_state = step["state"]
 	_finished = step.get("finished", false)
+	var caught_up := false
+	if step.has("frames") and _playback != null:
+		_playback.add(step["frames"])
+		if _catch_up:  # back on the pitch: resume at the current moment
+			_playback.seek(_playback.count)
+			_catch_up = false
+			caught_up = true
+	for line in step.get("feed", []):
+		main.live_lines.append(line)
+		if _pitch_view and step.has("frames") and not caught_up:
+			_due.append([float(_state.get("time_s", 0.0)), line])
+		else:
+			_show_line(line)
 	var m: Dictionary = main.live_match
-	var score: Array = _state["score"]
 	_home_name.text = str(m.get("home_name", "")).to_upper()
 	_away_name.text = str(m.get("away_name", "")).to_upper()
-	_score.text = "%d-%d" % [score[0], score[1]]
+	_paint_score()
 	var minute: Dictionary = _state["minute"]
 	_clock.text = ("%d+%d'" % [minute["base"], minute["added"]]) if minute["added"] > 0 \
 			else ("%d'" % minute["base"])
@@ -193,6 +387,8 @@ func _show_line(line: Dictionary) -> void:
 		stamp = "%d+%d'" % [minute["base"], minute["added"]]
 	var important: bool = line["kind"] in ["goal", "penalty_goal", "own_goal", "red",
 			"second_yellow", "full_time"]
+	if _line != null:
+		_line.text = "%s  %s" % [stamp, line["text"]]
 	var text := "[b]%s[/b]  %s" % [stamp, line["text"]]
 	_feed.append_text(("[color=#ffd970]%s[/color]" % text if important else text) + "\n")
 
@@ -253,6 +449,8 @@ func _open_tactics() -> void:
 
 
 func _show_end() -> void:
+	_ended = true
+	_flush_due()
 	_timer.stop()
 	_pause_button.disabled = true
 	_subs_panel.visible = false

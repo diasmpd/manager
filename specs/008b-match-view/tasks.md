@@ -23,20 +23,20 @@ neighbours.
 
 ## Phase 2: The live pitch (US1)
 
-- [ ] T005 [US1] `client/scenes/match/playback.gd`: decode chunks, buffer, playhead, speed,
+- [x] T005 [US1] `client/scenes/match/playback.gd`: decode chunks, buffer, playhead, speed,
   interpolation, no interpolation across off-pitch or a substitution, marks by sample, score and
   clock at the playhead. Headless tests in `client/tests/test_playback.gd`.
-- [ ] T006 [US1] `client/scenes/match/pitch.gd`: markings in 105 × 68 proportions at any size,
+- [x] T006 [US1] `client/scenes/match/pitch.gd`: markings in 105 × 68 proportions at any size,
   discs with numbers in kit colours, keepers, the ball, the marks (goal, card, substitution).
-- [ ] T007 [US1] `match_day.gd`: the pitch above the feed line, the speeds 1× 2× 4× 8×, Campo /
+- [x] T007 [US1] `match_day.gd`: the pitch above the feed line, the speeds 1× 2× 4× 8×, Campo /
   Texto with the choice remembered, the feed and stats one action away. Screen tests and a
   screenshot.
 
 ## Phase 3: Pause and manage on the pitch (US2)
 
-- [ ] T008 [US2] Pause plays the buffer out and freezes; substitutions and the tactics screen from
+- [x] T008 [US2] Pause plays the buffer out and freezes; substitutions and the tactics screen from
   the pitch; resume. Test: the decision's time equals the moment on screen.
-- [ ] T009 [US2] Disc selection: name, position, energy, cards.
+- [x] T009 [US2] Disc selection: name, position, energy, cards.
 
 ## Phase 4: Replay (US3)
 
