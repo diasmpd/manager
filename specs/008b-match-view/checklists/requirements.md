@@ -32,7 +32,7 @@
 ## Notes
 
 - Three decisions were taken for the owner on 2026-10-13 and are listed in the spec's Context:
-  the view is live as well as a replay, the whole match is shown (no highlight modes), and the
-  text view stays. Each can be reversed at review.
+  the view is live as well as a replay, and the text view stays. The owner reviewed them the same
+  day and added a highlights mode next to the full match (User Story 4).
 - Where kit colours and shirt numbers come from is left to the plan (the Assumptions name the
   fallbacks).

@@ -18,12 +18,14 @@ for each player in his club's colours and shirt number, the ball, a scoreboard a
 line; the manager picks a speed, can pause at any time to change things, and can watch a finished
 match again. This spec follows that. Where it does less than FM, the Assumptions say so.
 
-Decisions taken for the owner (he follows the recommendation; each can be reversed at review):
+Decisions (1 and 3 taken for the owner and confirmed by him on 2026-10-13; 2 is his own):
 
 1. **The view is live, not only a replay.** The pitch moves while the match is played, next to
    the feed, because watching the match is the point. A finished match can also be watched again.
-2. **The whole match is shown.** FM's "key highlights" modes are left out of this spec: there is
-   no model yet of which passages matter, and speed control covers the need.
+2. **Full match or highlights** (owner decision, 2026-10-13). The owner chooses between watching
+   the whole match and a highlights mode, as in FM: the pitch shows only the passages that
+   matter, and between them the clock runs on with the feed. One highlights level, not FM's
+   three.
 3. **The text view stays.** The owner can switch between pitch and text at any time; the feed and
    the stats are the same in both.
 
@@ -116,6 +118,42 @@ and the score on the scoreboard is the score at that moment.
 
 ---
 
+### User Story 4 - Watch only the highlights (Priority: P4)
+
+The owner chooses the highlights mode. The pitch shows the passages that matter: the build-up to
+each goal, shot on target, penalty and red card, and the moment itself. Between highlights the
+clock runs on quickly and the feed keeps listing what happens, as in FM. He can pause at any
+time, also between highlights, and manage as usual. He can go back to the full match whenever he
+wants.
+
+**Why this priority**: it is how FM is mostly played, and it makes a match take minutes. It needs
+the pitch of story 1 and the pause of story 2, and the match is complete without it.
+
+**Independent Test**: play the same match (same seed, same decisions) once in full and once in
+highlights mode. The events, the result and the record are identical. In highlights mode every
+goal, shot on target, penalty and red card of the match report was shown on the pitch, and the
+match took a fraction of the full match's time.
+
+**Acceptance Scenarios**:
+
+1. **Given** highlights mode, **When** a goal, a shot on target, a penalty or a red card is
+   coming, **Then** the pitch shows the play from some seconds before it until just after it.
+2. **Given** highlights mode, **When** nothing of the kind is happening, **Then** the pitch shows
+   no play, the clock advances quickly, and the feed shows each line at its minute.
+3. **Given** highlights mode between two highlights, **When** the owner pauses, **Then** the
+   match stops at the minute the clock shows, and a substitution or tactic change acts from that
+   minute, exactly as in the full match.
+4. **Given** highlights mode, **When** the owner switches to the full match (or back), **Then**
+   the view changes from the moment on screen, and the match is unaffected.
+5. **Given** two highlights close together, **When** they are shown, **Then** they play as one
+   passage, without cutting away and back.
+6. **Given** a replay, **When** the owner chooses highlights, **Then** the replay plays the same
+   passages one after the other.
+7. **Given** a match with no highlight in a half, **When** it is played in highlights mode,
+   **Then** the half passes on the clock and the feed, and half-time and full time are shown.
+
+---
+
 ### Edge Cases
 
 - A player's sample is "not on the pitch" (before he comes on, after he goes off or is sent off):
@@ -132,6 +170,12 @@ and the score on the scoreboard is the score at that moment.
   final result are never affected by how fast the screen draws.
 - A penalty shootout, when a competition has one: the view shows the kicks if the record has
   them, and otherwise shows the shootout as text.
+- Highlights mode must never give the owner knowledge the full match would not: nothing on
+  screen announces a goal before the passage starts, and a decision made while paused can never
+  act on play he has already been shown or been told about.
+- A highlight is running when the owner pauses and substitutes: the change acts from the pause
+  moment, and the rest of the passage is what the engine then plays, which may no longer be the
+  highlight it started as.
 - The owner switches to the text view and back in mid-match: the pitch resumes at the current
   moment, not where he left it.
 - A replay is opened for a match of an earlier season: it plays from the stored record, with the
@@ -173,9 +217,20 @@ and the score on the scoreboard is the score at that moment.
 - **FR-015**: A replay MUST offer pause, the speed set, a timeline that can be dragged, and a
   jump to each goal, card and penalty. It MUST offer no way to change the match.
 - **FR-016**: A match without a record MUST offer no replay, with no error.
-- **FR-017**: All text in the view MUST be PT-BR, and the view MUST follow the client's
+- **FR-017**: The owner MUST be able to choose between the full match and a highlights mode,
+  before and during a match and in a replay, and the client MUST remember his last choice.
+- **FR-018**: In highlights mode the pitch MUST show every goal, shot on target, penalty and red
+  card of the match, each from some seconds before it until just after, and nothing else. The
+  lead-in and lead-out lengths MUST be data, not constants spread through the code.
+- **FR-019**: Between highlights the clock MUST advance and the feed MUST show every line at its
+  minute. Pausing, substitutions and tactic changes MUST work between highlights as in the full
+  match, acting from the minute shown.
+- **FR-020**: Which passages are highlights MUST be derived only from the match's recorded
+  events. Choosing them is presentation: it MUST NOT change the match (FR-013) and MUST NOT
+  reveal an event before its passage is shown.
+- **FR-021**: All text in the view MUST be PT-BR, and the view MUST follow the client's
   scoreboard look in the user club's colours.
-- **FR-018**: The view's logic that can be checked without a screen (sample to screen position,
+- **FR-022**: The view's logic that can be checked without a screen (sample to screen position,
   interpolation, appearing and disappearing discs, the colour clash rule, the event timeline)
   MUST have automated tests (Constitution IV).
 
@@ -207,15 +262,24 @@ and the score on the scoreboard is the score at that moment.
   at most three actions, and the replay starts within 2 seconds.
 - **SC-006**: A substitution or a tactic change made from the pitch view takes no more actions
   than the same change from the text view.
-- **SC-007**: Starting the pitch view adds at most 1 second to starting a match, and playing a
+- **SC-007**: In highlights mode every goal, shot on target, penalty and red card in the match
+  report is shown on the pitch, and a match with no pauses takes at most 5 minutes at the default
+  speed.
+- **SC-008**: The same seed and decisions give an identical record in full and in highlights
+  mode.
+- **SC-009**: Starting the pitch view adds at most 1 second to starting a match, and playing a
   match at the fastest speed takes at most 10% longer than with the text view.
 
 ## Assumptions
 
 - **Top-down 2D only.** No 3D, no camera angles, no zoom, no player animation: discs and a ball.
   3D stays on the roadmap's later path, reading the same record.
-- **The whole match is played out.** FM's highlight modes (key, extended, comprehensive) are not
-  in this spec; the speed set and, in a replay, the jump to events cover it.
+- **One highlights level.** FM has key, extended and comprehensive; this spec has one, about
+  FM's "key": goals, shots on target, penalties and red cards. If the match report records a
+  shot that hits the woodwork, it counts as a highlight too. More levels can come later from the
+  same rule with a longer list.
+- **Highlights are chosen from recorded events**, not from a judgement of how dangerous a move
+  was: a good move that ends without a shot on target is not a highlight.
 - **The record is used as 008 stores it**: two samples a second, positions only. The view shows
   no pass lines, runs or player facing, and does not ask the engine for more data. If two samples
   a second prove too coarse to look right, that is a later change to the record, not to this
