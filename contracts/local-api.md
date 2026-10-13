@@ -53,8 +53,8 @@ History: 1.0 (spec 007); 1.1 adds `tactic.set_role` (the role-change rule moved 
 into the core); 1.2 adds the live-match methods (spec 008); 1.3 adds `club_colors` to
 `CareerStatus` (the user club's primary and secondary colours, `#RRGGBB`, which the client's
 look uses); 1.4 adds what the 2D match view draws (spec 008b): `pitch` in `match.start`,
-`frames_from` in `match.advance`, `time_s` in `LiveState`, `match.record`, and
-`user_match_replay` in the calendar's days.
+`frames_from` in `match.advance`, `time_s` in `LiveState`, `match.record`,
+`match.passages`, and `user_match_replay` in the calendar's days.
 
 **Packaging note**: the server finds the repo (saves, sample data) from its source location
 (`server/__main__.py`, `parents[4]`), so it runs from a source checkout. An installed package
@@ -147,6 +147,11 @@ resumes before that match day.
   played user match of this season as a replay, with its whole record in `frames`; without
   `match_id`, the live match as played so far. `clock` is `[[sample, minute, added]]` at each
   change of minute. `null` for a match with no positional record; `NOT_FOUND` for an unknown one.
+- **`match.passages`** (`horizon_s`) → `{from_s, until_s, passages, finished}`: highlights mode.
+  `passages` are the `[start_s, end_s]` spans of match time worth showing (a goal, a shot on
+  target, a penalty, a red card, with the seconds before and after) that are not over yet, looked
+  for from the match clock `from_s` up to `until_s`. The core looks ahead with a second copy of
+  the match; the live match is not advanced. A replay carries its `passages` too.
 - **`view.calendar`** days carry `user_match_replay`: whether the day's user match can be
   watched again.
 

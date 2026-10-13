@@ -8,8 +8,8 @@ change is additive: a 1.3 client keeps working.
 | `match.start` | — | adds `pitch` | The pitch description of the match (below). |
 | `match.state` | — | adds `time_s` | The match clock in seconds. |
 | `match.advance` | `seconds`, `frames_from?` | adds `frames` when asked | `frames_from` is a sample index: the record chunk from that sample on. The client passes the number of samples it has, so the server keeps no cursor and a screen that is reopened can ask again. |
-| `match.passages` | `horizon_s: number` | `{from_s, until_s, passages: [[start_s, end_s]]}` | Highlights mode: the passages between the match's time and up to `horizon_s` ahead. Never changes the match. `until_s` is short of the horizon at half-time and full time. |
-| `match.record` | `match_id?` | `{match, pitch, frames, clock, final_score}` or `null` | A played user match of this season, as a replay; without `match_id`, the live match as played so far. `clock` is `[[sample, minute, added]]` at each change of minute. `null` when the match has no record. Fails with `NOT_FOUND` for an unknown match. |
+| `match.passages` | `horizon_s: number` | `{from_s, until_s, passages: [[start_s, end_s]], finished}` | Highlights mode: the passages not yet over, looked for from the match clock up to `horizon_s` ahead. Never changes the match. `finished` when the look-ahead reached full time. |
+| `match.record` | `match_id?` | `{match, pitch, frames, clock, final_score, passages}` or `null` | A played user match of this season, as a replay; without `match_id`, the live match as played so far. `clock` is `[[sample, minute, added]]` at each change of minute. `null` when the match has no record. Fails with `NOT_FOUND` for an unknown match. |
 | `view.calendar` | — | adds `user_match_replay` to a day | Whether the day's user match can be watched again. |
 
 **`pitch`**: `{length_cm: 10500, width_cm: 6800, hz, home, away}`; each side is

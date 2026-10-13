@@ -825,6 +825,10 @@ class LiveSession:
     match_id: str
     match: LiveMatch
     user_side: str
+    # spec 008b: a second copy of the match that runs ahead of it, so a highlights view knows a
+    # shot is coming; rebuilt when the owner makes a decision the copy has not seen
+    scout: LiveMatch | None = None
+    scout_decisions: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -945,6 +949,7 @@ class MatchReplay:
     frames: Frames
     clock: tuple[tuple[int, int, int], ...]  # (sample, minute, added) at each change of minute
     final_score: tuple[int, int]
+    passages: tuple[tuple[float, float], ...] = ()  # the highlights, in match seconds
 
 
 def _replay(career: Career, match_id: str, record: PositionalRecord,
@@ -960,10 +965,13 @@ def _replay(career: Career, match_id: str, record: PositionalRecord,
     pitch = match_view_mod.pitch_view(season.dataset, record.hz, m.home_id, m.away_id,
                                       (home, away), (came_on[0], came_on[1]), keepers)
     half = match_view_mod.second_half_sample(record.samples, pitch.length_cm)
+    marks = match_view_mod.highlight_samples(
+        [(sample, report.events[i].kind) for sample, i in record.events], record.shots)
     return MatchReplay(_match_view(season, m), pitch,
                        _frames(record.chunk(), report.events, pitch),
                        match_view_mod.clock(len(record.samples), record.hz, half),
-                       (report.home.goals, report.away.goals))
+                       (report.home.goals, report.away.goals),
+                       match_view_mod.passages(marks, record.hz))
 
 
 def match_replay(career: Career, match_id: str) -> MatchReplay | None:
@@ -984,6 +992,45 @@ def live_replay(career: Career, session: LiveSession) -> MatchReplay:
     going on."""
     match = session.match
     return _replay(career, session.match_id, match.record(), match.report())
+
+
+@dataclass(frozen=True, slots=True)
+class LivePassages:
+    from_s: float  # the match's clock
+    until_s: float  # how far ahead was looked
+    passages: tuple[tuple[float, float], ...]  # those not yet over, in match seconds
+    finished: bool  # the look-ahead reached full time
+
+
+def _new_live_match(career: Career, match_id: str) -> LiveMatch:
+    season = career.season
+    m = season.matches[match_id]
+    return career.live_provider.live_match(
+        season.dataset.club(m.home_id), season.dataset.club(m.away_id),
+        season.match_context(m.id), season.match_rng(m.id))
+
+
+def live_passages(career: Career, session: LiveSession, horizon_s: float) -> LivePassages:
+    """The highlights from now to `horizon_s` ahead (spec 008b, research R5). The live match
+    itself is not advanced or touched: a second copy of it, built from the same seed and the
+    decisions made so far, plays ahead."""
+    match = session.match
+    scout = session.scout
+    if scout is None or session.scout_decisions != len(match.decisions) or scout.t < match.t:
+        scout = _new_live_match(career, session.match_id)
+        for decision in match.decisions:
+            scout.advance(decision.at - scout.t)
+            scout.apply(decision)
+        scout.advance(match.t - scout.t)
+        session.scout, session.scout_decisions = scout, len(match.decisions)
+    scout.advance(match.t + max(0.0, horizon_s) - scout.t)
+    hz = 1 / (match.p["time"]["step_s"] * match.p["time"]["record_every_steps"])
+    marks = match_view_mod.highlight_samples(
+        [(sample, scout.events[i].kind) for sample, i in scout.event_samples],
+        scout.shot_samples)
+    ahead = tuple((round(start, 3), round(end, 3))
+                  for start, end in match_view_mod.passages(marks, hz) if end > match.t)
+    return LivePassages(round(match.t, 3), round(scout.t, 3), ahead, scout.finished)
 
 
 def has_match_record(career: Career, match_id: str) -> bool:

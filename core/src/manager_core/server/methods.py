@@ -300,6 +300,12 @@ def match_finish(s: Session, p: Params) -> Any:
     return {"stop": stop, "match_id": session.match_id}
 
 
+def match_passages(s: Session, p: Params) -> Any:
+    """Highlights mode (spec 008b): the passages worth showing from now to `horizon_s` ahead."""
+    horizon = param(p, "horizon_s", (int, float))
+    return api.live_passages(_career(s), _live(s), float(horizon))
+
+
 def match_record(s: Session, p: Params) -> Any:
     """A played match to watch again (spec 008b): the one named, or the live match as played so
     far. `null` when the match has no positional record."""
@@ -388,6 +394,7 @@ METHODS: dict[str, Handler] = {
     "match.start": match_start, "match.advance": match_advance, "match.state": match_state,
     "match.substitute": match_substitute, "match.tactic": match_tactic,
     "match.finish": match_finish, "match.record": match_record,
+    "match.passages": match_passages,
     "view.home": view_home, "view.squad": view_squad, "view.player": view_player,
     "view.table": view_table, "view.groups": view_groups, "view.fixtures": view_fixtures,
     "view.calendar": view_calendar, "view.news": view_news, "view.match": view_match,

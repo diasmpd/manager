@@ -50,9 +50,9 @@ neighbours.
 
 ## Phase 5: Highlights (US4)
 
-- [ ] T013 [US4] Passages from marks in `positional/view.py` (kinds, lead-in, lead-out and merge
+- [x] T013 [US4] Passages from marks in `positional/view.py` (kinds, lead-in, lead-out and merge
   gap from data). Tests: merging; the edges of a half; a record without shot marks.
-- [ ] T014 [US4] The scout and `api.live_passages`; `match.passages`. Tests: the passages reported
+- [x] T014 [US4] The scout and `api.live_passages`; `match.passages`. Tests: the passages reported
   live, chunk by chunk, equal the finished record's passages; the match is identical with and
   without the scout (SC-008); a decision rebuilds the scout and later passages follow the new
   match.

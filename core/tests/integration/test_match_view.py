@@ -195,3 +195,107 @@ def test_a_played_match_can_be_watched_again(tmp_path: Path) -> None:
                       and career.user_club_id not in (m.home_id, m.away_id))
     assert again.call("match.record", match_id=background) is None
     assert again.error("match.record", match_id="nao-existe")["data"]["kind"] == "match"
+
+
+def test_passages_surround_the_highlights_and_join_when_close() -> None:
+    data = view.view_data()["highlights"]
+    lead_in, lead_out, gap = data["lead_in_s"], data["lead_out_s"], data["merge_gap_s"]
+    assert view.passages([], 2.0) == ()
+    assert view.passages([4], 2.0) == ((0.0, 2.0 + lead_out),)  # never before kick-off
+    far = 2 * (100 + lead_in + lead_out + gap + 1)
+    assert view.passages([200, int(far)], 2.0) == (
+        (100 - lead_in, 100 + lead_out), (far / 2 - lead_in, far / 2 + lead_out))
+    near = 200 + 2 * (lead_in + lead_out + gap)  # the gap between the two is exactly the limit
+    assert view.passages([int(near), 200], 2.0) == ((100 - lead_in, near / 2 + lead_out),)
+    kinds = [(10, "goal"), (20, "yellow"), (30, "red"), (40, "sub"), (50, "penalty_miss")]
+    shots = [(10, 3, True), (60, 4, False), (70, 15, True)]
+    assert view.highlight_samples(kinds, shots) == [10, 30, 50, 70]
+
+
+def _final_highlights(replay: dict[str, Any]) -> list[float]:
+    frames = replay["frames"]
+    marks = view.highlight_samples([(e["sample"], e["kind"]) for e in frames["events"]],
+                                   [(s["sample"], s["slot"], s["on_target"])
+                                    for s in frames["shots"]])
+    return [sample / replay["pitch"]["hz"] for sample in marks]
+
+
+def _watch_in_highlights(client: Client, decide_at: float | None = None) -> list[dict[str, Any]]:
+    """Play the live match asking for the passages ahead before every step; with `decide_at`,
+    make a substitution at that match time. Returns the answers given after the decision."""
+    answers: list[dict[str, Any]] = []
+    decided = decide_at is None
+    while True:
+        ahead = client.call("match.passages", horizon_s=120.0)
+        state = client.call("match.state")
+        assert ahead["from_s"] == state["time_s"] <= ahead["until_s"]
+        assert all(end > ahead["from_s"] for _, end in ahead["passages"])
+        if not decided and state["time_s"] >= (decide_at or 0.0):
+            client.call("match.substitute", off=state["on_pitch"][5]["player_id"],
+                        on=state["bench"][0]["player_id"])
+            decided = True
+            answers.clear()  # what was seen ahead belonged to the match without the change
+            continue
+        answers.append(ahead)
+        if client.call("match.advance", seconds=83.0)["finished"]:
+            return answers
+
+
+def _check_against_the_final_match(answers: list[dict[str, Any]],
+                                   replay: dict[str, Any]) -> None:
+    lead_out = view.view_data()["highlights"]["lead_out_s"]
+    final = replay["passages"]
+    highlights = _final_highlights(replay)
+    assert len(highlights) >= 3 and final
+    for ahead in answers:
+        for start, end in ahead["passages"]:  # a passage only ever grows into a final one
+            assert any(a - 0.01 <= start and end <= b + 0.01 for a, b in final), (start, end)
+        for h in highlights:  # nothing in the window looked at is missed
+            if ahead["from_s"] <= h <= ahead["until_s"] - lead_out:
+                assert any(start <= h <= end for start, end in ahead["passages"]), (h, ahead)
+    seen = [h for h in highlights
+            if any(a["from_s"] <= h <= a["until_s"] - lead_out for a in answers)]
+    due = [h for h in highlights if h >= answers[0]["from_s"]]
+    assert due and len(seen) >= len(due) - 1  # every step looked far enough ahead
+
+
+@pytest.mark.positional
+def test_the_passages_seen_ahead_are_the_ones_of_the_match_as_played(tmp_path: Path) -> None:
+    """Spec 008b US4 / SC-008: looking ahead changes nothing in the match."""
+    watched = Client(tmp_path / "momentos")
+    watched.call("career.new", name="igual", club_id="mineracao")
+    _to_user_match(watched)
+    match_id = watched.call("match.start")["match"]["id"]
+    answers = _watch_in_highlights(watched)
+    replay = watched.call("match.record")
+    assert replay["passages"] == [list(p) for p in view.passages(
+        [round(h * replay["pitch"]["hz"]) for h in _final_highlights(replay)],
+        replay["pitch"]["hz"])]
+    _check_against_the_final_match(answers, replay)
+    watched.call("match.finish")
+    served = watched.session.state["career"]
+
+    world = api.load_dataset(SAMPLE).dataset
+    assert world is not None
+    direct = api.new_career(world, "igual", "mineracao", master_seed=served.master_seed)
+    while True:
+        stop = api.continue_career(direct, tmp_path / "direto")
+        if stop.kind == "user_match":
+            api.continue_career(direct, tmp_path / "direto")
+            break
+    assert served.season.results[match_id] == direct.season.results[match_id]
+    assert api.match_record(served, match_id) == api.match_record(direct, match_id)
+
+
+@pytest.mark.positional
+def test_a_decision_makes_the_look_ahead_follow_the_new_match(tmp_path: Path) -> None:
+    client = Client(tmp_path)
+    client.call("career.new", name="mudou", club_id="mineracao")
+    _to_user_match(client)
+    client.call("match.start")
+    answers = _watch_in_highlights(client, decide_at=1500.0)
+    session = client.session.state["live"]
+    assert session.scout_decisions == len(session.match.decisions) >= 1
+    replay = client.call("match.record")
+    assert any(e["kind"] == "sub" for e in replay["frames"]["events"])
+    _check_against_the_final_match(answers, replay)

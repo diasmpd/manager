@@ -135,6 +135,32 @@ def pitch_view(dataset: Dataset, hz: float, home_id: str, away_id: str,
         _side(dataset, away, away_kit, HOME_SLOTS, starters[1], others[1], keepers[1]))
 
 
+def highlight_samples(kinds: Sequence[tuple[int, str]],
+                      shots: Sequence[tuple[int, int, bool]]) -> list[int]:
+    """The samples of a match's highlights: `kinds` are its events as (sample, kind), `shots`
+    the record's shot marks. Which kinds count is data."""
+    wanted = set(view_data()["highlights"]["kinds"])
+    found = {sample for sample, kind in kinds if kind in wanted}
+    if "shot_on_target" in wanted:
+        found |= {sample for sample, _, on_target in shots if on_target}
+    return sorted(found)
+
+
+def passages(samples: Sequence[int], hz: float) -> tuple[tuple[float, float], ...]:
+    """The passages of play a highlights view shows, in match seconds: from some seconds before
+    each highlight to just after it, joined when two are close together."""
+    data = view_data()["highlights"]
+    lead_in, lead_out, gap = (float(data[k]) for k in ("lead_in_s", "lead_out_s", "merge_gap_s"))
+    spans: list[tuple[float, float]] = []
+    for sample in sorted(samples):
+        start, end = max(0.0, sample / hz - lead_in), sample / hz + lead_out
+        if spans and start - spans[-1][1] <= gap:
+            spans[-1] = (spans[-1][0], max(spans[-1][1], end))
+        else:
+            spans.append((start, end))
+    return tuple(spans)
+
+
 def second_half_sample(samples: Sequence[Sequence[int]], length_cm: int) -> int | None:
     """The first sample of the second half: the sides change ends, so the home goalkeeper is
     suddenly in the other half. None for a record that stops before half-time."""
