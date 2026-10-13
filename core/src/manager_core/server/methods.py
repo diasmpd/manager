@@ -14,7 +14,8 @@ from manager_core.quicksim.params import load_params
 from manager_core.server.encode import selection_from_json, tactic_from_json, to_json
 from manager_core.server.protocol import Handler, Params, RpcError, Session, param
 
-CONTRACT = "1.3"  # 1.1: tactic.set_role; 1.2: live matches (spec 008); 1.3: club colours
+# 1.1: tactic.set_role; 1.2: live matches (spec 008); 1.3: club colours; 1.4: the 2D view (008b)
+CONTRACT = "1.4"
 NEWS_ON_HOME = 5
 
 
@@ -265,13 +266,16 @@ def match_start(s: Session, p: Params) -> Any:
     s.state["live"] = session
     s.state["live_sent"] = 0
     return {"match": api.match_view(career.season, session.match_id), "side": session.user_side,
-            **_live_view(s)}
+            "pitch": api.live_pitch(career, session), **_live_view(s)}
 
 
 def match_advance(s: Session, p: Params) -> Any:
     seconds = param(p, "seconds", (int, float))
     api.live_advance(_live(s), float(seconds))
-    return _live_view(s)
+    view = _live_view(s)
+    if "frames_from" in p:  # the 2D view asks for the positions it has not seen (spec 008b)
+        view["frames"] = api.live_frames(_career(s), _live(s), param(p, "frames_from", int))
+    return view
 
 
 def match_state(s: Session, p: Params) -> Any:

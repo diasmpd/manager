@@ -9,6 +9,7 @@ import base64
 import json
 import sys
 import zlib
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 OFF_PITCH = -1
@@ -37,6 +38,27 @@ class RecordChunk:
     shots: tuple[tuple[int, int, bool], ...]
 
 
+def chunk(first: int, samples: Sequence[tuple[int, ...]], events: Sequence[tuple[int, int]],
+          subs: Sequence[tuple[int, int, str]], shots: Sequence[tuple[int, int, bool]],
+          finished: bool) -> RecordChunk:
+    """The record from sample `first` on. A mark carries the index of the next sample to be
+    taken, so one made after the last sample waits for that sample, and is given with the last
+    sample once the match is over. Chunks asked for end to end repeat and lose nothing."""
+    end = len(samples)
+    first = max(0, min(first, end))
+
+    def at(sample: int) -> int:
+        return min(sample, end - 1) if finished else sample
+
+    return RecordChunk(
+        first,
+        tuple(samples[first:]),
+        tuple((at(s), e) for s, e in events if first <= at(s) < end),
+        tuple((at(s), slot, pid) for s, slot, pid in subs if first <= at(s) < end),
+        tuple((at(s), slot, hit) for s, slot, hit in shots if first <= at(s) < end),
+    )
+
+
 @dataclass(frozen=True)
 class PositionalRecord:
     hz: float
@@ -47,8 +69,8 @@ class PositionalRecord:
     # (sample index, the shooter's slot, on target): spec 008b; older records have none
     shots: tuple[tuple[int, int, bool], ...] = ()
 
-    def chunk(self) -> RecordChunk:
-        return RecordChunk(0, self.samples, self.events, self.subs, self.shots)
+    def chunk(self, first: int = 0) -> RecordChunk:
+        return chunk(first, self.samples, self.events, self.subs, self.shots, finished=True)
 
     def encode(self) -> bytes:
         header = json.dumps(

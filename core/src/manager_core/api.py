@@ -48,10 +48,13 @@ from manager_core.io import reader, writer
 from manager_core.io.reader import LoadResult
 from manager_core.io.validate import ValidationReport
 from manager_core.io.writer import ExportSummary
+from manager_core.positional import record as record_mod
+from manager_core.positional import view as match_view_mod
 from manager_core.positional.engine import Decision, LiveMatch
-from manager_core.positional.record import PositionalRecord
+from manager_core.positional.record import PositionalRecord, RecordChunk
+from manager_core.positional.view import PitchView
 from manager_core.quicksim.provider import QuickSimProvider
-from manager_core.quicksim.report import MatchReport, Minute, SideStats
+from manager_core.quicksim.report import GOAL_KINDS, MatchEvent, MatchReport, Minute, SideStats
 from manager_core.ratings import lineup
 from manager_core.ratings.ability import best_position, current_ability, is_goalkeeper
 from manager_core.ratings.lineup import Lineup
@@ -848,6 +851,86 @@ class LiveState:
     at_half_time: bool
     finished: bool
     tactic: Tactic
+    time_s: float = 0.0  # the match clock in seconds (spec 008b)
+
+
+@dataclass(frozen=True, slots=True)
+class FrameEvent:
+    sample: int
+    kind: str
+    side: str
+    player_id: str
+    other_id: str | None
+    score: tuple[int, int]  # after the event
+
+
+@dataclass(frozen=True, slots=True)
+class FrameSub:
+    sample: int
+    slot: int
+    player_id: str
+    name: str
+    number: int
+
+
+@dataclass(frozen=True, slots=True)
+class FrameShot:
+    sample: int
+    slot: int
+    on_target: bool
+
+
+@dataclass(frozen=True, slots=True)
+class Frames:
+    """A part of a positional record for a view (spec 008b, contract 1.4): `samples` is the
+    base64 of `count` samples of 47 little-endian int16 values, and every index is the whole
+    record's."""
+
+    first: int
+    count: int
+    samples: str
+    events: tuple[FrameEvent, ...]
+    subs: tuple[FrameSub, ...]
+    shots: tuple[FrameShot, ...]
+
+
+def _frames(chunk: RecordChunk, events: Sequence[MatchEvent], pitch: PitchView) -> Frames:
+    known = {p.player_id: p for side in (pitch.home, pitch.away)
+             for p in (*side.players, *side.bench)}
+    scores: list[tuple[int, int]] = []
+    home = away = 0
+    for e in events:
+        if e.kind in GOAL_KINDS:
+            home, away = home + (e.side == "home"), away + (e.side == "away")
+        scores.append((home, away))
+    return Frames(
+        chunk.first, len(chunk.samples), record_mod.samples_base64(chunk.samples),
+        tuple(FrameEvent(sample, events[i].kind, events[i].side, events[i].player_id,
+                         events[i].other_player_id, scores[i]) for sample, i in chunk.events),
+        tuple(FrameSub(sample, slot, pid, known[pid].name, known[pid].number)
+              for sample, slot, pid in chunk.subs),
+        tuple(FrameShot(sample, slot, hit) for sample, slot, hit in chunk.shots))
+
+
+def live_pitch(career: Career, session: LiveSession) -> PitchView:
+    """What a view needs to draw the live match: both line-ups, kits and numbers (spec 008b)."""
+    match = session.match
+    sheets = [match.teams[side].sheet for side in ("home", "away")]
+    hz = 1 / (match.p["time"]["step_s"] * match.p["time"]["record_every_steps"])
+    return match_view_mod.pitch_view(
+        career.season.dataset, hz, sheets[0].club_id, sheets[1].club_id,
+        (tuple(pid for _, pid in sorted(sheets[0].starters)),
+         tuple(pid for _, pid in sorted(sheets[1].starters))),
+        (sheets[0].bench, sheets[1].bench),
+        (sheets[0].slot_positions.index(Position.GK), sheets[1].slot_positions.index(Position.GK)))
+
+
+def live_frames(career: Career, session: LiveSession, first: int) -> Frames:
+    """The positions played from sample `first` on. Reading them changes nothing in the match."""
+    match = session.match
+    chunk = record_mod.chunk(first, match.samples, match.event_samples, match.sub_samples,
+                             match.shot_samples, match.finished)
+    return _frames(chunk, match.events, live_pitch(career, session))
 
 
 def start_live_match(career: Career) -> LiveSession:
@@ -882,7 +965,7 @@ def live_state(career: Career, session: LiveSession) -> LiveState:
                      report.home, report.away,
                      tuple(player(b) for b in team.on_pitch()), bench,
                      max(0, max_subs - team.subs), max(0, 3 - team.windows),
-                     match.at_half_time(), match.finished, team.tactic)
+                     match.at_half_time(), match.finished, team.tactic, round(match.t, 3))
 
 
 def live_feed(career: Career, session: LiveSession) -> list[FeedLine]:

@@ -1,0 +1,16 @@
+# What the 2D match view draws that is not in the positional record (spec 008b).
+
+[kits]
+# two shirt colours closer than this (distance in RGB, 0-441) cannot be told apart on the pitch
+clash_distance = 120.0
+# the away side's last resorts, when both of its colours clash with the home shirt
+neutral = ["#FFFFFF", "#111111", "#F2C230"]
+# goalkeepers: the first that clashes with neither shirt (nor the other keeper)
+keepers = ["#FF7A00", "#B455FF", "#00E5FF", "#FFE600", "#8A8A8A", "#FF4FA3"]
+
+[highlights]
+# match events that make a highlight, and "shot_on_target" for the record's shot marks
+kinds = ["goal", "own_goal", "penalty_goal", "penalty_miss", "red", "second_yellow", "shot_on_target"]
+lead_in_s = 10.0
+lead_out_s = 4.0
+merge_gap_s = 8.0

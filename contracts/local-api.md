@@ -52,7 +52,8 @@ The client refuses to run on a different major version (spec FR-005).
 History: 1.0 (spec 007); 1.1 adds `tactic.set_role` (the role-change rule moved from the clients
 into the core); 1.2 adds the live-match methods (spec 008); 1.3 adds `club_colors` to
 `CareerStatus` (the user club's primary and secondary colours, `#RRGGBB`, which the client's
-look uses).
+look uses); 1.4 adds what the 2D match view draws (spec 008b): `pitch` in `match.start`,
+`frames_from` in `match.advance`, and `time_s` in `LiveState`.
 
 **Packaging note**: the server finds the repo (saves, sample data) from its source location
 (`server/__main__.py`, `parents[4]`), so it runs from a source checkout. An installed package
@@ -113,15 +114,33 @@ calling it. The assistant handles the user's substitutions until his first decis
 
 | Method | Params | → | Notes |
 |---|---|---|---|
-| `match.start` | — | `{match, side, feed, state, finished}` | The pending user match (stop `user_match`), built exactly as the match day would build it. |
-| `match.advance` | `seconds` | `{feed, state, finished}` | `feed` holds only the lines not sent before. |
-| `match.state` | — | `LiveState` | Minute, half, score, stats so far, players on the pitch (energy, yellow), bench, substitutions and windows left, at half-time, the current tactic. |
+| `match.start` | — | `{match, side, pitch, feed, state, finished}` | The pending user match (stop `user_match`), built exactly as the match day would build it. `pitch` since 1.4. |
+| `match.advance` | `seconds`, `frames_from?` | `{feed, state, finished, frames?}` | `feed` holds only the lines not sent before. With `frames_from` (a sample index, since 1.4) it adds `frames`: the positions from that sample on. |
+| `match.state` | — | `LiveState` | Minute, half, score, stats so far, players on the pitch (energy, yellow), bench, substitutions and windows left, at half-time, the current tactic, and `time_s` (the match clock in seconds, since 1.4). |
 | `match.substitute` | `off, on` | `LiveState` | From now on. Errors `MATCH` with `match_code`: `sub_limit`, `sub_window`, `sent_off`, `not_on_pitch`, `not_on_bench`, `finished`. |
 | `match.tactic` | `tactic` | `LiveState` | From now on; the in-possession formation stays the selection's (`formation_change`); 006 validation (`TACTIC`). |
 | `match.finish` | — | `{stop, match_id}` | Plays to full time, commits the result, continues the match day; the next stop. |
 
 A live match is never saved half-played: `career.continue` or closing drops it, and the career
 resumes before that match day.
+
+**The 2D view's data (since 1.4, spec 008b).** Reading it never changes the match.
+
+- **`pitch`**: `{length_cm, width_cm, hz, home, away}`; each side is
+  `{club_id, name, kit: {shirt, number, keeper}, players, bench}` with colours as `#RRGGBB`. A
+  player is `{slot, player_id, name, number, keeper}`; `slot` is the record's 0–21 (home 0–10,
+  away 11–21) and −1 on the bench. The core chooses the kits: the away side changes colours when
+  its shirt would clash with the home one.
+- **`frames`**: `{first, count, samples, events, subs, shots}`. `samples` is the base64 of
+  `count` samples, each 47 little-endian int16 values in centimetres: the ball (x, y, z), then
+  22 (x, y) in slot order; (−1, −1) is "not on the pitch". Positions are absolute: the sides
+  change ends at half-time. The origin is the corner of the goal line the home side defends
+  first; x runs along the pitch.
+  - `events`: `{sample, kind, side, player_id, other_id, score}` (`score` after the event);
+  - `subs`: `{sample, slot, player_id, name, number}` (the player coming on takes the slot);
+  - `shots`: `{sample, slot, on_target}`.
+  Every `sample` is an index into the whole match, so chunks asked for end to end
+  (`frames_from` = the samples received so far) add up to the stored record.
 
 ### Views
 

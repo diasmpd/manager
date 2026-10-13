@@ -6,14 +6,15 @@ change is additive: a 1.3 client keeps working.
 | Method | Params | → | Notes |
 |---|---|---|---|
 | `match.start` | — | adds `pitch` | The pitch description of the match (below). |
-| `match.state` | — | adds `pitch`, `time_s` | `time_s` is the match time in seconds. |
-| `match.advance` | `seconds`, `frames: bool = false` | adds `frames` when asked | The record chunk of what was just played. |
+| `match.state` | — | adds `time_s` | The match clock in seconds. |
+| `match.advance` | `seconds`, `frames_from?` | adds `frames` when asked | `frames_from` is a sample index: the record chunk from that sample on. The client passes the number of samples it has, so the server keeps no cursor and a screen that is reopened can ask again. |
 | `match.passages` | `horizon_s: number` | `{from_s, until_s, passages: [[start_s, end_s]]}` | Highlights mode: the passages between the match's time and up to `horizon_s` ahead. Never changes the match. `until_s` is short of the horizon at half-time and full time. |
 | `match.record` | `match_id`, `year?` | `{pitch, frames, events, passages, final_score}` or `null` | A played user match. `null` when it has no record. Fails with `NOT_FOUND` for an unknown match. |
 
 **`pitch`**: `{length_cm: 10500, width_cm: 6800, hz, home, away}`; each side is
-`{club_id, name, kit: {shirt, number, keeper}, players: [{slot, player_id, name, number, keeper}]}`
-(colours as `#rrggbb`; `slot` is the record's 0–21).
+`{club_id, name, kit: {shirt, number, keeper}, players, bench}`, and a player is
+`{slot, player_id, name, number, keeper}` (colours as `#RRGGBB`; `slot` is the record's 0–21, and
+−1 on the bench).
 
 **`frames`** (a record chunk): `{first, count, samples, events, subs, shots}`.
 - `samples`: base64 of `count × 47` int16 little-endian values: the ball (x, y, z), then 22 (x, y),

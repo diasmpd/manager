@@ -12,12 +12,12 @@ neighbours.
   the engine appends `(sample, slot, on_target)` where it counts a shot, recording only. Tests:
   encode and decode with and without `shots`; a match's report and samples are identical to the
   committed engine's on 3 seeds; every counted shot has a mark.
-- [ ] T002 `PositionalRecord.chunk(first)` and the wire form (base64 int16 little-endian). Test:
+- [x] T002 `PositionalRecord.chunk(first)` and the wire form (base64 int16 little-endian). Test:
   the chunks of a match advanced in uneven steps concatenate to `match.record()`.
-- [ ] T003 [P] `positional/view.py` and `reference/match_view.toml`: kits with the clash rule,
+- [x] T003 [P] `positional/view.py` and `reference/match_view.toml`: kits with the clash rule,
   keeper kits, shirt numbers, the pitch description of a match. Tests: every pair of sample
   clubs gets distinguishable kits; the rule is deterministic; numbers are unique per side.
-- [ ] T004 `api.live_frames`; `match.start` and `match.state` with `pitch` and `time_s`;
+- [x] T004 `api.live_frames`; `match.start` and `match.state` with `pitch` and `time_s`;
   `match.advance` with `frames`; contract 1.4 in `contracts/local-api.md`. Tests: contract tests;
   a match played with frames equals one played without (SC-004).
 
