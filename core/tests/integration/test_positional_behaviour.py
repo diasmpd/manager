@@ -108,7 +108,9 @@ def test_a_booked_hot_head_does_not_change(provider: QuickSimProvider) -> None:
     def hot_head(bodies: list[Body]) -> Body:
         return min(bodies, key=lambda b: (caution_strength(b.player, provider.params), b.pid))
 
-    chosen = hot_head(_match(provider, 1, swap=True).teams["away"].on_pitch())
+    # the same pool `_challenges` picks its defender from
+    chosen = hot_head([b for b in _match(provider, 1, swap=True).teams["away"].on_pitch()
+                       if b.group in (Group.DEFENDER, Group.MIDFIELDER)])
     assert caution_strength(chosen.player, provider.params) == 0
     plain = _challenges(provider, hot_head, _plain, swap=True)
     assert plain[0] > 0 and plain[1] > 0

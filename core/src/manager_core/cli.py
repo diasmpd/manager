@@ -11,7 +11,7 @@ from pathlib import Path
 
 from manager_core import api
 from manager_core.calibration.exploit import MAX_GAIN as EXPLOIT_LIMIT
-from manager_core.calibration.harness import ENGINES
+from manager_core.calibration.harness import ENGINES, BaselineEngineError
 from manager_core.career.career import Career, Stop
 from manager_core.career.store import SaveError
 from manager_core.competition.calendar import CalendarDay
@@ -522,8 +522,14 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
     dataset = _load(args.data)
     if dataset is None:
         return EXIT_INVALID
-    report = api.run_calibration(dataset, args.gate, args.baseline,
-                                 exploit=False if args.no_exploit else None, engine=args.engine)
+    try:
+        report = api.run_calibration(dataset, args.gate, args.baseline,
+                                     exploit=False if args.no_exploit else None,
+                                     engine=args.engine, workers=args.workers)
+    except BaselineEngineError as exc:
+        print(t("calibration.baseline_engine", found=exc.found, expected=exc.expected),
+              file=sys.stderr)
+        return EXIT_INVALID
     print(t(f"calibration.title.{args.engine}", gate=args.gate))
     with_before = args.baseline is not None
     headers = ["metric", "value", *(["before"] if with_before else []), "target", "band",
@@ -854,6 +860,7 @@ def _build_parser() -> argparse.ArgumentParser:
     cmd.add_argument("--write", type=Path)
     cmd.add_argument("--no-exploit", action="store_true")
     cmd.add_argument("--engine", choices=ENGINES, default="quick")
+    cmd.add_argument("--workers", type=int)
     cmd.set_defaults(func=_cmd_calibrate)
     return parser
 

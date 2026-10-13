@@ -3,7 +3,8 @@
 
 The sample is the head of the league sample's fixture list: the same matches, contexts and
 random streams the quick sim plays, so the two engines can be compared match for match. It is
-played in parallel processes and merged in fixture order (Constitution II).
+played in parallel processes and merged in fixture order (Constitution II). The processes run
+below normal priority, so a gate that takes minutes leaves the PC usable.
 
 A positional match costs seconds, so the samples are thinner than the quick sim's: the PR gate
 fails only on the robust metrics (`ROBUST`), and the milestone gate on every primary target.
@@ -14,6 +15,7 @@ same clubs, and the shootout is the model both engines share.
 from __future__ import annotations
 
 import os
+import sys
 from collections.abc import Mapping
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
@@ -42,7 +44,7 @@ CROSS_TOLERANCES = {
     "total_goals_0": 0.04, "total_goals_1": 0.04, "total_goals_2": 0.04, "total_goals_3": 0.04,
     "total_goals_4": 0.04, "total_goals_5plus": 0.04,
 }
-WORKERS = os.cpu_count() or 1
+WORKERS = os.cpu_count() or 1  # the default; `calibrate --workers` asks for fewer
 CHUNK = 4  # matches handed to a process at a time
 
 
@@ -82,8 +84,28 @@ def fixtures(dataset: Dataset, matches: int) -> list[LeagueFixture]:
 _worker: QuickSimProvider | None = None
 
 
-def _init_worker(dataset: Dataset, params: ModelParams, positional: PositionalParams) -> None:
+def lower_priority() -> None:
+    """Below-normal priority for this process (it changes no result, only who waits)."""
+    if sys.platform == "win32":
+        import ctypes
+
+        below_normal = 0x4000
+        # Typed handles: with ctypes' default int the 64-bit process handle is truncated and the
+        # call fails without a word (error 6).
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.SetPriorityClass.argtypes = (ctypes.c_void_p, ctypes.c_uint32)
+        if not kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), below_normal):
+            raise ctypes.WinError(ctypes.get_last_error())
+    else:
+        os.nice(10)
+
+
+def _init_worker(dataset: Dataset, params: ModelParams, positional: PositionalParams,
+                 low_priority: bool = False) -> None:
     global _worker
+    if low_priority:
+        lower_priority()
     _worker = QuickSimProvider(dataset, params)
     _worker.positional_params = positional
 
@@ -99,16 +121,17 @@ def _play(fixture: LeagueFixture) -> Result:
 
 
 def league_sample(dataset: Dataset, params: ModelParams, positional: PositionalParams,
-                  matches: int) -> list[LeagueMatch]:
-    """The league sample's first `matches` fixtures, played by the positional engine."""
+                  matches: int, workers: int | None = None) -> list[LeagueMatch]:
+    """The league sample's first `matches` fixtures, played by the positional engine, in
+    `workers` processes (default: `WORKERS`). The result does not depend on their number."""
     todo = fixtures(dataset, matches)
-    workers = min(WORKERS, len(todo))
+    workers = min(workers or WORKERS, len(todo))
     if workers <= 1 or not _spawnable():
         _init_worker(dataset, params, positional)
         results = [_play(f) for f in todo]
     else:
         with ProcessPoolExecutor(workers, initializer=_init_worker,
-                                 initargs=(dataset, params, positional)) as pool:
+                                 initargs=(dataset, params, positional, True)) as pool:
             results = list(pool.map(_play, todo, chunksize=CHUNK))
     return [LeagueMatch(f.season, f.home_id, f.away_id, result)
             for f, result in zip(todo, results, strict=True)]

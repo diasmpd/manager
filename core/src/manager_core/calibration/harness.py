@@ -7,6 +7,7 @@ byte-identical files (SC-003).
 
 from __future__ import annotations
 
+import hashlib
 import json
 import platform
 from dataclasses import dataclass
@@ -33,6 +34,14 @@ from manager_core.quicksim.provider import QuickSimProvider
 
 CAUTION_SEASONS = 10  # league seasons replayed with the caution behaviour off
 ENGINES = ("quick", "positional")
+
+
+class BaselineEngineError(ValueError):
+    """The baseline report is another engine's: its values are not this gate's "before"."""
+
+    def __init__(self, found: str, expected: str) -> None:
+        super().__init__(f"baseline report is for the {found} engine, not {expected}")
+        self.found, self.expected = found, expected
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,10 +132,13 @@ class CalibrationReport:
         return json.dumps(doc, sort_keys=True, indent=2, ensure_ascii=False) + "\n"
 
 
-def _baseline_values(path: Path | None) -> dict[str, float]:
+def _baseline_values(path: Path | None, engine: str = "quick") -> dict[str, float]:
     if path is None or not path.is_file():
         return {}
     doc = json.loads(path.read_text("utf-8"))
+    found = doc.get("engine", "quick")  # reports from before spec 008 are the quick sim's
+    if found != engine:
+        raise BaselineEngineError(found, engine)
     return {k: v["value"] for k, v in doc.get("metrics", {}).items() if v.get("value") is not None}
 
 
@@ -152,13 +164,14 @@ def measure(dataset: Dataset, spec: SampleSpec, params: ModelParams, caution: bo
 
 
 def _run_positional(dataset: Dataset, gate: str, params: ModelParams,
-                    positional: PositionalParams, baseline: Path | None) -> CalibrationReport:
+                    positional: PositionalParams, baseline: Path | None,
+                    workers: int | None) -> CalibrationReport:
     """The positional engine's gate (spec 008, research R6): the league targets on its own
     sample, and at the milestone the cross-validation with the quick sim on the same fixtures."""
+    before = _baseline_values(baseline, "positional")
     n = positional_sample.MATCHES[gate]
-    played = positional_sample.league_sample(dataset, params, positional, n)
+    played = positional_sample.league_sample(dataset, params, positional, n, workers)
     values = league_metrics(played)
-    before = _baseline_values(baseline)
     results = []
     for target in load_targets():
         if target.sample != "league":
@@ -174,15 +187,24 @@ def _run_positional(dataset: Dataset, gate: str, params: ModelParams,
         cross = cross_validate(values, league_metrics(quick), n)
     return CalibrationReport(__version__, platform.python_version(),
                              f"positional {positional.model_version}",
-                             positional.params_hash[:12], gate, len(played), 0, tuple(results),
-                             None, engine="positional", cross=cross)
+                             positional_hash(positional, params), gate, len(played), 0,
+                             tuple(results), None, engine="positional", cross=cross)
+
+
+def positional_hash(positional: PositionalParams, params: ModelParams) -> str:
+    """The positional report's parameter hash. The engine also reads the quick sim's
+    parameters (cards, fouls, penalties), so the hash covers both sets."""
+    both = f"{positional.params_hash}:{params.params_hash}"
+    return hashlib.sha256(both.encode("utf-8")).hexdigest()[:12]
 
 
 def run(dataset: Dataset, gate: str = "pr", params: ModelParams | None = None,
         baseline: Path | None = None, exploit: bool | None = None, engine: str = "quick",
-        positional: PositionalParams | None = None) -> CalibrationReport:
+        positional: PositionalParams | None = None,
+        workers: int | None = None) -> CalibrationReport:
     """`exploit` (default: on for the PR gate) adds the tactical exploit check. `engine` is
-    "quick" or "positional"; the positional gate has no exploit check yet."""
+    "quick" or "positional"; the positional gate has no exploit check yet, and plays its
+    sample in `workers` processes (default: one per CPU)."""
     if gate not in GATES:
         raise ValueError(f"unknown gate {gate!r}")
     if engine not in ENGINES:
@@ -190,9 +212,9 @@ def run(dataset: Dataset, gate: str = "pr", params: ModelParams | None = None,
     params = params or load_params()
     if engine == "positional":
         return _run_positional(dataset, gate, params, positional or load_positional_params(),
-                               baseline)
-    values, n_league, n_mineiro, check = measure(dataset, GATES[gate], params)
+                               baseline, workers)
     before = _baseline_values(baseline)
+    values, n_league, n_mineiro, check = measure(dataset, GATES[gate], params)
     results = []
     for target in load_targets():
         value = values[target.id]

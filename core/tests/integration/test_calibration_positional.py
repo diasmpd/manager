@@ -10,7 +10,12 @@ import pytest
 
 from manager_core import api
 from manager_core.calibration import positional
-from manager_core.calibration.harness import CalibrationReport, run
+from manager_core.calibration.harness import (
+    BaselineEngineError,
+    CalibrationReport,
+    positional_hash,
+    run,
+)
 from manager_core.calibration.samples import league_fixtures
 from manager_core.calibration.targets import load_targets
 from manager_core.cli import EXIT_INVALID, EXIT_OK, main
@@ -56,7 +61,33 @@ def test_the_pr_gate_fails_only_on_robust_metrics(world: Dataset, tiny: None) ->
             assert r.target.primary and r.target.id in positional.ROBUST
     fitted = load_positional_params()
     assert report.model_version == f"positional {fitted.model_version}"
-    assert report.params_hash == fitted.params_hash[:12]
+    assert report.params_hash == positional_hash(fitted, load_params())
+
+
+def test_the_report_hash_covers_the_quick_sim_parameters_too() -> None:
+    """The positional engine reads the quick sim's cards, fouls and penalties."""
+    fitted, quick = load_positional_params(), load_params()
+    harsher = quick.with_values(**{"caution.enabled": not quick.caution.enabled})
+    assert positional_hash(fitted, harsher) != positional_hash(fitted, quick)
+
+
+def test_a_baseline_from_the_other_engine_is_refused(world: Dataset, tiny: None,
+                                                     tmp_path: Path,
+                                                     capsys: pytest.CaptureFixture[str]) -> None:
+    """Its "before" column would compare two engines on two different samples."""
+    own = tmp_path / "positional.json"
+    own.write_text(run(world, "pr", engine="positional").to_json(), "utf-8")
+    assert run(world, "pr", engine="positional", baseline=own).results[0].before is not None
+    with pytest.raises(BaselineEngineError):
+        run(world, "pr", baseline=own, exploit=False)
+    quick = tmp_path / "quick.json"
+    quick.write_text(own.read_text("utf-8").replace('"engine": "positional"',
+                                                    '"engine": "quick"'), "utf-8")
+    with pytest.raises(BaselineEngineError):
+        run(world, "pr", engine="positional", baseline=quick)
+    code = main(["--data", str(SAMPLE), "calibrate", "--engine", "positional", "--baseline",
+                 str(quick)])
+    assert code == EXIT_INVALID and "motor quick" in capsys.readouterr().err
 
 
 def test_the_milestone_gate_cross_validates_on_the_same_fixtures(world: Dataset,
@@ -81,8 +112,7 @@ def test_the_pooled_sample_equals_the_serial_one(world: Dataset,
     args = (world, load_params(), load_positional_params(), TINY)
     monkeypatch.setattr(positional, "WORKERS", 1)
     serial = positional.league_sample(*args)
-    monkeypatch.setattr(positional, "WORKERS", 2)
-    assert positional.league_sample(*args) == serial
+    assert positional.league_sample(*args, workers=2) == serial
 
 
 def test_a_cross_validation_miss_fails_the_gate() -> None:

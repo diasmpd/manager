@@ -439,6 +439,7 @@ MESSAGES: dict[str, str] = {
     "scorers.assists": "Assist.",
     "calibration.title.quick": "Calibração do quick sim – amostra {gate}",
     "calibration.title.positional": "Calibração do motor posicional – amostra {gate}",
+    "calibration.baseline_engine": "O relatório de referência é do motor {found}, não do {expected}: os valores não são comparáveis.",
     "calibration.cross": "Validação cruzada com o quick sim nos mesmos {matches} jogos:",
     "calibration.positional": "Posicional",
     "calibration.quick": "Quick sim",

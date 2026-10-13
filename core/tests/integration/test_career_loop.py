@@ -108,8 +108,6 @@ def test_a_season_is_fast(world: Dataset, tmp_path: Path) -> None:
     engine they have their own budget (below)."""
     start = time.perf_counter()
     career = api.new_career(world, "rapido", "alvorada", master_seed=1)
-    career.positional = False
-    api.apply_selection(career)
     api.continue_career(career, tmp_path, to_season_end=True)
     # the budget is on the reference PC; CI runners scale it like the quick-sim budgets
     scale = float(os.environ.get("MANAGER_PERF_LIMIT_S", "2.0")) / 2.0
