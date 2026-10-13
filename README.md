@@ -61,6 +61,11 @@ advances, **X** opens the tactics, **Esc** goes back. Closing the window saves. 
 [specs/007-godot-client/quickstart.md](specs/007-godot-client/quickstart.md). The window talks to
 the Python core through the versioned local API ([contracts/local-api.md](contracts/local-api.md)).
 
+Your club's matches are shown on a 2D pitch (spec 008b): discs in the clubs' colours, speeds from
+1× to 8×, pause at any time, highlights only if you prefer, the text feed one button away, and a
+replay of any played match from the calendar. Guide:
+[specs/008b-match-view/quickstart.md](specs/008b-match-view/quickstart.md).
+
 ## Play (terminal)
 
 ```powershell
