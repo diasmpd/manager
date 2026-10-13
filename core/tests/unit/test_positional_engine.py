@@ -139,3 +139,46 @@ def test_nobody_to_cross_to_means_no_cross(provider: QuickSimProvider) -> None:
     for body in team.on_pitch():  # everyone in their own half
         body.x, body.y = match.absolute("home", 30.0, body.y)
     assert match._cross_target(carrier, team) is None
+
+
+def test_the_record_marks_the_shots_and_recording_changes_nothing(
+    provider: QuickSimProvider,
+) -> None:
+    """Spec 008b: a saved shot is not a match event, so the record marks every shot for the
+    2D view's highlights. The marks draw no random number."""
+    match = _match(provider, 3, record=True)
+    record, report = match.record(), match.report()
+    assert report == _match(provider, 3).report()
+    on_target = report.home.shots_on_target + report.away.shots_on_target
+    assert sum(1 for _, _, hit in record.shots if hit) == on_target > 0
+    shots = report.home.shots + report.away.shots
+    assert shots - 2 <= len(record.shots) <= shots  # a shot in flight at a whistle has no mark
+    assert all(0 <= sample <= len(record.samples) and 0 <= slot < 22
+               for sample, slot, _ in record.shots)
+    assert PositionalRecord.decode(record.encode()) == record
+
+
+def test_a_record_from_before_the_shot_marks_still_decodes(provider: QuickSimProvider) -> None:
+    import json
+    import zlib
+
+    record = _match(provider, 3, record=True).record()
+    raw = zlib.decompress(record.encode())
+    size = int.from_bytes(raw[:4], "little")
+    header = json.loads(raw[4 : 4 + size])
+    del header["shots"]
+    old = json.dumps(header).encode("utf-8")
+    blob = zlib.compress(len(old).to_bytes(4, "little") + old + raw[4 + size :])
+    decoded = PositionalRecord.decode(blob)
+    assert decoded.shots == () and decoded.samples == record.samples
+
+
+def test_the_wire_form_is_the_samples_as_little_endian_int16() -> None:
+    import base64
+    import struct
+
+    from manager_core.positional.record import WIDTH, samples_base64
+
+    samples = (tuple(range(WIDTH)), tuple([-1] * WIDTH), tuple([10500] * WIDTH))
+    raw = base64.b64decode(samples_base64(samples))
+    assert struct.unpack(f"<{3 * WIDTH}h", raw) == tuple(v for s in samples for v in s)

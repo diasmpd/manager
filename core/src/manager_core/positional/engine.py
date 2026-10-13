@@ -234,6 +234,7 @@ class LiveMatch:
         self.samples: list[tuple[int, ...]] = []
         self.event_samples: list[tuple[int, int]] = []
         self.sub_samples: list[tuple[int, int, str]] = []
+        self.shot_samples: list[tuple[int, int, bool]] = []
         self.decisions: list[Decision] = []
         self._pending: list[Decision] = []
         self._next_decision = 0.0
@@ -1217,12 +1218,14 @@ class LiveMatch:
         finishing = (shooter.attr("finishing") + shooter.attr("composure")) / 2
         on_target = min(0.92, 0.28 + 0.9 * value + 0.012 * (finishing - 10))
         if self.rng.random() >= on_target:
+            self._shot_mark(shooter.side, shooter.pid, False)
             if self.rng.random() < 0.25:  # blocked or deflected wide
                 self._corner(shooter.side)
             else:
                 self._goal_kick(opp.side)
             return
         team.on_target += 1
+        self._shot_mark(shooter.side, shooter.pid, True)
         keeper = opp.keeper()
         k = self.p["keeper"]
         keeper_skill = (
@@ -1466,13 +1469,16 @@ class LiveMatch:
         team.xg += pen.xg
         if self.rng.random() < min(pen.conversion_max, probability):
             team.on_target += 1
+            self._shot_mark(side, taker.id, True)
             team.goals += 1
             self._event(side, "penalty_goal", taker.id, None, pen.xg)
             self._kickoff(other(side))
             self._stoppage("goal")
         else:
-            if self.rng.random() < pen.miss_saved:
+            saved = self.rng.random() < pen.miss_saved
+            if saved:
                 team.on_target += 1
+            self._shot_mark(side, taker.id, saved)
             self._event(side, "penalty_miss", taker.id, None, pen.xg)
             self._goal_kick(other(side))
 
@@ -1621,6 +1627,14 @@ class LiveMatch:
         if self.recording:
             self.event_samples.append((len(self.samples), len(self.events) - 1))
 
+    def _shot_mark(self, side: str, pid: str, on_target: bool) -> None:
+        """A shot for the record (spec 008b): a saved shot is not a match event, and the 2D
+        view's highlights need it. It draws no random number and changes nothing in the match."""
+        if not self.recording:
+            return
+        slot = next((self._slot_index(b) for b in self.teams[side].on_pitch() if b.pid == pid), -1)
+        self.shot_samples.append((len(self.samples), slot, on_target))
+
     def _slot_index(self, body: Body) -> int:
         return body.slot + (0 if body.side == HOME else 11)
 
@@ -1647,6 +1661,7 @@ class LiveMatch:
             tuple(self.samples),
             tuple(self.event_samples),
             tuple(self.sub_samples),
+            tuple(self.shot_samples),
         )
 
     def report(self) -> MatchReport:

@@ -8,7 +8,7 @@ neighbours.
 
 ## Phase 1: The record on the wire (core)
 
-- [ ] T001 Shot marks: `shots` in `PositionalRecord` (optional in the header, old blobs decode);
+- [x] T001 Shot marks: `shots` in `PositionalRecord` (optional in the header, old blobs decode);
   the engine appends `(sample, slot, on_target)` where it counts a shot, recording only. Tests:
   encode and decode with and without `shots`; a match's report and samples are identical to the
   committed engine's on 3 seeds; every counted shot has a mark.
