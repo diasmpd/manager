@@ -174,6 +174,50 @@
   season took 48 s). It now measures the day loop with the user's matches on the quick sim,
   and a new test holds SC-004 (a season with positional matches in at most 2 minutes).
 
+## Progress notes (2026-10-13)
+
+- The engine work of this day is on the local branch `008-tune` (worktree `../Manager-008-tune`),
+  not on this branch: the model is unfitted on it, so the owner's matches would be wrong.
+  It comes over only if the gate is better for it. Tuner run 17 runs there.
+- **Who fouls** (20 matches, the run-16 candidate): forwards commit 57% of the fouls,
+  midfielders 37%, defenders 6%. The only foul in the engine was the presser's duel, and the
+  pressers are the forwards. About 6 players a side foul at all, and the top fouler commits
+  3.6, so second yellows pile up on a few players (0.65 a match). This is the "wrong kind of
+  red cards" of 2026-10-10.
+  - On `008-tune`: the defender who is taken on may foul (`duel.takeon_foul`, under the same
+    challenge cooldown as the duel, at the forward's lower rate for a forward), and every
+    defender holds back in his own box (`duel.box_foul` 0.35, also for duel fouls: a foul there
+    is a penalty). The take-on's value counts the free kick. Tests for both.
+  - It helps less than hoped: defenders reach 9% only, because take-ons are also made in
+    midfield against midfielders (see below). Penalties are 0.29 a match (24 matches).
+  - Still open: a source for the real split of fouls by position and of second yellows and
+    straight reds. Straight reds are almost absent in both engines (`direct_red_per_foul`
+    0.0005, about 0.01 a match).
+- **Where the play is** (8 matches): the side on the ball spends 69% of its time between 35
+  and 70 m, 26% in its own third and 5% in the final third. 76% of passes are played in the
+  middle third, by forwards (35%) and midfielders (49%); defenders play 12%. From 60–75 m
+  there are 128 back passes a match against 20 forward ones.
+  - The cause, measured at every decision with the ball at 60–75 m: the carrier has 0.4
+    teammates more than 5 m ahead of him and 8.7 behind (midfielders 14 m behind the ball,
+    defenders 30 m) against 8.5 opponents ahead. A forward pass there succeeds 41% of the
+    time. The ball reaches the forwards faster than the side can follow, so the forward
+    carries alone into the block or lays it back, and the attack never settles in the final
+    third. This is behind passes (693 a side), crosses (2.9) and the fouls above.
+  - Tried on a prototype and removed, each without a visible effect on those numbers: a
+    steeper value of territory (`decide.threat_u` 0.02 and 0.04), the whole side pushed up
+    1:1 with the ball in the other half, support places relative to the ball (wide players
+    ahead of it, midfield just behind), and sprinting to them sooner. The support does not
+    arrive: a spell at 60–75 m lasts about 0.6 s a decision.
+  - Slower decisions do not fix it either: at 1.6 s a decision shots rise to 47 a match. A
+    carrier who is not made to release the ball runs through the defence, so defending
+    against the carry is too weak, and the quick passing was hiding it.
+  - A carrier under pressure decided again on every step (four times a second) until he
+    released the ball. On `008-tune` he gets one early decision a touch.
+- So the next structural work, in this order: defending the carry (the defender in front
+  delays and tackles, so a carrier cannot simply run), then holding the ball up until the
+  support arrives, then the support positions. Fitting parameters before that only moves
+  the same imbalance around.
+
 ## Dependencies
 
 - T001 → T002 → T003 → T004 → T005 → T006 → T007–T010 → T011–T013.
