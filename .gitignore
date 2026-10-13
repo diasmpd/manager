@@ -28,3 +28,8 @@ Thumbs.db
 
 # Portable Godot fetched by tools/setup_client.ps1 (spec 007)
 /tools/godot/
+
+# Left in the working directory by a pytest browser plugin installed on the dev PC
+downloaded_files/
+latest_logs/
+archived_logs/

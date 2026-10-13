@@ -15,12 +15,11 @@ same clubs, and the shootout is the model both engines share.
 from __future__ import annotations
 
 import os
-import sys
 from collections.abc import Mapping
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
-from manager_core.calibration.exploit import _spawnable
+from manager_core.calibration.exploit import _spawnable, lower_priority
 from manager_core.calibration.samples import (
     LeagueFixture,
     LeagueMatch,
@@ -82,23 +81,6 @@ def fixtures(dataset: Dataset, matches: int) -> list[LeagueFixture]:
 
 
 _worker: QuickSimProvider | None = None
-
-
-def lower_priority() -> None:
-    """Below-normal priority for this process (it changes no result, only who waits)."""
-    if sys.platform == "win32":
-        import ctypes
-
-        below_normal = 0x4000
-        # Typed handles: with ctypes' default int the 64-bit process handle is truncated and the
-        # call fails without a word (error 6).
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
-        kernel32.SetPriorityClass.argtypes = (ctypes.c_void_p, ctypes.c_uint32)
-        if not kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), below_normal):
-            raise ctypes.WinError(ctypes.get_last_error())
-    else:
-        os.nice(10)
 
 
 def _init_worker(dataset: Dataset, params: ModelParams, positional: PositionalParams,

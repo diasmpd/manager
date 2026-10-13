@@ -32,7 +32,7 @@
 ## Phase 3: Calibration (US2)
 
 - [ ] T011 [US2] Positional samples in the harness (PR 300 matches with robust metrics, milestone 1,500 with all targets); `calibrate --engine positional`; `tools/tune_positional.py`; fit until both positional gates pass.
-- [ ] T012 [US2] Cross-validation (the same fixtures through both engines, the SC-003 tolerances) in the milestone gate.
+- [x] T012 [US2] Cross-validation (the same fixtures through both engines, the SC-003 tolerances) in the milestone gate.
 - [ ] T013 [US2] The 3-goal mechanism (R5): measure it in the engine, port it to the quick sim (the leading side relaxes after two goals while the trailing side keeps pushing), refit the quick sim, and pass both quick-sim gates with unchanged targets.
 
 ## Phase 4: Career and live play (US1, US3)
