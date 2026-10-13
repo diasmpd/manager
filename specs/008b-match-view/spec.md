@@ -58,8 +58,6 @@ on the scoreboard matches the match report.
    at the new speed from that moment and the positions stay in step with the clock.
 5. **Given** both clubs wear similar colours, **When** the match starts, **Then** the away side
    is drawn in its alternative colours so the two sides can be told apart.
-6. **Given** a high ball (a cross, a long pass, a goal kick), **When** it is in the air, **Then**
-   the ball is drawn so that its height can be read (larger, with a shadow on the ground).
 
 ---
 
@@ -83,7 +81,7 @@ decisions gives the same record as the one that was watched.
    player's disc is on the pitch with his number, and the one who left is gone.
 3. **Given** the match is paused, **When** he changes formation or instructions, **Then** on
    resuming the players move to the new shape as the engine plays it.
-4. **Given** a player is sent off or injured, **When** play resumes, **Then** his disc is gone,
+4. **Given** a player is sent off, **When** play resumes, **Then** his disc is gone,
    and the pitch shows the side with one fewer.
 5. **Given** the owner selects a disc, **When** he looks at it, **Then** he sees the player's
    name, position, energy and whether he is booked (the same facts as the text view's list).
@@ -191,14 +189,15 @@ match took a fraction of the full match's time.
   shirt number. Goalkeepers MUST be distinguishable from outfield players of both sides.
 - **FR-003**: When the two clubs' colours are too alike to tell apart, the away side MUST be drawn
   in alternative colours. The rule for "too alike" MUST be deterministic.
-- **FR-004**: The ball MUST be drawn at its recorded position, and its height MUST be readable.
+- **FR-004**: The ball MUST be drawn at its recorded position. Its height is drawn only once the
+  record carries one (see Assumptions).
 - **FR-005**: Positions on screen MUST come only from the positional record. The client MUST NOT
   compute, predict or correct football: between two samples it may only interpolate
   (Constitution III).
 - **FR-006**: The view MUST show the clock, the score, both clubs' names and the latest feed
   line, and MUST keep the stats and the full feed one action away.
 - **FR-007**: The view MUST mark, at the moment they happen: goals, yellow and red cards,
-  substitutions, penalties and injuries.
+  substitutions and penalties.
 - **FR-008**: The owner MUST be able to pause and resume at any time and to choose the speed from
   a fixed set that includes real time and faster speeds.
 - **FR-009**: While the match is paused, the owner MUST be able to make substitutions and tactic
@@ -207,8 +206,9 @@ match took a fraction of the full match's time.
 - **FR-011**: The owner MUST be able to switch between the pitch view and the text view during
   the match without affecting it, and the client MUST remember his last choice.
 - **FR-012**: The core MUST give the client the positional samples of the part of the match just
-  played, in the same form as the stored record, through the versioned local API. The engine MUST
-  NOT change for this (Constitution III).
+  played, in the same form as the stored record, through the versioned local API. The engine's
+  play MUST NOT change for this (Constitution III); the record may gain marks the view needs
+  (FR-020), written without touching the match.
 - **FR-013**: Watching, pausing, changing speed or switching views MUST NOT change the match: the
   same seed and decisions MUST give the same events, result and record as with the text view or
   with no view at all (Constitution II).
@@ -226,7 +226,8 @@ match took a fraction of the full match's time.
   minute. Pausing, substitutions and tactic changes MUST work between highlights as in the full
   match, acting from the minute shown.
 - **FR-020**: Which passages are highlights MUST be derived only from the match's recorded
-  events. Choosing them is presentation: it MUST NOT change the match (FR-013) and MUST NOT
+  events and marks. The record MUST mark each shot on target with its sample, because a saved
+  shot is not a match event today. Choosing them is presentation: it MUST NOT change the match (FR-013) and MUST NOT
   reveal an event before its passage is shown.
 - **FR-021**: All text in the view MUST be PT-BR, and the view MUST follow the client's
   scoreboard look in the user club's colours.
@@ -280,10 +281,15 @@ match took a fraction of the full match's time.
   same rule with a longer list.
 - **Highlights are chosen from recorded events**, not from a judgement of how dangerous a move
   was: a good move that ends without a shot on target is not a highlight.
-- **The record is used as 008 stores it**: two samples a second, positions only. The view shows
-  no pass lines, runs or player facing, and does not ask the engine for more data. If two samples
-  a second prove too coarse to look right, that is a later change to the record, not to this
-  spec.
+- **The record is used as 008 stores it**, plus shot marks: two samples a second, positions only.
+  The view shows no pass lines, runs or player facing. If two samples a second prove too coarse
+  to look right, that is a later change to the record, not to this spec.
+- **No ball height.** The 008 engine plays the ball on the ground plane and the record's height
+  is always zero (found while planning, 2026-10-13), so crosses and long balls are drawn flat.
+  Ball height is an engine feature for a later spec.
+- **No injuries on the pitch**: the 008 engine has none.
+- **Records made before this spec have no shot marks**: their highlights are the goals, penalties
+  and red cards only.
 - **Only the user's matches have a pitch view.** Background matches have no record (008).
 - **Kit colours** come from the club colours the client already uses. If the dataset has no
   alternative colours, a fixed neutral kit is the alternative.
