@@ -1,6 +1,7 @@
 extends "res://scenes/screen.gd"
 ## Team selection (spec 007 US2): the assistant's XI and bench, swaps, formation, assistant,
-## tactics, confirm. Every rule is the core's: swaps and confirmation are checked by it.
+## tactics. Every rule is the core's. Each valid change is kept at once (FM's way, owner report
+## 2026-10-16); the top bar's Ir para o jogo starts the match (main.go_to_match).
 
 var _selection: Dictionary = {}
 var _positions: Array = []
@@ -10,7 +11,6 @@ var _others: Tree
 var _formation: OptionButton
 var _formations: Array = []
 var _heading: Label
-var _warned := false
 
 
 func open() -> void:
@@ -34,8 +34,7 @@ func open() -> void:
 	_formation.item_selected.connect(_change_formation)
 	add_child(UI.row([UI.label(UI.t("ui.desktop.formation")), _formation,
 			UI.button(UI.t("ui.desktop.assistant"), _assistant),
-			UI.button(UI.t("ui.menu.tactics"), func(): main.show_screen("tactics")),
-			UI.spacer(), UI.primary_button(UI.t("ui.desktop.confirm_and_play"), _confirm)]))
+			UI.button(UI.t("ui.menu.tactics"), func(): main.show_screen("tactics"))]))
 	var titles := [UI.t("ui.select.slot"), UI.t("ui.select.player"), UI.t("ui.select.pos"),
 			UI.t("ui.select.stars"), UI.t("ui.select.status")]
 	_xi = UI.table(titles)
@@ -112,9 +111,9 @@ func _swap() -> void:
 					{"player": _rows.get(incoming, {}).get("name", incoming)}))
 			return
 	_selection = swapped
-	_warned = false
 	main.message("")
 	_render()
+	await _keep()
 
 
 func _change_formation(index: int) -> void:
@@ -137,27 +136,17 @@ func _propose(formation: String) -> void:
 		for f in listing:
 			if f["name"] == formation:
 				_positions = f["positions"]
-	_warned = false
 	_render()
+	await _keep()
 
 
-func _confirm() -> void:
+## Keep the selection on the career (warnings such as no goalkeeper are told on Ir para o jogo).
+func _keep() -> void:
 	var issues = await ask("selection.validate", {"selection": _selection})
-	if issues == null:
+	if issues == null or issues.any(func(i): return i["severity"] == "error"):
 		return
-	var errors: Array = issues.filter(func(i): return i["severity"] == "error")
-	if not errors.is_empty():
-		main.message(UI.t("ui.select.errors",
-				{"problems": ", ".join(errors.map(func(i): return i["code"]))}))
-		return
-	if not issues.is_empty() and not _warned:
-		_warned = true
-		main.message(UI.t("ui.desktop.no_goalkeeper"))
-		return
-	var confirmed = await ask("selection.confirm", {"selection": _selection})
-	if confirmed == null:
-		return
-	if not confirmed["tactic_changes"].is_empty():
+	main.warned_no_keeper = false
+	var kept = await ask("selection.confirm", {"selection": _selection})
+	if kept != null and not kept["tactic_changes"].is_empty():
 		main.message(UI.t("ui.tactics.refitted",
-				{"positions": ", ".join(confirmed["tactic_changes"])}))
-	main.play_match_day()  # navigation frees this screen: not awaited
+				{"positions": ", ".join(kept["tactic_changes"])}))

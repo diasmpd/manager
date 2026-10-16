@@ -57,11 +57,10 @@ func _run() -> void:
 		if main.current_name == "selection":
 			break
 	if main.current_name == "selection":
-		var selection = main.current
-		selection._confirm()
+		main.continue_game()  # Ir para o jogo
 		await _wait(func(): return main.current_name == "match_day", 30.0)
-		if main.current_name == "selection":  # a warning to confirm again
-			selection._confirm()
+		if main.current_name == "selection":  # a warning: go again
+			main.continue_game()
 			await _wait(func(): return main.current_name == "match_day", 30.0)
 		var day = main.current
 		await _wait(func(): return day._timer != null, 30.0)

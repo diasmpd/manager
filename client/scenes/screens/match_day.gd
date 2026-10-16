@@ -1,8 +1,12 @@
 extends "res://scenes/screen.gd"
 ## Match day, live (spec 008 US3/US5): the window drives the match clock through the core
-## (`match.advance`); Pausar stops it. While paused: substitutions (here) and the tactic (the
-## tactics screen in live mode). After full time: the stats, then Continuar commits the match and
-## goes on to the next stop. Every rule is the core's.
+## (`match.advance`); Pausar stops it. While paused: substitutions and the tactic. After full
+## time: the stats, then Continuar commits the match and goes on to the next stop. Every rule is
+## the core's.
+##
+## The scoreboard and the controls stay on top for the whole match day: the menu's screens (news,
+## tables, the tactic...) open below them, inside this screen, and Partida comes back to the match
+## (owner report 2026-10-16). The tactic and the substitutions pause the match while open.
 ##
 ## Two views of the same match (spec 008b): the pitch, drawn from the positions the core sends
 ## with each step, and the text feed. The pitch asks for the match a little ahead of the screen
@@ -59,6 +63,13 @@ var _highlights := false
 var _show_until := -1.0  # showing a passage up to this match time; below zero: between passages
 var _skip_to := -1.0  # between passages: the match time to run to; below zero: ask the core
 var _mode_button: Button
+var _body: VBoxContainer  # the match itself: pitch or feed, substitutions, stats
+var _inner: VBoxContainer  # a menu screen opened during the match
+var _inner_screen: Control
+var _inner_name := ""
+var _inner_stack: Array[String] = []  # the in-match screens before this one (Esc goes back)
+var _paused_for_inner := false
+var _match_button: Button
 
 
 func open() -> void:
@@ -88,6 +99,9 @@ func open() -> void:
 	controls.add_child(UI.button(UI.t("ui.live.subs"), _show_subs))
 	controls.add_child(UI.button(UI.t("ui.menu.tactics"), _open_tactics))
 	controls.add_child(UI.spacer())
+	_match_button = UI.primary_button(UI.t("ui.live.match"), close_inner)
+	_match_button.visible = false
+	controls.add_child(_match_button)
 	_replay_button = UI.button(UI.t("ui.replay.watch"), _watch_again)
 	_replay_button.visible = false
 	controls.add_child(_replay_button)
@@ -95,28 +109,35 @@ func open() -> void:
 	_continue_button.visible = false
 	controls.add_child(_continue_button)
 	add_child(controls)
+	_body = UI.column()
+	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_child(_body)
+	_inner = UI.column()
+	_inner.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_inner.visible = false
+	add_child(_inner)
 	_pitch = Pitch.new()
 	_pitch.playback = _playback
 	_pitch.slot_picked.connect(_show_disc)
-	add_child(_pitch)
+	_body.add_child(_pitch)
 	_line = UI.label("", 16, true)
 	_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	add_child(_line)
+	_body.add_child(_line)
 	_info = UI.label(UI.t("ui.pitch.pick"))
 	_info.add_theme_color_override("font_color", UI.MUTE)
-	add_child(_info)
+	_body.add_child(_info)
 	_feed = RichTextLabel.new()
 	_feed.bbcode_enabled = true
 	_feed.scroll_following = true
 	_feed.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	add_child(_feed)
+	_body.add_child(_feed)
 	for line in main.live_lines:
 		_show_line(line)
 	_build_subs_panel()
 	_stats = UI.table(["", "", ""])
 	_stats.custom_minimum_size.y = 250
 	_stats.visible = false
-	add_child(_stats)
+	_body.add_child(_stats)
 	_timer = Timer.new()
 	_timer.wait_time = TICK
 	_timer.timeout.connect(_tick)
@@ -358,7 +379,7 @@ func _build_subs_panel() -> void:
 	_subs_panel.add_child(UI.row([UI.button(UI.t("ui.live.substitute"), _substitute), _subs_info,
 			UI.spacer(), UI.button(UI.t("ui.desktop.back"), _close_subs)]))
 	_subs_panel.visible = false
-	add_child(_subs_panel)
+	_body.add_child(_subs_panel)
 
 
 func _set_speed(speed: int) -> void:
@@ -374,6 +395,7 @@ func _set_speed(speed: int) -> void:
 
 func _toggle_pause() -> void:
 	_paused_for_subs = false  # a pause by hand (button, Esc) is the user's: Voltar keeps it
+	_paused_for_inner = false
 	if _finished:
 		return
 	_paused = not _paused
@@ -515,9 +537,54 @@ func _substitute() -> void:
 
 
 func _open_tactics() -> void:
-	if not _paused:
+	main.show_screen("tactics")
+
+
+## A menu screen inside the match day (main.show_screen routes here during a match).
+func show_inner(name: String, args: Dictionary = {}, remember := true) -> Variant:
+	if remember and _inner_name != "" and _inner_name != name:
+		_inner_stack.append(_inner_name)
+	_leave_inner()
+	if _subs_panel.visible:
+		_close_subs()
+	if name == "tactics":
+		args["live"] = true
+		if not _paused and not _finished:
+			_toggle_pause()
+			_paused_for_inner = true  # set after the toggle, which clears it
+	var screen: Control = main.make_screen(name)
+	for key in args:
+		screen.set(key, args[key])
+	_inner_name = name
+	_inner_screen = screen
+	_inner.add_child(screen)
+	_body.visible = false
+	_inner.visible = true
+	_match_button.visible = true
+	await screen.open()
+	return screen
+
+
+## Back to the match: resume if opening the tactic had paused it.
+func close_inner() -> void:
+	_leave_inner()
+	_inner_name = ""
+	_inner_stack.clear()
+	_inner.visible = false
+	_body.visible = true
+	_match_button.visible = false
+	main.mark_menu("")
+	main.message("")
+
+
+func _leave_inner() -> void:
+	if _inner_screen != null:
+		_inner.remove_child(_inner_screen)
+		_inner_screen.queue_free()
+		_inner_screen = null
+	if _inner_name == "tactics" and _paused_for_inner and _paused and not _finished:
 		_toggle_pause()
-	main.show_screen("tactics", {"live": true})  # not awaited: navigation frees this screen
+	_paused_for_inner = false
 
 
 func _show_end() -> void:
@@ -560,6 +627,14 @@ func _done() -> void:
 
 
 func back() -> bool:
+	if _inner.visible:
+		if _inner_stack.is_empty():
+			close_inner()
+		else:
+			var previous: String = _inner_stack.pop_back()
+			main.mark_menu(previous)
+			show_inner(previous, {}, false)  # not awaited: Esc only starts it
+		return true
 	if _subs_panel.visible:
 		_close_subs()
 		return true

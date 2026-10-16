@@ -1,9 +1,11 @@
 extends "res://scenes/screen.gd"
 ## The user's tactic (spec 007 US2, the 006 Tactics screen): formations, mentality, team
 ## instructions by phase, IP and OOP roles per slot with suitability, player instructions (role
-## locks marked) and set pieces. Double-click cycles a setting; the core validates and saves.
+## locks marked) and set pieces. Double-click cycles a setting; the core validates it and every
+## valid change is saved at once (FM's way: no Confirmar to forget, owner report 2026-10-16).
 
-var live := false  # opened from a live match: confirm sends the change to the match
+var live := false  # inside a live match: each change goes to the match
+var _saved := ""  # the tactic as last saved (JSON): only a real change is sent
 var _options: Dictionary = {}
 var _tactic: Dictionary = {}
 var _positions: Array = []
@@ -32,6 +34,7 @@ func open() -> void:
 		return
 	_options = options
 	_tactic = tactic
+	_saved = JSON.stringify(tactic)
 	for pair in current["selection"]["starters"]:
 		_players[int(pair[0])] = pair[1]
 	for r in current["squad"]:
@@ -61,10 +64,11 @@ func open() -> void:
 	var columns := UI.row([left, right])
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(columns)
-	add_child(UI.row([UI.button(UI.t("ui.tactics.oop_role"), func(): _cycle_role("oop")),
-			UI.button(UI.t("ui.desktop.reset"), _reset), UI.spacer(),
-			UI.button(UI.t("ui.desktop.back"), main.go_back),
-			UI.primary_button(UI.t("ui.desktop.confirm"), _confirm)]))
+	var buttons := UI.row([UI.button(UI.t("ui.tactics.oop_role"), func(): _cycle_role("oop")),
+			UI.button(UI.t("ui.desktop.reset"), _reset), UI.spacer()])
+	if not live:  # in a match, Partida (on top) is the way back
+		buttons.add_child(UI.button(UI.t("ui.desktop.back"), main.go_back))
+	add_child(buttons)
 	add_child(UI.paragraph(UI.t("ui.desktop.tactics_help"), 13))
 	_render()
 
@@ -260,6 +264,7 @@ func _cycle_instruction() -> void:
 				if pair[0] == parts[1]:
 					pair[1] = _next(o["settings"], pair[1])
 	_render()
+	await _apply()
 
 
 func _select_slot() -> void:
@@ -287,6 +292,7 @@ func _cycle_role(phase: String) -> void:
 	if changed != null:
 		_tactic = changed
 		_render()
+		await _apply()
 
 
 func _cycle_player_instruction() -> void:
@@ -313,6 +319,7 @@ func _cycle_player_instruction() -> void:
 		pairs.append([k, chosen[k]])
 	slot["instructions"] = pairs
 	_render_player_instructions()
+	await _apply()
 
 
 func _cycle_taker() -> void:
@@ -328,6 +335,7 @@ func _cycle_taker() -> void:
 		if pair[0] == taker:
 			pair[1] = _next(order, pair[1])
 	_render()
+	await _apply()
 
 
 func _reset() -> void:
@@ -336,9 +344,15 @@ func _reset() -> void:
 		_tactic = fresh
 		main.message("")
 		_render()
+		await _apply()
 
 
-func _confirm() -> void:
+## Save the tactic as it stands, when it changed and the core finds it valid; in a live match
+## the change goes to the match (paused while this screen is open).
+func _apply() -> void:
+	var text := JSON.stringify(_tactic)
+	if text == _saved:
+		return
 	var issues = await ask("tactic.validate", {"tactic": _tactic})
 	if issues == null:
 		return
@@ -346,7 +360,6 @@ func _confirm() -> void:
 		main.message(UI.t("ui.tactics.errors",
 				{"problems": ", ".join(issues.map(func(i): return i["code"] + " " + i["path"]))}))
 		return
-	var method := "match.tactic" if live else "tactic.confirm"
-	if await ask(method, {"tactic": _tactic}) != null:
-		main.go_back()  # not awaited: frees this screen
-		main.message(UI.t("ui.tactics.confirmed"))
+	if await ask("match.tactic" if live else "tactic.confirm", {"tactic": _tactic}) != null:
+		_saved = text
+		main.message(UI.t("ui.tactics.saved"))

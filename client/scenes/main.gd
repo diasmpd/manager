@@ -46,6 +46,9 @@ var live_lines: Array = []  # the live match's feed so far (kept across screens)
 var live_match: Dictionary = {}  # the live match's MatchView
 var live_pitch: Dictionary = {}  # its pitch description (spec 008b)
 var live_playback: RefCounted  # the positions received so far (kept across screens)
+var warned_no_keeper := false  # Ir para o jogo told of a missing goalkeeper: the next one plays
+## The menu screens a live match opens inside its own layout (the scoreboard stays on top)
+const IN_MATCH := ["home", "squad", "player", "tables", "calendar", "news", "tactics"]
 # a whole-season continue plays the user's matches on the positional engine (spec 008 SC-004:
 # up to 2 minutes), so closing waits up to 3 minutes for it
 const CLOSE_WAIT_MS := 180000
@@ -256,6 +259,10 @@ func _set_content(node: Control) -> void:
 
 
 func show_screen(name: String, args: Dictionary = {}) -> Screen:
+	if current_name == "match_day" and name in IN_MATCH:  # the match day keeps its layout
+		mark_menu(name)
+		message("")
+		return await current.show_inner(name, args)
 	if current_name != "" and current_name != name and not _navigating_back:
 		history.append(current_name)
 	var screen: Screen = SCREENS[name].new()
@@ -266,11 +273,21 @@ func show_screen(name: String, args: Dictionary = {}) -> Screen:
 	current_name = name
 	# during a live match the screen's own Continuar is the way on: no second one up here
 	_refresh_continue()
-	for key in _menu_buttons:
-		_menu_buttons[key].theme_type_variation = "NavCurrent" if key == name else "Nav"
+	mark_menu(name)
 	_set_content(screen)
 	message("")
 	await screen.open()
+	return screen
+
+
+func mark_menu(name: String) -> void:
+	for key in _menu_buttons:
+		_menu_buttons[key].theme_type_variation = "NavCurrent" if key == name else "Nav"
+
+
+func make_screen(name: String) -> Screen:
+	var screen: Screen = SCREENS[name].new()
+	screen.main = self
 	return screen
 
 
@@ -312,6 +329,12 @@ func update_status(new_status: Dictionary) -> void:
 	_club_label.text = str(status.get("club_name", "")).to_upper()
 	_date_label.text = UI.date_text(str(status.get("current_date", ""))).to_upper()
 	_season_label.text = Core.t("ui.top.season", {"year": status.get("year", "")}).to_upper()
+	_continue_button.text = Core.t("ui.desktop.go_to_match" if _match_day() else "ui.continue") 			.to_upper()
+
+
+func _match_day() -> bool:
+	var pending = status.get("pending")
+	return pending is Dictionary and pending.get("kind") == "user_match"
 
 
 func refresh_status() -> void:
@@ -326,9 +349,8 @@ func refresh_status() -> void:
 func continue_game() -> void:
 	if not _ready_to_play or Core.is_busy():
 		return
-	var pending = status.get("pending")
-	if pending is Dictionary and pending.get("kind") == "user_match":
-		await show_screen("selection")
+	if _match_day():
+		await go_to_match()
 		return
 	var answer: Dictionary = await Core.request("career.continue")
 	if answer.has("error"):
@@ -350,7 +372,40 @@ func handle_stop(stop: Dictionary) -> void:
 			await show_screen("home")
 
 
-## Team selection confirmed: the match is played live (spec 008); its screen starts it.
+## Ir para o jogo: the team as kept (or the assistant's, if none was kept) is checked by the
+## core. Errors stop on team selection; a warning (no goalkeeper) is told once, there, and the
+## next Ir para o jogo plays anyway.
+func go_to_match() -> void:
+	var current_answer: Dictionary = await Core.request("selection.current")
+	if current_answer.has("error"):
+		message(UI.error_text(current_answer))
+		return
+	var selection: Dictionary = current_answer["result"]["selection"]
+	var checked: Dictionary = await Core.request("selection.validate", {"selection": selection})
+	if checked.has("error"):
+		message(UI.error_text(checked))
+		return
+	var issues: Array = checked["result"]
+	var errors := issues.filter(func(i): return i["severity"] == "error")
+	if not errors.is_empty() or (not issues.is_empty() and not warned_no_keeper):
+		if current_name != "selection":
+			await show_screen("selection")
+		if errors.is_empty():
+			warned_no_keeper = true
+			message(Core.t("ui.desktop.no_goalkeeper"))
+		else:
+			message(Core.t("ui.select.errors",
+					{"problems": ", ".join(errors.map(func(i): return i["code"]))}))
+		return
+	var kept: Dictionary = await Core.request("selection.confirm", {"selection": selection})
+	if kept.has("error"):
+		message(UI.error_text(kept))
+		return
+	warned_no_keeper = false
+	await play_match_day()
+
+
+## The match is played live (spec 008); its screen starts it.
 func play_match_day() -> void:
 	await show_screen("match_day")
 
@@ -385,7 +440,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				if current.playback != null:
 					current.toggle_pause()
 				get_viewport().set_input_as_handled()
-			elif current_name not in ["selection", "tactics", "careers"]:
+			elif current_name not in ["tactics", "careers"]:
 				continue_game()
 				get_viewport().set_input_as_handled()
 		KEY_X:

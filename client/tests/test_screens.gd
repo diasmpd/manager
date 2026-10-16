@@ -102,10 +102,12 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 		return
 	var selection = main.current
 	t.check(selection._xi.get_root().get_child_count() == 11, "eleven starters listed")
-	selection._confirm()
+	t.check(main._continue_button.text == UI.t("ui.desktop.go_to_match").to_upper(),
+			"the top bar says Ir para o jogo on a match day")
+	main.continue_game()  # Ir para o jogo
 	var shown: bool = await _wait(t, func(): return main.current_name == "match_day")
-	if not shown and main.current_name == "selection":  # a no-goalkeeper warning: confirm again
-		selection._confirm()
+	if not shown and main.current_name == "selection":  # a no-goalkeeper warning: go again
+		main.continue_game()
 		shown = await _wait(t, func(): return main.current_name == "match_day")
 	t.check(shown, "the match day is shown")
 	await _wait(t, func(): return main.current._timer != null)
@@ -164,6 +166,28 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 	t.check(day._feed.visible and not day._pitch.visible, "the feed is shown, not the pitch")
 	var some: bool = await _wait(t, func(): return day._state["minute"]["base"] > 5, 30.0)
 	t.check(some, "the live clock runs")
+	# the menu's screens open inside the match day: the scoreboard stays, the clock runs on
+	await main.show_screen("news")
+	t.check(main.current == day and day._inner.visible and not day._body.visible,
+			"the news opens inside the match day")
+	t.check(day._score.is_visible_in_tree() and day._match_button.visible,
+			"the scoreboard and Partida stay on top")
+	var news_from: int = day._state["minute"]["base"]
+	var ran: bool = await _wait(t, func(): return day._state["minute"]["base"] > news_from, 30.0)
+	t.check(ran, "the clock runs while the news is read")
+	# the tactic pauses the match, and a change goes to the match at once
+	await main.show_screen("tactics")
+	t.check(main.current == day and day._paused, "the tactic opens inside, paused")
+	var tactics = day._inner_screen
+	var mentality: String = tactics._tactic["mentality"]
+	UI.select_key(tactics._instructions, "mentality")
+	await tactics._cycle_instruction()
+	var live_state: Dictionary = await t.core().request("match.state")
+	t.check(live_state["result"]["tactic"]["mentality"] != mentality,
+			"the new mentality is the match's, with no Confirmar")
+	day.close_inner()
+	t.check(day._body.visible and not day._inner.visible and not day._paused,
+			"Partida: back to the match, playing again")
 	# pause, substitute while paused, resume
 	day._toggle_pause()
 	t.check(day._paused, "paused")
@@ -292,9 +316,7 @@ func test_change_the_mentality(t) -> void:
 	await main.show_screen("tactics")
 	var screen = main.current
 	UI.select_key(screen._instructions, "mentality")
-	await screen._cycle_instruction()
-	screen._confirm()
-	await _wait(t, func(): return main.current_name != "tactics")
+	await screen._cycle_instruction()  # kept at once: no Confirmar
 	var after: Dictionary = await t.core().request("tactic.current")
 	t.check(after["result"]["mentality"] != before["result"]["mentality"], "mentality changed")
 

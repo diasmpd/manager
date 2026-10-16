@@ -112,3 +112,5 @@ Annoyances reported by the owner, each linked to the spec that fixes it.
 | Pain point | Fix | Spec |
 |---|---|---|
 | Had to sub every booked player to avoid a red card | Booked players ease off tackles automatically, with a trade-off (lose more duels) | 008 |
+| Match day in this game (2026-10-16): Confirmar on the tactics screen and Confirmar e jogar on team selection are confusing, and leaving the tactics without Confirmar lost the changes | FM's way: changes apply as they are made; one way on, the top bar's Ir para o jogo | 008b |
+| In this game (2026-10-16): opening news or tables during a live match left the match-day layout (and the way back went through team selection) | The scoreboard and match controls stay; menu screens open inside the match day, with Partida to return | 008b |
