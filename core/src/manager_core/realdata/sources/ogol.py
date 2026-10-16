@@ -39,6 +39,8 @@ class RawClub:
     state: str | None
     colors: tuple[str, str] | None
     squad: tuple[SquadEntry, ...]
+    stadium: str | None = None
+    capacity: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +50,7 @@ class SeasonLine:
     games: int
     goals: int
     assists: int
+    team_path: str = ""  # e.g. /equipe/america-mineiro (own-club links carry no id)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +64,10 @@ class RawPlayer:
     height_cm: int | None
     weight_kg: int | None
     career: tuple[SeasonLine, ...] = field(default=())
+
+
+_ROW_END = re.compile(r'<div class="card-data(?:__row|__header|__body|__footer|[ "])|<h2|<table'
+                      r'|<div id="|<script')
 
 
 def _text(fragment: str) -> str:
@@ -77,8 +84,8 @@ def _cards(page: str) -> dict[str, str]:
             continue
         rest = row[label.end():]
         key = _text(label.group(1))
-        if key not in out:
-            out[key] = _text(rest.split('<div class="card-data__row')[0])
+        if key not in out:  # the last row ends where its card does, not at the page's end
+            out[key] = _text(_ROW_END.split(rest, maxsplit=1)[0])
     return out
 
 
@@ -136,7 +143,12 @@ def parse_club(page: str) -> RawClub:
     founded = cards.get("Ano de Fundação")
     if founded and re.fullmatch(r"\d{4}-00-00", founded):  # only the year is known
         founded = founded[:4]
-    return RawClub(cards.get("Nome", ""), founded, city, state, colors, tuple(squad))
+    stadium = re.search(r'<div id="stadium">.*?<div class="name"><span><a[^>]*>(.*?)</a>', page,
+                        re.S)
+    capacity = re.search(r"Lotação\s*<span>\s*([\d.]+)", page)
+    return RawClub(cards.get("Nome", ""), founded, city, state, colors, tuple(squad),
+                   _text(stadium.group(1)) if stadium else None,
+                   int(capacity.group(1).replace(".", "")) if capacity else None)
 
 
 def _int(cell: str) -> int:
@@ -147,7 +159,10 @@ def _int(cell: str) -> int:
 def parse_player(page: str, ogol_id: int) -> RawPlayer:
     cards = _cards(page)
     birth = re.match(r"(\d{4}-\d{2}-\d{2})", cards.get("Data de Nascimento", ""))
-    size = re.match(r"(\d+)\s*cm(?:\s*/\s*(\d+)\s*kg)?", cards.get("Altura / Peso", ""))
+    # "Altura / Peso": "188 cm / 84 kg"; or "Altura": "187 cm" and "Peso": "80 kg" apart
+    size = re.match(r"(\d+)\s*cm(?:\s*/\s*(\d+)\s*kg)?",
+                    cards.get("Altura / Peso") or cards.get("Altura", ""))
+    weight = re.match(r"(\d+)\s*kg", cards.get("Peso", ""))
     career: list[SeasonLine] = []
     table = ""
     if 'class="career"' in page:
@@ -159,13 +174,17 @@ def parse_player(page: str, ogol_id: int) -> RawPlayer:
             continue
         season = _text(cells[1]) or season
         team = re.search(r"/equipe/[a-z0-9-]+/(\d+)", cells[2])
+        path = re.search(r'href="(/equipe/[^"?]+)', cells[2])
         career.append(SeasonLine(season, int(team.group(1)) if team else None, _int(cells[3]),
-                                 _int(cells[4]), _int(cells[5])))
+                                 _int(cells[4]), _int(cells[5]), path.group(1) if path else ""))
     return RawPlayer(
         ogol_id=ogol_id, full_name=cards.get("Nome"),
         birth_date=birth.group(1) if birth else None,
-        nationality=cards.get("Nacionalidade"), position=cards.get("Posição") or None,
+        nationality=(cards.get("Nacionalidade")
+                     or cards.get("Nacionalidade / Dupla Nacionalidade")),
+        position=cards.get("Posição") or None,
         foot=FEET.get(cards.get("Pé preferencial", "")),
         height_cm=int(size.group(1)) if size else None,
-        weight_kg=int(size.group(2)) if size and size.group(2) else None,
+        weight_kg=(int(size.group(2)) if size and size.group(2)
+                   else int(weight.group(1)) if weight else None),
         career=tuple(career))

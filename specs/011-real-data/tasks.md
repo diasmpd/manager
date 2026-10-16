@@ -9,12 +9,12 @@ never the network or private data.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the `manager_core.realdata` package skeleton (`__init__.py`, `__main__.py` with argparse subcommands `collect`, `build`, `report`, `correct` and `check-public` per contracts/realdata-cli.md) in core/src/manager_core/realdata/.
+- [x] T001 Create the `manager_core.realdata` package skeleton (`__init__.py`, `__main__.py` with argparse subcommands `collect`, `build`, `report`, `correct` and `check-public` per contracts/realdata-cli.md) in core/src/manager_core/realdata/.
 - [ ] T002 [P] Lay out the private repository: `inputs/mineiro.toml` (the 12 Módulo I clubs of 2026 with `club_id`, `division`, `module`, `ogol_id`, `wikipedia_title` and owner `colors` as `#RRGGBB`), `.gitattributes` and a README, in C:\Users\DE0191297\Documents\manager-data (private repository, never the public one).
 
 ## Phase 2: Foundational
 
-- [ ] T003 Write tests for the fetcher with a fake opener. It must:
+- [x] T003 Write tests for the fetcher with a fake opener. It must:
   - obey robots.txt (refuse disallowed paths);
   - wait at least 4 s per host, with an injectable clock;
   - send the honest user agent;
@@ -24,8 +24,8 @@ never the network or private data.
   - log every fetch.
 
   In core/tests/unit/test_realdata_fetch.py.
-- [ ] T004 Implement the fetcher (R2) with urllib.request and urllib.robotparser, a gzipped cache `cache/<source>/<sha1>.html.gz` and `cache/<source>/log.csv` (`url;fetched_at;status;bytes`), in core/src/manager_core/realdata/fetch.py.
-- [ ] T005 [P] Write tests and implement the public-repo guard (R7):
+- [x] T004 Implement the fetcher (R2) with urllib.request and urllib.robotparser, a gzipped cache `cache/<source>/<sha1>.html.gz` and `cache/<source>/log.csv` (`url;fetched_at;status;bytes`), in core/src/manager_core/realdata/fetch.py.
+- [x] T005 [P] Write tests and implement the public-repo guard (R7):
   - every tracked `dataset.csv` declares `fictional=true`;
   - no tracked file matches the private layout (`cache/`, `corrections.csv`, `datasets/`);
   - the CLI refuses a data repository inside the public repository.
@@ -51,8 +51,8 @@ owner's choices are recorded.
 starts and plays a match day with a real club.
 
 - [ ] T009 [P] [US2] Add fictional HTML fixtures: an ogol club squad page, two ogol player pages (one with market value, one without) and a Wikipedia club page, mirroring the real pages' structure with invented names. In core/tests/fixtures/realdata/.
-- [ ] T010 [P] [US2] Write tests for the ogol parsers. The squad page gives player ids, shirt numbers, positions, names, ages, nationalities, games and values. The player page gives birth date, height, foot, positions, and minutes, goals and assists by season. In core/tests/unit/test_realdata_ogol.py.
-- [ ] T011 [US2] Implement the ogol parsers with html.parser, returning RawClub and RawPlayer (data-model.md), in core/src/manager_core/realdata/sources/ogol.py.
+- [x] T010 [P] [US2] Write tests for the ogol parsers. The squad page gives player ids, shirt numbers, positions, names, ages, nationalities, games and values. The player page gives birth date, height, foot, positions, and minutes, goals and assists by season. In core/tests/unit/test_realdata_ogol.py.
+- [x] T011 [US2] Implement the ogol parsers with html.parser, returning RawClub and RawPlayer (data-model.md), in core/src/manager_core/realdata/sources/ogol.py.
 - [ ] T012 [P] [US2] Write tests and implement the Wikipedia parser (club infobox: name, city, stadium, capacity, founded; competition final table) in core/tests/unit/test_realdata_wikipedia.py and core/src/manager_core/realdata/sources/wikipedia.py.
 - [ ] T013 [US2] Write tests and implement the merge (R3):
   - ids `p-og<id>`, and club slugs;
@@ -62,8 +62,8 @@ starts and plays a match day with a real club.
   - `sources.csv` and `external_refs.csv` rows.
 
   In core/tests/unit/test_realdata_merge.py and core/src/manager_core/realdata/merge.py.
-- [ ] T014 [US2] Implement `build`: cache, then parse, merge, synthesise (T017), correct (T021), write with the 001 writer and validate. Add `import-report.md` (FR-008, per club). Write a test: an integration build from fixtures gives a valid dataset that a career can load and play. In core/src/manager_core/realdata/build.py and core/tests/integration/test_realdata_build.py.
-- [ ] T015 [US2] Implement `collect` for ogol and Wikipedia over `inputs/mineiro.toml`: club pages, then each squad player's page. Run it once for Módulo I at a 4 s or longer pace, into the private cache. In core/src/manager_core/realdata/__main__.py.
+- [x] T014 [US2] Implement `build`: cache, then parse, merge, synthesise (T017), correct (T021), write with the 001 writer and validate. Add `import-report.md` (FR-008, per club). Write a test: an integration build from fixtures gives a valid dataset that a career can load and play. In core/src/manager_core/realdata/build.py and core/tests/integration/test_realdata_build.py.
+- [x] T015 [US2] Implement `collect` for ogol and Wikipedia over `inputs/mineiro.toml`: club pages, then each squad player's page. Run it once for Módulo I at a 4 s or longer pace, into the private cache. In core/src/manager_core/realdata/__main__.py.
 
 ## Phase 5: User Story 3 - Believable ability (P2)
 
@@ -75,7 +75,7 @@ starts and plays a match day with a real club.
 - the Módulo I build reaches SC-003.
 
 - [ ] T016 [P] [US3] Write the model parameters (club baselines by division; offsets for minutes share, log value, age and output per 90; the CA-to-attribute-mean mapping; position profiles; age curves; PA headroom) in core/src/manager_core/reference/synthesis/model.toml and profiles.toml.
-- [ ] T017 [US3] Write tests and implement the synthesis model (R4). The tests cover:
+- [x] T017 [US3] Write tests and implement the synthesis model (R4). The tests cover:
   - attributes are in 1–20;
   - a goalkeeper's profile against a winger's;
   - age curves;
@@ -119,6 +119,35 @@ it loads unchanged.
 
 - [ ] T024 Write docs: README (real data: private repository, CLI, owner review), roadmap (011 status), and quickstart verification run.
 - [ ] T025 Run the full suites (core, client), plus ruff and mypy. Open the PR and ask the owner before merging.
+
+## Progress notes (2026-10-16)
+
+- **`build` works on the real Módulo I cache** (T014, offline, byte-stable): 12 clubs and 549
+  players, 0 validation errors and 0 warnings. A career on it starts, and a whole Mineiro plays
+  through (Cruzeiro x North at the Mineirão to open). Squad strength (mean CA of the top 16):
+  Cruzeiro 131, Atlético 129, Athletic 108, América 106, the rest 76-85.
+- **Squads are the 2026 season lists, departed players included** (my call, his rule; to confirm
+  in review). In October a state-league-only club's page shows only the few players still under
+  contract (Itabirito 4, North 3, URT 5 active), but its whole season list (29-41) is the Mineiro
+  squad, and the game plays the Mineiro. A player listed at several clubs plays for the one he
+  is still at, or, at none, for the one he played most games for that season. The import report
+  lists the moves.
+- Players outside the 001 ages (14-45) are left out and listed in the report (one: a 53-year-old
+  veteran at Democrata).
+- The parsers gained:
+  - the stadium and its capacity (from the club page, so Wikipedia is not needed for the MVP);
+  - the height under "Altura" alone, and the weight under "Peso";
+  - the dual nationality, which ogol runs together ("Brasil Itália"), matched longest first;
+  - the team path of each career line (own-club links carry no id);
+  - the last card row, which no longer runs to the end of the page.
+- `reference/nations.csv` gains Guiné and São Tomé e Príncipe. The 001 flags gain
+  `synthesis_confidence` and `incomplete`.
+- `inputs/mineiro.toml` (private) gains short names and abbreviations (Pouso Alegre is POU, not
+  PAL). These are to confirm in review.
+- **Gap for T018 (SC-003)**: over 20 simulated Mineiros the order is right (the big four on top),
+  but the spread is flat. Atlético, Cruzeiro and Athletic win 5 each, and a state-league club
+  wins about 1 in 7. In reality the big two win nearly every year. Next: T018 (tune the
+  synthesis against the real table), the Wikipedia parser (T012), corrections (T019-T021).
 
 ## Dependencies
 

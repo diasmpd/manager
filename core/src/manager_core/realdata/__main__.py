@@ -1,6 +1,7 @@
 """The real-data CLI (spec 011, contracts/realdata-cli.md).
 
     python -m manager_core.realdata collect --data-repo ..\\manager-data [--refresh] [--delay 4]
+    python -m manager_core.realdata build --data-repo ..\\manager-data --out datasets\\mineiro-2026
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ import sys
 import tomllib
 from pathlib import Path
 
+from manager_core.realdata.build import COMPETITIONS, build
 from manager_core.realdata.fetch import DEFAULT_DELAY, Fetcher, SourceStopped
 from manager_core.realdata.sources import ogol
 
@@ -54,6 +56,11 @@ def main(argv: list[str] | None = None) -> int:
     cmd.add_argument("--data-repo", type=Path, required=True)
     cmd.add_argument("--refresh", action="store_true")
     cmd.add_argument("--delay", type=float, default=DEFAULT_DELAY)
+    cmd = sub.add_parser("build")
+    cmd.add_argument("--data-repo", type=Path, required=True)
+    cmd.add_argument("--competition", choices=sorted(COMPETITIONS), default="mineiro-1")
+    cmd.add_argument("--out", type=Path, required=True,
+                     help="the dataset folder, relative to the data repository")
     args = parser.parse_args(argv)
     if _inside_public(args.data_repo):
         print("refused: the data repository must not be inside the public repository",
@@ -61,6 +68,18 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if args.command == "collect":
         return collect(args.data_repo, args.refresh, max(args.delay, DEFAULT_DELAY))
+    if args.command == "build":
+        out = args.out if args.out.is_absolute() else args.data_repo / args.out
+        if _inside_public(out):
+            print("refused: a real dataset must not be written inside the public repository",
+                  file=sys.stderr)
+            return 1
+        result = build(args.data_repo, out, args.competition)
+        players = sum(r.players for r in result.clubs)
+        print(f"{len(result.clubs)} clubs, {players} players -> {out}")
+        for error in result.errors:
+            print(f"error: {error}", file=sys.stderr)
+        return 1 if result.errors else 0
     return 1
 
 

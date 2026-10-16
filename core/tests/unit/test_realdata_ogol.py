@@ -27,6 +27,7 @@ def test_club_identity_colours_and_squad() -> None:
     assert back.market_value_eur == 150_000
     assert mid.group == "M" and mid.name == "Meia São João" and mid.market_value_eur is None
     assert forward.group == "A" and forward.market_value_eur == 1_500_000
+    assert club.stadium == "Estádio do Faz de Conta" and club.capacity == 12_500
 
 
 def test_player_facts_and_career() -> None:
@@ -40,3 +41,16 @@ def test_player_facts_and_career() -> None:
     # the blank season cell continues the season above; "-" is none
     assert [(s.season, s.team_id, s.games, s.goals, s.assists) for s in player.career] == [
         ("2026", 90001, 14, 1, 0), ("2025", 90002, 30, 3, 2), ("2025", 90001, 5, 0, 0)]
+    assert [s.team_path for s in player.career] == [
+        "/equipe/clube-ficticio/90001", "/equipe/outro-time/90002", "/equipe/clube-ficticio/90001"]
+
+
+def test_height_alone_and_dual_nationality() -> None:
+    """Some pages give "Altura" without the weight, and a dual nationality under its own label."""
+    page = _read("ogol_player.html").replace(
+        "Altura / Peso</span><span class=\"card-data__value\">188 cm / 84 kg",
+        "Altura</span><span class=\"card-data__value\">187 cm").replace(
+        ">Nacionalidade<", ">Nacionalidade / Dupla Nacionalidade<")
+    player = parse_player(page, 700003)
+    assert player.height_cm == 187 and player.weight_kg is None
+    assert player.nationality == "Paraguai"

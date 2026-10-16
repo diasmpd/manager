@@ -46,3 +46,11 @@ under_21 = 40.0
 under_24 = 22.0
 under_27 = 8.0
 over_27 = 0.0
+
+# A club's reputation (1-20) by its national division (state-league-only clubs: "none").
+[club_reputation]
+A = 15
+B = 12
+C = 10
+D = 8
+none = 6
