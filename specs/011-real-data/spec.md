@@ -341,8 +341,12 @@ save it, and load the dataset.
   owner chooses the sources without further research.
 - **SC-002**: 100% of Módulo I clubs are imported with real identity and colours, and each has at
   least 22 first-team players. 100% of records carry provenance.
-- **SC-003**: The synthesised club strengths rank the Módulo I clubs in close agreement with their
-  real recent standings: a rank correlation of at least 0.7 against the last completed Mineiro.
+- **SC-003**: The synthesised squads win the Mineiro as often as the real clubs do. Over 100
+  simulated Mineiros, the clubs with the most real titles in the last 20 years win a share within
+  10 points of their real share (2007-2026: Atlético and Cruzeiro 95%, with América 100%). The
+  rank correlation against the last real table is reported for reference only. Owner decision
+  2026-10-18: one 8-game first phase is too noisy to rank clubs by; the game's own strength
+  ranking reaches 0.7 against a simulated first phase only one season in five.
 - **SC-004**: 100% of owner corrections survive a re-import. The audit trail shows each one at
   field level.
 - **SC-005**: A full Módulo I re-import from cached inputs takes at most 10 minutes on the

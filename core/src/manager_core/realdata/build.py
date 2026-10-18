@@ -28,6 +28,7 @@ from manager_core.ratings.ability import current_ability
 from manager_core.realdata import mapping, synthesis
 from manager_core.realdata.fetch import Fetcher
 from manager_core.realdata.sources import ogol
+from manager_core.realdata.strength import strength
 from manager_core.sample.generator import HEIGHT_BY_POSITION
 
 TOOL = "manager_core.realdata"
@@ -283,14 +284,6 @@ def build(data_repo: Path, out: Path, competition: str = "mineiro-1") -> BuildRe
     return BuildResult(out, tuple(errors), tuple(reports.values()))
 
 
-def _strength(dataset: Dataset, club_id: str, size: int = 16) -> float:
-    """The mean CA of the club's best `size` players."""
-    cas = sorted((current_ability(dataset.players[m.player_id])
-                  for m in dataset.memberships.values() if m.club_id == club_id), reverse=True)
-    top = cas[:size]
-    return sum(top) / len(top) if top else 0.0
-
-
 def _write_report(out: Path, dataset: Dataset, reports: list[ClubReport],
                   errors: list[str]) -> None:
     sources = ", ".join(f"{s.name} (retrieved {s.retrieved_on})" for s in dataset.sources)
@@ -304,7 +297,7 @@ def _write_report(out: Path, dataset: Dataset, reports: list[ClubReport],
         "| Club | Listed | Players | Strength (top-16 CA) | Confidence h/m/l | Defaulted |",
         "|---|---|---|---|---|---|",
     ]
-    ranked = sorted(reports, key=lambda r: -_strength(dataset, r.club_id)
+    ranked = sorted(reports, key=lambda r: -strength(dataset, r.club_id)
                     if r.club_id in dataset.clubs else 0.0)
     for r in ranked:
         if r.club_id not in dataset.clubs:
@@ -313,7 +306,7 @@ def _write_report(out: Path, dataset: Dataset, reports: list[ClubReport],
         conf = "/".join(str(r.confidence[k]) for k in ("high", "medium", "low"))
         defaulted = ", ".join(f"{k} {v}" for k, v in sorted(r.defaulted.items())) or "-"
         lines.append(f"| {r.club_id} | {r.listed} | {r.players} | "
-                     f"{_strength(dataset, r.club_id):.1f} | {conf} | {defaulted} |")
+                     f"{strength(dataset, r.club_id):.1f} | {conf} | {defaulted} |")
     lines += ["", "## Per club", ""]
     for r in reports:
         lines.append(f"### {r.club_id}")

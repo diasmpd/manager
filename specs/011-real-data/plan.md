@@ -62,7 +62,7 @@ synthesis model is tested on the fictional sample.
 
 | Principle | How the plan meets it |
 |---|---|
-| I. Realism is measured | Synthesis checked against real outcomes (SC-003 rank correlation 0.7 or more against the 2026 Mineiro), plus the owner's plausibility check of a quick-sim season (SC-008). Game calibration targets unchanged. |
+| I. Realism is measured | Synthesis checked against real outcomes (SC-003: simulated Mineiro title shares against the real 2007-2026 champions), plus the owner's plausibility check of a quick-sim season (SC-008). Game calibration targets unchanged. |
 | II. Deterministic | Same cache plus same corrections gives an identical dataset. Model "noise" is seeded by player id. |
 | III. Headless core, thin client | All in `manager_core`. The client only reads the dataset (club colours already flow through contract 1.3). |
 | IV. Test-first | Parsers tested on fictional HTML fixtures. Model tested on the sample. Corrections and Excel round trips tested. |

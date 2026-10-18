@@ -18,7 +18,8 @@
    Expected:
    - the dataset validates;
    - every Módulo I club has 22 or more players (SC-002);
-   - the report shows Spearman 0.7 or more against the 2026 table (SC-003).
+   - `… strength --out datasets\mineiro-2026` shows the top two and top three title shares
+     within 10 points of the real ones (SC-003).
 3. **Play**: start a career with the dataset, pick Pouso Alegre, and play a match day. The look
    uses Pouso Alegre's real colours.
 4. **Correct**: `… correct --record player:p-og<id> --field finishing --value 15`. Rebuild, and

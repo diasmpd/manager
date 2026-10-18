@@ -84,7 +84,7 @@ starts and plays a match day with a real club.
   - no input field named for another game's rating.
 
   In core/tests/unit/test_realdata_synthesis.py and core/src/manager_core/realdata/synthesis.py.
-- [ ] T018 [US3] Add the SC-003 check: the Spearman correlation between the clubs' team strength (the game's AI strength) and the real final table, in the import report. Tune `model.toml` until it is at least 0.7 on Módulo I. In core/src/manager_core/realdata/build.py.
+- [x] T018 [US3] Add the SC-003 check (revised 2026-10-18, owner decision): the `strength` command simulates the Mineiro and sets each club's title share against the real champions of 2007-2026. Tune `model.toml` until the top-two and top-three shares are within 10 points. In core/src/manager_core/realdata/strength.py.
 
 ## Phase 6: User Story 4 - Corrections stick (P2)
 
@@ -148,6 +148,20 @@ it loads unchanged.
   but the spread is flat. Atlético, Cruzeiro and Athletic win 5 each, and a state-league club
   wins about 1 in 7. In reality the big two win nearly every year. Next: T018 (tune the
   synthesis against the real table), the Wikipedia parser (T012), corrections (T019-T021).
+
+## Progress notes (2026-10-18)
+
+- **SC-003 revised** (owner decision): one real season is too noisy to rank by (the game's own
+  strength ranking reaches Spearman 0.7 against a simulated first phase only 20% of the time), so
+  the check is the simulated title share against the real champions of 2007-2026 (ogol: Atlético
+  12, Cruzeiro 7, América 1).
+- **Synthesis 0.2**: division baselines A 150, B 100, C 88, D 78, none 70. Over 100 Mineiros the
+  top two win 94% (real 95%) and the top three 96% (real 100%); goals per match are unchanged.
+  Research R4 has the fit table.
+- **Bug fixed**: the live pages write values as "3.00 M €", which was read as 300 M (the dot taken
+  for a thousands separator). Values are now right (Cruzeiro's median €3 M).
+- Club market values cannot separate the Série B clubs, and most smaller clubs have none.
+- Next: Wikipedia parser (T012), corrections (T019-T021), Excel tolerance (T022).
 
 ## Dependencies
 

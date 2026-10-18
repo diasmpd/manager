@@ -54,3 +54,14 @@ def test_height_alone_and_dual_nationality() -> None:
     player = parse_player(page, 700003)
     assert player.height_cm == 187 and player.weight_kg is None
     assert player.nationality == "Paraguai"
+
+
+def test_market_values_in_every_format_the_pages_use() -> None:
+    from manager_core.realdata.sources.ogol import _money
+
+    assert _money("25 anos - 3.00 M €") == 3_000_000  # the live pages
+    assert _money("30 anos - 12.00 M €") == 12_000_000
+    assert _money("1,5 M €") == 1_500_000
+    assert _money("150 mil €") == 150_000
+    assert _money("1.200 mil €") == 1_200_000
+    assert _money("31 anos") is None

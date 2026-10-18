@@ -191,8 +191,23 @@ These are the reference for SC-003, the synthesis model's strength ranking.
      - **Variation** is seeded by player id (deterministic), so two players of the same profile
        still differ.
      - **Potential (PA)** comes from CA plus an age-based headroom.
-- **Calibration**: SC-003, a Spearman rank correlation of 0.7 or more between the clubs'
-  synthesised strength (the game's team strength) and the 2026 Módulo I final table. The model is
+- **Calibration** (revised 2026-10-18, owner decision): SC-003 compares simulated title shares
+  with the real champions of 2007-2026 (ogol's list of winners: Atlético 12, Cruzeiro 7,
+  América 1). The first plan, a Spearman of 0.7 against the 2026 table, measured luck: the
+  game's own strength ranking reaches it against a simulated first phase only 20% of the time
+  (mean 0.47 over 40 seasons). Fit (100 seasons each):
+
+  | Baselines A/B/D/none | Top two | Top three | Goals per match |
+  |---|---|---|---|
+  | 125/105/82/74 (first set) | 56% | 76% | 2.77 |
+  | 145/100/78/70 | 88% | 93% | 2.74 |
+  | **150/100/78/70 (adopted, synthesis 0.2)** | **94%** | **96%** | 2.74 |
+  | real 2007-2026 | 95% | 100% | 2.48 (2026 first phase) |
+
+  Club market values do not separate the Série B clubs (Athletic's valued players are worth
+  more than América's) and are missing for most smaller clubs, so the baseline stays by
+  division. Goals per match sit above the real Mineiro's under every set: that is the quick
+  sim's level, not the squads'. The model is
   unit-tested on the fictional sample (distribution, profiles and determinism), so tests never need
   private data.
 - **Alternatives**:

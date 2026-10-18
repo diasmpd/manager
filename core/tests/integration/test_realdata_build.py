@@ -159,3 +159,22 @@ def test_a_career_on_the_real_data_format_plays(data_repo: Path, tmp_path: Path)
         stop = api.continue_career(career, tmp_path)
     api.continue_career(career, tmp_path)
     assert stop.match_id in career.season.results
+
+
+def test_the_strength_check_counts_titles(data_repo: Path) -> None:
+    """SC-003 (owner decision 2026-10-18): simulated title shares against the real ones."""
+    from manager_core.realdata.strength import check, spearman
+
+    out = data_repo / "datasets" / "strength"
+    build(data_repo, out)
+    dataset = api.load_dataset(out).dataset
+    assert dataset is not None
+    result = check(dataset, 2, {"inventado-0": 3, "inventado-4": 1})
+    assert sum(result.titles.values()) == 2 and result.goals_per_match > 0
+    assert result.real_share(("inventado-0",)) == 0.75
+    assert 0.0 <= result.share(("inventado-0", "inventado-4")) <= 1.0
+    # the Série A clubs (0 and 4) are the strongest: division drives the baseline
+    ranked = sorted(result.strength, key=lambda c: -result.strength[c])
+    assert set(ranked[:2]) == {"inventado-0", "inventado-4"}
+    assert spearman(["a", "b", "c"], ["a", "b", "c"]) == 1.0
+    assert spearman(["a", "b", "c"], ["c", "b", "a"]) == -1.0

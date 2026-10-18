@@ -1,14 +1,17 @@
 # The attribute-synthesis model (spec 011 R4). Public: the method is ours and tunable; the data
 # it is applied to is private. CA is FM's 1-200 scale, as `ratings.ability.current_ability`.
-model_version = "synthesis 0.1"
+model_version = "synthesis 0.2"
 
 # A regular first-teamer's CA by the club's national division (state-league-only clubs: "none").
+# Fitted 2026-10-18 (SC-003) so that, over 100 simulated Mineiros with the real 2026 squads, the
+# two Série A clubs win 94% of the titles and the three biggest 96%; the real champions of
+# 2007-2026 are Atlético 12, Cruzeiro 7 and América 1 (95% and 100%). C sits between B and D.
 [division_ca]
-A = 125.0
-B = 105.0
-C = 92.0
-D = 82.0
-none = 74.0
+A = 150.0
+B = 100.0
+C = 88.0
+D = 78.0
+none = 70.0
 
 [offsets]
 # share of the club's games in the season (0..1): a regular starter (1.0) gains, a rarely used

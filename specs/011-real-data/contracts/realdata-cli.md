@@ -13,6 +13,7 @@ Every command refuses a `--data-repo` inside the public repository (R7). Exit co
 | `build` | `--competition …` `--out datasets/<name>` | Parse, merge, synthesise, apply corrections, then write the 001 dataset and `import-report.md`. Offline: it reads only the cache. Deterministic. |
 | `report` | `--out datasets/<name>` | Prints the import report, including the SC-003 ranking against the real table. |
 | `correct` | `--record player:p-og123 --field finishing --value 14 [--note …]` | Appends a row to `corrections.csv` with the current value as `old_value` and today's date. |
+| `strength` | `--out datasets/<name>` `[--seasons 100]` | SC-003: simulates the Mineiro with the quick sim and prints each club's strength and title share beside its real share (`[history]` in the inputs), the top-two and top-three shares, goals per match, and the Spearman against the last real table (reference only). |
 | `check-public` | `--repo <public repo>` | The R7 guard, as a command. Also run by the test suite. |
 
 The dataset loads like the sample: `python -m manager_core --data <manager-data>/datasets/<name>

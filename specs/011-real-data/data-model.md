@@ -53,7 +53,8 @@ sources, and adds the inputs and outputs of the pipeline in the private reposito
 - Its inputs: cache date range, model version, number of corrections.
 - Per club: players found, fields missing, source disagreements, unresolved identities, the
   confidence mix.
-- SC-003: the club strength ranking against the real table, with its Spearman correlation.
+- The club strength ranking (mean CA of the best 16). SC-003 itself is the `strength` command:
+  simulated title shares against `[history]` in `inputs/mineiro.toml`.
 
 ## State: a player through the pipeline
 

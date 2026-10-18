@@ -2,6 +2,7 @@
 
     python -m manager_core.realdata collect --data-repo ..\\manager-data [--refresh] [--delay 4]
     python -m manager_core.realdata build --data-repo ..\\manager-data --out datasets\\mineiro-2026
+    python -m manager_core.realdata strength --data-repo ..\\manager-data --out ... [--seasons 100]
 """
 
 from __future__ import annotations
@@ -11,6 +12,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+from manager_core import api
+from manager_core.realdata import strength
 from manager_core.realdata.build import COMPETITIONS, build
 from manager_core.realdata.fetch import DEFAULT_DELAY, Fetcher, SourceStopped
 from manager_core.realdata.sources import ogol
@@ -61,6 +64,10 @@ def main(argv: list[str] | None = None) -> int:
     cmd.add_argument("--competition", choices=sorted(COMPETITIONS), default="mineiro-1")
     cmd.add_argument("--out", type=Path, required=True,
                      help="the dataset folder, relative to the data repository")
+    cmd = sub.add_parser("strength", help="SC-003: simulated title shares against the real ones")
+    cmd.add_argument("--data-repo", type=Path, required=True)
+    cmd.add_argument("--out", type=Path, required=True, help="the dataset folder")
+    cmd.add_argument("--seasons", type=int, default=100)
     args = parser.parse_args(argv)
     if _inside_public(args.data_repo):
         print("refused: the data repository must not be inside the public repository",
@@ -80,7 +87,36 @@ def main(argv: list[str] | None = None) -> int:
         for error in result.errors:
             print(f"error: {error}", file=sys.stderr)
         return 1 if result.errors else 0
+    if args.command == "strength":
+        return _strength(args.data_repo, args.out if args.out.is_absolute()
+                         else args.data_repo / args.out, args.seasons)
     return 1
+
+
+def _strength(data_repo: Path, out: Path, seasons: int) -> int:
+    loaded = api.load_dataset(out)
+    if loaded.dataset is None:
+        print(f"error: {out} is not a valid dataset (run build)", file=sys.stderr)
+        return 1
+    history = _inputs(data_repo).get("history", {})
+    result = strength.check(loaded.dataset, seasons, history.get("champions", {}))
+    names = {c.id: c.short_name for c in loaded.dataset.clubs.values()}
+    print(f"{seasons} simulated Mineiros; real: {history.get('champions_years', '?')}")
+    print(f"{'club':16s} {'strength':>8s} {'titles':>7s} {'real':>6s}")
+    for club in sorted(result.strength, key=lambda c: -result.strength[c]):
+        print(f"{names[club]:16s} {result.strength[club]:8.1f} "
+              f"{result.titles.get(club, 0) / seasons:7.0%} {result.real_share((club,)):6.0%}")
+    big = tuple(sorted(result.history, key=lambda c: -result.history[c]))
+    for k in (2, 3):
+        print(f"top {k} by real titles: simulated {result.share(big[:k]):.0%}, "
+              f"real {result.real_share(big[:k]):.0%}")
+    print(f"goals per first-phase match: {result.goals_per_match:.2f}")
+    table = history.get("last_table", [])
+    if sorted(table) == sorted(result.strength):
+        ranked = sorted(table, key=lambda c: -result.strength[c])
+        print(f"strength vs the last real table (reference only): Spearman "
+              f"{strength.spearman(ranked, table):.2f}")
+    return 0
 
 
 if __name__ == "__main__":

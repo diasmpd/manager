@@ -97,11 +97,16 @@ def _colour(value: str) -> str:
 
 
 def _money(text: str) -> int | None:
-    """'150 mil €' -> 150000; '1,5 M €' -> 1500000."""
+    """'150 mil €' -> 150000; '1,5 M €' and '1.50 M €' -> 1500000; '1.200 mil €' -> 1200000.
+    A separator followed by one or two digits is the decimal one (the live pages write
+    '3.00 M €'); one followed by three is a thousands separator."""
     match = re.search(r"([\d.,]+)\s*(mil|M)\s*€", text)
     if not match:
         return None
-    number = float(match.group(1).replace(".", "").replace(",", "."))
+    digits = match.group(1)
+    decimal = re.fullmatch(r"([\d.,]*?)[.,](\d{1,2})", digits)
+    whole, fraction = (decimal.group(1), decimal.group(2)) if decimal else (digits, "0")
+    number = float(re.sub(r"[.,]", "", whole or "0") + "." + fraction)
     return round(number * (1_000 if match.group(2) == "mil" else 1_000_000))
 
 
