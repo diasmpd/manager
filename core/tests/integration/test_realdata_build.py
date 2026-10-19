@@ -178,3 +178,29 @@ def test_the_strength_check_counts_titles(data_repo: Path) -> None:
     assert set(ranked[:2]) == {"inventado-0", "inventado-4"}
     assert spearman(["a", "b", "c"], ["a", "b", "c"]) == 1.0
     assert spearman(["a", "b", "c"], ["c", "b", "a"]) == -1.0
+
+
+def test_corrections_survive_a_rebuild(data_repo: Path) -> None:
+    """US4: the owner's corrections win, are flagged, and survive every rebuild (R5)."""
+    from manager_core.realdata import corrections
+    from manager_core.realdata.corrections import Correction
+
+    path = data_repo / "corrections.csv"
+    corrections.append(path, Correction("club", "inventado-3", "color_primary", "#1A2B3C",
+                                        "#0B6E4F", "2026-10-19", "cor real"))
+    corrections.append(path, Correction("player", "p-og800001", "nationalities", "BRA",
+                                        "BRA|POR", "2026-10-19"))
+    try:
+        for name in ("c1", "c2"):
+            out = data_repo / "datasets" / name
+            result = build(data_repo, out)
+            assert result.errors == ()
+            dataset = api.load_dataset(out).dataset
+            assert dataset is not None
+            assert dataset.clubs["inventado-3"].color_primary == "#0B6E4F"
+            assert dataset.players["p-og800001"].nationalities == ("BRA", "POR")
+            flags = {(f.record_id, f.flag) for f in dataset.record_flags}
+            assert ("p-og800001", FlagKind.MANUALLY_EDITED) in flags
+            assert "Owner corrections applied: 2" in (out / "import-report.md").read_text("utf-8")
+    finally:
+        path.unlink()

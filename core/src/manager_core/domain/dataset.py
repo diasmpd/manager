@@ -26,6 +26,7 @@ class FlagKind(StrEnum):
     POTENTIAL_DEFAULTED = "potential_defaulted"
     POTENTIAL_RAISED = "potential_raised"
     SYNTHESIS_CONFIDENCE = "synthesis_confidence"  # real data (011): how sure the model is
+    MANUALLY_EDITED = "manually_edited"  # real data (011): an owner correction
     INCOMPLETE = "incomplete"  # real data (011): a field the sources lack, defaulted
 
 

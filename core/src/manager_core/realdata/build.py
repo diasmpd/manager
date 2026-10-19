@@ -25,7 +25,7 @@ from manager_core.domain.positions import Position, PositionFamiliarity
 from manager_core.domain.squad import SquadMembership
 from manager_core.io import reader, writer
 from manager_core.ratings.ability import current_ability
-from manager_core.realdata import mapping, synthesis
+from manager_core.realdata import corrections, mapping, synthesis
 from manager_core.realdata.fetch import Fetcher
 from manager_core.realdata.sources import ogol
 from manager_core.realdata.strength import strength
@@ -278,14 +278,16 @@ def build(data_repo: Path, out: Path, competition: str = "mineiro-1") -> BuildRe
                f"(model {synthesis.params()['model_version']})"),
         record_flags=tuple(flags))
     writer.write(dataset, out)
+    # the owner's corrections go last, on the written tables (R5)
+    applied = corrections.apply(out, corrections.read(data_repo / "corrections.csv"))
     loaded = reader.load(out)
     errors += [f"{issue.file}: {issue.code} {issue.message}" for issue in loaded.report.errors]
-    _write_report(out, dataset, list(reports.values()), errors)
+    _write_report(out, loaded.dataset or dataset, list(reports.values()), errors, applied)
     return BuildResult(out, tuple(errors), tuple(reports.values()))
 
 
 def _write_report(out: Path, dataset: Dataset, reports: list[ClubReport],
-                  errors: list[str]) -> None:
+                  errors: list[str], applied: corrections.Applied) -> None:
     sources = ", ".join(f"{s.name} (retrieved {s.retrieved_on})" for s in dataset.sources)
     lines = [
         "# Import report", "",
@@ -293,6 +295,7 @@ def _write_report(out: Path, dataset: Dataset, reports: list[ClubReport],
         f"- Reference date: {dataset.reference_date.isoformat()}",
         f"- Sources: {sources}",
         f"- Clubs: {len(dataset.clubs)}, players: {len(dataset.players)}",
+        f"- Owner corrections applied: {applied.applied}",
         f"- Validation errors: {len(errors)}", "",
         "| Club | Listed | Players | Strength (top-16 CA) | Confidence h/m/l | Defaulted |",
         "|---|---|---|---|---|---|",
@@ -315,6 +318,8 @@ def _write_report(out: Path, dataset: Dataset, reports: list[ClubReport],
                      + (f" ({', '.join(r.moved)})" if r.moved else ""))
         lines += [f"- {note}" for note in r.notes]
         lines.append("")
+    if applied.notes:
+        lines += ["## Corrections to review", "", *(f"- {n}" for n in applied.notes), ""]
     if errors:
         lines += ["## Errors", "", *(f"- {e}" for e in errors), ""]
     (out / "import-report.md").write_text("\n".join(lines), "utf-8", newline="\n")

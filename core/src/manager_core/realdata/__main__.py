@@ -8,12 +8,15 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
+import tempfile
 import tomllib
+from datetime import date
 from pathlib import Path
 
 from manager_core import api
-from manager_core.realdata import strength
+from manager_core.realdata import corrections, strength
 from manager_core.realdata.build import COMPETITIONS, build
 from manager_core.realdata.fetch import DEFAULT_DELAY, Fetcher, SourceStopped
 from manager_core.realdata.sources import ogol
@@ -64,6 +67,14 @@ def main(argv: list[str] | None = None) -> int:
     cmd.add_argument("--competition", choices=sorted(COMPETITIONS), default="mineiro-1")
     cmd.add_argument("--out", type=Path, required=True,
                      help="the dataset folder, relative to the data repository")
+    cmd = sub.add_parser("correct", help="append an owner correction (R5)")
+    cmd.add_argument("--data-repo", type=Path, required=True)
+    cmd.add_argument("--record", required=True, help="player:p-og123 or club:cruzeiro")
+    cmd.add_argument("--field", required=True)
+    cmd.add_argument("--value", required=True)
+    cmd.add_argument("--note", default="")
+    cmd.add_argument("--out", type=Path, default=Path("datasets") / "mineiro-2026",
+                     help="the built dataset the current value is read from")
     cmd = sub.add_parser("strength", help="SC-003: simulated title shares against the real ones")
     cmd.add_argument("--data-repo", type=Path, required=True)
     cmd.add_argument("--out", type=Path, required=True, help="the dataset folder")
@@ -87,10 +98,48 @@ def main(argv: list[str] | None = None) -> int:
         for error in result.errors:
             print(f"error: {error}", file=sys.stderr)
         return 1 if result.errors else 0
+    if args.command == "correct":
+        return _correct(args.data_repo, args.out if args.out.is_absolute()
+                        else args.data_repo / args.out, args.record, args.field, args.value,
+                        args.note)
     if args.command == "strength":
         return _strength(args.data_repo, args.out if args.out.is_absolute()
                          else args.data_repo / args.out, args.seasons)
     return 1
+
+
+def _correct(data_repo: Path, out: Path, record: str, field: str, value: str, note: str) -> int:
+    """Append one correction, with the current value as old_value and today's date. It is tried
+    on a copy of the dataset first: a value the game would refuse is not written."""
+    record_type, _, record_id = record.partition(":")
+    if record_type not in corrections.KEYS or not record_id:
+        print("error: --record is player:<id> or club:<id>", file=sys.stderr)
+        return 1
+    if not (out / "dataset.csv").exists():
+        print(f"error: {out} is not a built dataset (run build)", file=sys.stderr)
+        return 1
+    if corrections.file_for(record_type, field, out) is None:
+        print(f"error: a {record_type} has no field {field!r}", file=sys.stderr)
+        return 1
+    old = corrections.current_value(out, record_type, record_id, field)
+    if old is None:
+        print(f"error: {record} is not in {out}", file=sys.stderr)
+        return 1
+    correction = corrections.Correction(record_type, record_id, field, old, value,
+                                        date.today().isoformat(), note)
+    with tempfile.TemporaryDirectory() as tmp:
+        trial = Path(tmp)
+        for path in out.glob("*.csv"):
+            shutil.copy(path, trial / path.name)
+        corrections.apply(trial, [correction])
+        problems = api.load_dataset(trial).report.errors
+    if problems:
+        for issue in problems:
+            print(f"refused: {issue.message}", file=sys.stderr)
+        return 1
+    corrections.append(data_repo / "corrections.csv", correction)
+    print(f"{record} {field}: {old!r} -> {value!r} (rebuild to apply)")
+    return 0
 
 
 def _strength(data_repo: Path, out: Path, seasons: int) -> int:

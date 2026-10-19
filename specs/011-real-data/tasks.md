@@ -93,7 +93,7 @@ starts and plays a match day with a real club.
 **Independent test**: correct, rebuild, and the correction remains. The report lists it, and the
 record carries `manually_edited`.
 
-- [ ] T019 [P] [US4] Write tests for corrections (R5). They cover:
+- [x] T019 [P] [US4] Write tests for corrections (R5). They cover:
   - apply last;
   - survive a rebuild with changed source values ("source changed under a correction" is
     reported);
@@ -102,8 +102,8 @@ record carries `manually_edited`.
   - the file is append-only (`record_type;record_id;field;old_value;new_value;date;note`).
 
   In core/tests/unit/test_realdata_corrections.py.
-- [ ] T020 [US4] Implement corrections in core/src/manager_core/realdata/corrections.py.
-- [ ] T021 [US4] Implement the `correct` command, which appends a row with the current value as `old_value` and today's date, in core/src/manager_core/realdata/__main__.py.
+- [x] T020 [US4] Implement corrections in core/src/manager_core/realdata/corrections.py.
+- [x] T021 [US4] Implement the `correct` command, which appends a row with the current value as `old_value` and today's date, in core/src/manager_core/realdata/__main__.py.
 
 ## Phase 7: User Story 5 - Módulo II and Excel (P3)
 
@@ -161,7 +161,13 @@ it loads unchanged.
 - **Bug fixed**: the live pages write values as "3.00 M €", which was read as 300 M (the dot taken
   for a thousands separator). Values are now right (Cruzeiro's median €3 M).
 - Club market values cannot separate the Série B clubs, and most smaller clubs have none.
-- Next: Wikipedia parser (T012), corrections (T019-T021), Excel tolerance (T022).
+- **Corrections (T019-T021)**: `corrections.csv` (private, append-only) is applied last, on the
+  written 001 tables by column name, so any player, club, squad, attribute or position field can
+  be corrected and the game's validator checks it. Each corrected record gets `manually_edited`
+  with the fields. A source change under a correction, a gone record or an unknown field is kept
+  and listed in the report under "Corrections to review". `correct` reads the current value from
+  the built dataset, tries the change on a copy, and appends only what the game accepts.
+- Next: Excel tolerance (T022), Wikipedia parser (T012).
 
 ## Dependencies
 
