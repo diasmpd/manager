@@ -19,6 +19,7 @@ from manager_core.io.dialect import LIST_SEPARATOR, Row, Table
 from manager_core.io.schema import FILES, ColumnSpec, FileSpec, Kind
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_BR_DATE = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})$")  # pt-BR Excel re-saves dates as dd/mm/yyyy
 _INT = re.compile(r"^-?\d+$")
 _ID_COLUMNS = {"clubs.csv": "club_id", "players.csv": "player_id"}
 
@@ -103,6 +104,9 @@ def parse_int(raw: str) -> int:
 
 
 def parse_date(raw: str) -> date:
+    br = _BR_DATE.match(raw)
+    if br:
+        return date(int(br.group(3)), int(br.group(2)), int(br.group(1)))
     if not _ISO_DATE.match(raw):
         raise ValueError(raw)
     return date.fromisoformat(raw)
@@ -110,9 +114,9 @@ def parse_date(raw: str) -> date:
 
 def parse_bool(raw: str) -> bool:
     lowered = raw.lower()
-    if lowered not in ("true", "false"):
+    if lowered not in ("true", "false", "verdadeiro", "falso"):  # pt-BR Excel: VERDADEIRO
         raise ValueError(raw)
-    return lowered == "true"
+    return lowered in ("true", "verdadeiro")
 
 
 def parse_list(raw: str) -> tuple[str, ...]:

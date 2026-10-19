@@ -65,9 +65,9 @@ def test_row_numbers_follow_physical_lines() -> None:
     assert table.rows[0].values["notes"] == "line one\nline two"
 
 
-def test_non_utf8_raises_e033(tmp_path: Path) -> None:
+def test_neither_utf8_nor_windows_1252_raises_e033(tmp_path: Path) -> None:
     path = tmp_path / "t.csv"
-    path.write_bytes("id;city\na;São Paulo\n".encode("cp1252"))
+    path.write_bytes(b"id;city\na;S\x81o Paulo\n")
     with pytest.raises(DialectError) as err:
         read_table(path)
     assert err.value.code == "E033"

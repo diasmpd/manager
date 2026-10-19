@@ -112,7 +112,7 @@ record carries `manually_edited`.
 **Independent test**: a Módulo II build reports gaps per club. A file re-saved the way Excel saves
 it loads unchanged.
 
-- [ ] T022 [P] [US5] Write tests and implement pt-BR Excel tolerance (R6): byte-order mark, UTF-8 or Windows-1252, `;` or `,` separators, decimal commas, `dd/mm/yyyy` dates, stray spaces. Reading only; writing stays canonical. In core/tests/unit/test_io_excel_tolerance.py and core/src/manager_core/io/dialect.py.
+- [x] T022 [P] [US5] Write tests and implement pt-BR Excel tolerance (R6): byte-order mark, UTF-8 or Windows-1252, `;` or `,` separators, decimal commas, `dd/mm/yyyy` dates, stray spaces. Reading only; writing stays canonical. In core/tests/unit/test_io_excel_tolerance.py and core/src/manager_core/io/dialect.py.
 - [ ] T023 [US5] Add the Módulo II clubs to `inputs/mineiro.toml`, collect and build. Report gaps per club. In C:\Users\DE0191297\Documents\manager-data.
 
 ## Phase 8: Polish
@@ -167,7 +167,11 @@ it loads unchanged.
   with the fields. A source change under a correction, a gone record or an unknown field is kept
   and listed in the report under "Corrections to review". `correct` reads the current value from
   the built dataset, tries the change on a copy, and appends only what the game accepts.
-- Next: Excel tolerance (T022), Wikipedia parser (T012).
+- **Excel tolerance (T022)**: a dataset re-saved by pt-BR Excel loads to the identical dataset:
+  Windows-1252 or UTF-8, `;` or `,` (from the header), quoted cells, CRLF, stray spaces,
+  dd/mm/yyyy dates and VERDADEIRO/FALSO. E033 now means neither UTF-8 nor Windows-1252 (its
+  fixture uses an unassigned byte). Writing stays canonical.
+- Next: Wikipedia parser (T012).
 
 ## Dependencies
 

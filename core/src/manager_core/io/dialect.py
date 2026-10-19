@@ -1,8 +1,9 @@
 """Canonical CSV dialect (research R4, contracts/csv-format.md).
 
 Write: UTF-8 with BOM, `;`, LF, rows sorted by key -> byte-stable output that opens directly
-in pt-BR Excel. Read: canonical files only (BOM optional, LF or CRLF, trimmed cells).
-Tolerance for files re-saved by Excel is spec 011.
+in pt-BR Excel. Read: canonical files, and the same files re-saved by Excel (spec 011 R6, format
+v1.1): BOM optional, UTF-8 or Windows-1252, `;` or `,` (from the header), LF or CRLF, trimmed
+cells. Dates as dd/mm/yyyy and booleans as VERDADEIRO/FALSO are read by the typed parsers.
 """
 
 from __future__ import annotations
@@ -67,11 +68,18 @@ def write_table(
     path.write_bytes(b"\xef\xbb\xbf" + buffer.getvalue().encode("utf-8"))
 
 
+def delimiter_of(header: str) -> str:
+    """`;` (canonical, and pt-BR Excel), or `,` when the header has commas and no semicolons
+    (Excel's "CSV UTF-8" in other locales)."""
+    return "," if "," in header and DELIMITER not in header else DELIMITER
+
+
 def read_text_table(text: str) -> Table:
     """Parse a canonical table. Row numbers come from the reader's physical line counter, so they
     stay right when a quoted cell spans several lines. Nothing is dropped silently: cells beyond
     the header are kept in `Row.extra` for validation to report."""
-    reader = csv.reader(io.StringIO(text, newline=""), delimiter=DELIMITER)
+    reader = csv.reader(io.StringIO(text, newline=""),
+                        delimiter=delimiter_of(text.partition("\n")[0]))
     columns: tuple[str, ...] | None = None
     rows: list[Row] = []
     previous_line = 0
@@ -92,8 +100,13 @@ def read_text_table(text: str) -> Table:
 
 
 def read_table(path: Path) -> Table:
+    data = path.read_bytes()
     try:
-        text = path.read_bytes().decode("utf-8-sig")
+        text = data.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
-        raise DialectError("E033", path, f"not valid UTF-8 at byte {exc.start}") from exc
+        # pt-BR Excel's plain "CSV" is Windows-1252; text that is neither is still refused
+        try:
+            text = data.decode("cp1252")
+        except UnicodeDecodeError:
+            raise DialectError("E033", path, f"not valid UTF-8 at byte {exc.start}") from exc
     return read_text_table(text)

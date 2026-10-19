@@ -130,7 +130,8 @@ def _no_positions(d: Path) -> None:
 
 
 def _cp1252(d: Path) -> None:
-    (d / "clubs.csv").write_bytes("club_id;name\nclube-a;Clube São Paulo\n".encode("cp1252"))
+    # neither UTF-8 nor Windows-1252 (0x81 is unassigned there): Windows-1252 itself is read (011)
+    (d / "clubs.csv").write_bytes(b"club_id;name\nclube-a;Clube S\x81o Paulo\n")
 
 
 def _dup_membership(d: Path) -> None:
