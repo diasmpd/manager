@@ -14,14 +14,18 @@ from manager_core.quicksim.params import load_params
 from manager_core.server.encode import selection_from_json, tactic_from_json, to_json
 from manager_core.server.protocol import Handler, Params, RpcError, Session, param
 
-CONTRACT = "1.1"  # 1.1: tactic.set_role
+CONTRACT = "1.2"  # 1.1: tactic.set_role; 1.2: worlds.list, a world for new careers
 NEWS_ON_HOME = 5
 
 
+SAMPLE_WORLD = "sample"
+
+
 class Config:
-    def __init__(self, saves: Path, data: Path) -> None:
+    def __init__(self, saves: Path, data: Path, data_repo: Path | None = None) -> None:
         self.saves = saves
-        self.data = data
+        self.data = data  # the sample world
+        self.data_repo = data_repo  # the private data repository (spec 011), if any
 
 
 def _config(s: Session) -> Config:
@@ -38,14 +42,31 @@ def _career(s: Session) -> Career:
     return career
 
 
-def _dataset(s: Session) -> Dataset:
-    if "dataset" not in s.state:
-        loaded = api.load_dataset(_config(s).data)
+def _worlds(s: Session) -> dict[str, Dataset]:
+    """The worlds a new career can start in (spec 013): the sample, then every valid dataset under
+    `<data repository>/datasets/`, by folder name. Loaded once per session."""
+    if "worlds" not in s.state:
+        config = _config(s)
+        loaded = api.load_dataset(config.data)
         if loaded.dataset is None:
-            raise RpcError("P005", t("server.P005", detail=str(_config(s).data)))
-        s.state["dataset"] = loaded.dataset
-    dataset = s.state["dataset"]
-    assert isinstance(dataset, Dataset)
+            raise RpcError("P005", t("server.P005", detail=str(config.data)))
+        worlds = {SAMPLE_WORLD: loaded.dataset}
+        folder = config.data_repo / "datasets" if config.data_repo is not None else None
+        if folder is not None and folder.is_dir():
+            for path in sorted(p for p in folder.iterdir() if (p / "dataset.csv").is_file()):
+                found = api.load_dataset(path)
+                if found.dataset is not None and path.name != SAMPLE_WORLD:
+                    worlds[path.name] = found.dataset
+        s.state["worlds"] = worlds
+    worlds = s.state["worlds"]
+    assert isinstance(worlds, dict)
+    return worlds
+
+
+def _dataset(s: Session, world: str = SAMPLE_WORLD) -> Dataset:
+    dataset = _worlds(s).get(world)
+    if dataset is None:
+        raise api.NotFoundError("world", world)
     return dataset
 
 
@@ -96,9 +117,18 @@ def career_list(s: Session, p: Params) -> Any:
     return api.list_saves(_config(s).saves)
 
 
+def worlds_list(s: Session, p: Params) -> Any:
+    return [{"id": world_id, "label": t("world.sample") if world_id == SAMPLE_WORLD
+             else t("world.real" if not d.fictional else "world.other", name=world_id),
+             "fictional": d.fictional, "clubs": len(d.clubs), "players": len(d.players),
+             "reference_date": d.reference_date}
+            for world_id, d in _worlds(s).items()]
+
+
 def career_clubs(s: Session, p: Params) -> Any:
+    world = param(p, "world", str, SAMPLE_WORLD)
     return [{"id": c.id, "name": c.name, "reputation": c.reputation}
-            for c in api.list_clubs(_dataset(s))]
+            for c in api.list_clubs(_dataset(s, world))]
 
 
 def career_new(s: Session, p: Params) -> Any:
@@ -106,7 +136,8 @@ def career_new(s: Session, p: Params) -> Any:
     club_id = param(p, "club_id", str)
     if any(summary.name == name for summary in api.list_saves(_config(s).saves)):
         raise RpcError("SAVE", t("server.duplicate_career", name=name), {"save_code": "duplicate"})
-    career = api.new_career(_dataset(s), name, club_id)
+    world = _dataset(s, param(p, "world", str, SAMPLE_WORLD))  # an unknown world: before the save
+    career = api.new_career(world, name, club_id)
     api.save_career(career, _config(s).saves)
     _open(s, career)
     return api.career_status(career)
@@ -299,6 +330,7 @@ def view_last_user_match(s: Session, p: Params) -> Any:
 
 METHODS: dict[str, Handler] = {
     "hello": hello, "shutdown": shutdown,
+    "worlds.list": worlds_list,
     "career.list": career_list, "career.clubs": career_clubs, "career.new": career_new,
     "career.open": career_open, "career.save": career_save, "career.status": career_status,
     "career.continue": career_continue,

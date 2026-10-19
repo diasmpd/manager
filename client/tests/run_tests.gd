@@ -11,7 +11,20 @@ var _current := ""
 
 
 func _initialize() -> void:
+	_fake_data_repo()
 	_run.call_deferred()
+
+
+## The tests never see the owner's private data (Principle VI): the core gets a data repository
+## holding one fictional world, a copy of the sample (spec 013).
+func _fake_data_repo() -> void:
+	var repo := ProjectSettings.globalize_path("user://test-data-repo")
+	var world := repo.path_join("datasets").path_join("copia-ficticia")
+	DirAccess.make_dir_recursive_absolute(world)
+	var sample := ProjectSettings.globalize_path("res://").path_join("../data/sample") 			.simplify_path()
+	for file in DirAccess.get_files_at(sample):
+		DirAccess.copy_absolute(sample.path_join(file), world.path_join(file))
+	OS.set_environment("MANAGER_DATA_REPO", repo)
 
 
 func check(condition: bool, message: String) -> void:

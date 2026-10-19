@@ -20,6 +20,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="manager_core.server")
     parser.add_argument("--saves", type=Path, default=REPO / "saves")
     parser.add_argument("--data", type=Path, default=REPO / "data" / "sample")
+    parser.add_argument("--data-repo", type=Path, default=None,
+                        help="the private data repository: its datasets are offered as worlds")
     args = parser.parse_args(argv)
     args.saves.mkdir(parents=True, exist_ok=True)
     # UTF-8 both ways, whatever the console code page (pythonw has no console at all)
@@ -27,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", newline="\n",
                               line_buffering=True)
     session = Session(stdout)
-    session.state["config"] = Config(args.saves, args.data)
+    session.state["config"] = Config(args.saves, args.data, args.data_repo)
     serve(session, METHODS, stdin, map_errors)
     return 0
 
