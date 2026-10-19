@@ -118,7 +118,7 @@ it loads unchanged.
 ## Phase 8: Polish
 
 - [x] T024 Write docs: README (real data: private repository, CLI, owner review), roadmap (011 status), and quickstart verification run.
-- [ ] T025 Run the full suites (core, client), plus ruff and mypy. Open the PR and ask the owner before merging.
+- [x] T025 Run the full suites (core, client), plus ruff and mypy. Open the PR and ask the owner before merging.
 
 ## Progress notes (2026-10-16)
 
