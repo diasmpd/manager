@@ -9,6 +9,7 @@ when he is at none, for the one he played most games for that season.
 
 from __future__ import annotations
 
+import re
 import statistics
 import tomllib
 from collections import Counter, defaultdict
@@ -27,7 +28,7 @@ from manager_core.io import reader, writer
 from manager_core.ratings.ability import current_ability
 from manager_core.realdata import corrections, mapping, synthesis
 from manager_core.realdata.fetch import Fetcher
-from manager_core.realdata.sources import ogol
+from manager_core.realdata.sources import ogol, wikipedia
 from manager_core.realdata.strength import strength
 from manager_core.sample.generator import HEIGHT_BY_POSITION
 
@@ -35,6 +36,8 @@ TOOL = "manager_core.realdata"
 TOOL_VERSION = "0.1.0"
 FORMAT_VERSION = "1.0"
 OGOL_LICENCE = "ogol: no published terms; private use only, used gently (owner decision 2026-10-07)"
+WIKIPEDIA_LICENCE = "Wikipedia (pt): CC BY-SA 4.0; club identity facts only"
+CAPACITY_GAP = 0.10  # capacities further apart than this are a disagreement
 COMPETITIONS = {"mineiro-1": 1, "mineiro-2": 2}
 AGES = (14, 45)  # the 001 format's player ages on the reference date (E011)
 
@@ -94,6 +97,49 @@ def _retrieved_on(cache_dir: Path) -> date:
     return date.fromisoformat(max(stamps)) if stamps else date.today()
 
 
+def _same_ground(a: str, b: str) -> bool:
+    """'Mamudão' and 'José Mammoud Abbas (Mamudão)' name one stadium; 'Arena Urbsan' and
+    'Estádio Jurandir Elias' do not."""
+    a, b = a.casefold(), b.casefold()
+    if a in b or b in a:  # 'Arena DB' in 'Zama Maciel (Arena DB)'
+        return True
+
+    def words(name: str) -> set[str]:
+        return {w for w in re.findall(r"\w+", name) if len(w) > 3
+                and w not in ("estádio", "arena", "municipal", "parque")}
+    return bool(words(a) & words(b))
+
+
+def _identity(raw: ogol.RawClub, wiki: wikipedia.WikiClub | None
+              ) -> tuple[dict[str, Any], list[str]]:
+    """A club's identity from both sources (R3): Wikipedia for the name, the city and the founding
+    year; the exact capacity; ogol's stadium (its 2026 season page) with its own capacity when
+    the two name different grounds. Every real disagreement comes back for the report."""
+    ogol_founded = int(raw.founded[:4]) if raw.founded and raw.founded[:4].isdigit() else None
+    out: dict[str, Any] = {"name": raw.name, "city": raw.city, "founded": ogol_founded,
+                           "stadium": raw.stadium, "capacity": raw.capacity}
+    if wiki is None:
+        return out, []
+    notes: list[str] = []
+    out["name"] = wiki.name or raw.name
+    out["city"] = wiki.city or raw.city
+    out["founded"] = wiki.founded or ogol_founded
+    if wiki.founded and ogol_founded and wiki.founded != ogol_founded:
+        notes.append(f"founded: Wikipedia {wiki.founded}, ogol {ogol_founded} (Wikipedia used)")
+    if wiki.stadium and raw.stadium and not _same_ground(wiki.stadium, raw.stadium):
+        notes.append(f"stadium: Wikipedia {wiki.stadium!r} ({wiki.capacity}), ogol "
+                     f"{raw.stadium!r} ({raw.capacity}) (ogol's 2026 page used)")
+        return out, notes
+    out["stadium"] = raw.stadium or wiki.stadium
+    if (wiki.capacity and wiki.capacity_exact) or not raw.capacity:
+        out["capacity"] = wiki.capacity
+    if wiki.capacity and raw.capacity and (
+            abs(wiki.capacity - raw.capacity) > CAPACITY_GAP * max(wiki.capacity, raw.capacity)):
+        notes.append(f"capacity: Wikipedia {wiki.capacity}, ogol {raw.capacity} "
+                     f"({out['capacity']} used)")
+    return out, notes
+
+
 def _abbreviation(club_id: str) -> str:
     letters = "".join(c for c in club_id.upper() if c.isalpha())
     return (letters + "XXX")[:3]
@@ -106,6 +152,8 @@ def build(data_repo: Path, out: Path, competition: str = "mineiro-1") -> BuildRe
     reference_date = date.fromisoformat(str(inputs.get("reference_date", f"{season}-01-15")))
     cache_dir = data_repo / "cache" / "ogol"
     cache = _Cache(cache_dir)
+    wiki_dir = data_repo / "cache" / "wikipedia"
+    wiki_cache = _Cache(wiki_dir)
     module = COMPETITIONS[competition]
     club_inputs = [c for c in inputs["clubs"] if int(c["module"]) == module]
 
@@ -242,27 +290,35 @@ def build(data_repo: Path, out: Path, competition: str = "mineiro-1") -> BuildRe
                 report.defaulted.update(m.split(" (")[0] for m in missing)
             report.players += 1
         colours = club.get("colors") or raw_club.colors or ("#FFFFFF", "#000000")
-        founded = club.get("founded") or (raw_club.founded or "")[:4]
+        wiki_page = wiki_cache.get(wikipedia.url(club["wikipedia"])) if club.get(
+            "wikipedia") else None
+        wiki = wikipedia.parse_club(wiki_page) if wiki_page else None
+        identity, disagreements = _identity(raw_club, wiki)
+        report.notes += [f"sources disagree: {d}" for d in disagreements]
+        founded = club.get("founded") or identity["founded"]
         club_missing = [name for name, value in (
-            ("stadium", club.get("stadium") or raw_club.stadium),
-            ("capacity", club.get("capacity") or raw_club.capacity),
-            ("founded", founded), ("city", club.get("city") or raw_club.city),
+            ("stadium", club.get("stadium") or identity["stadium"]),
+            ("capacity", club.get("capacity") or identity["capacity"]),
+            ("founded", founded), ("city", club.get("city") or identity["city"]),
             ("short_name", club.get("short_name")), ("abbreviation", club.get("abbreviation")),
         ) if not value]
+        refs = [ExternalRef("ogol", club["ogol"].split("?")[0])]
+        if wiki is not None:
+            refs.append(ExternalRef("wikipedia", club["wikipedia"]))
         clubs[cid] = Club(
             id=cid,
-            name=(club.get("name") or raw_club.name or cid)[:60],
-            short_name=(club.get("short_name") or raw_club.name or cid)[:20],
+            name=(club.get("name") or identity["name"] or cid)[:60],
+            short_name=(club.get("short_name") or identity["name"] or cid)[:20],
             abbreviation=club.get("abbreviation") or _abbreviation(cid),
-            city=(club.get("city") or raw_club.city or "?")[:60],
+            city=(club.get("city") or identity["city"] or "?")[:60],
             state=club.get("state") or raw_club.state,
             country="BRA",
             color_primary=colours[0], color_secondary=colours[1],
-            stadium_name=(club.get("stadium") or raw_club.stadium or "?")[:80],
-            stadium_capacity=max(500, int(club.get("capacity") or raw_club.capacity or 500)),
+            stadium_name=(club.get("stadium") or identity["stadium"] or "?")[:80],
+            stadium_capacity=max(500, int(club.get("capacity") or identity["capacity"] or 500)),
             founded_year=int(founded) if str(founded).isdigit() else 1900,
             reputation=int(reputation.get(str(club["division"]), reputation["none"])),
-            external_refs=(ExternalRef("ogol", club["ogol"].split("?")[0]),))
+            external_refs=tuple(refs))
         if club_missing:
             flags.append(RecordFlag(RecordType.CLUB, cid, FlagKind.INCOMPLETE,
                                     "defaulted: " + ", ".join(club_missing)))
@@ -272,7 +328,9 @@ def build(data_repo: Path, out: Path, competition: str = "mineiro-1") -> BuildRe
         format_version=FORMAT_VERSION, reference_date=reference_date, fictional=False,
         tool=TOOL, tool_version=TOOL_VERSION,
         sources=(Source("ogol", _retrieved_on(cache_dir), "https://www.ogol.com.br",
-                        OGOL_LICENCE),),
+                        OGOL_LICENCE),) + ((
+            Source("wikipedia", _retrieved_on(wiki_dir), "https://pt.wikipedia.org",
+                   WIKIPEDIA_LICENCE),) if (wiki_dir / "log.csv").exists() else ()),
         clubs=clubs, players=players, memberships=memberships,
         notes=(f"Real data, private: {competition} {season} "
                f"(model {synthesis.params()['model_version']})"),

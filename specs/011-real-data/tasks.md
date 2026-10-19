@@ -41,7 +41,7 @@ owner's choices are recorded.
 
 - [x] T006 [US1] Survey Wikipedia, ogol, Brasileirinho FC, CBF BID, FootyStats, ESPN, SofaScore, FBref, Transfermarkt and FM mods (coverage, freshness, terms and robots, fields) in specs/011-real-data/research.md.
 - [x] T007 [US1] Record the owner's decisions (synthesis model, Minas first, ogol used gently) in specs/011-real-data/spec.md.
-- [ ] T008 [US1] Close the open ⏳ items once collection shows real coverage: Mineiro squads on ogol for all 12 clubs, Wikipedia infobox colours or the owner's colours. Record them in specs/011-real-data/research.md.
+- [x] T008 [US1] Close the open ⏳ items once collection shows real coverage: Mineiro squads on ogol for all 12 clubs, Wikipedia infobox colours or the owner's colours. Record them in specs/011-real-data/research.md.
 
 ## Phase 4: User Story 2 - Play with the real Mineiro clubs (P1)
 
@@ -50,11 +50,11 @@ owner's choices are recorded.
 **Independent test**: build from fixtures or the cache. The dataset validates (001), and a career
 starts and plays a match day with a real club.
 
-- [ ] T009 [P] [US2] Add fictional HTML fixtures: an ogol club squad page, two ogol player pages (one with market value, one without) and a Wikipedia club page, mirroring the real pages' structure with invented names. In core/tests/fixtures/realdata/.
+- [x] T009 [P] [US2] Add fictional HTML fixtures: an ogol club squad page, two ogol player pages (one with market value, one without) and a Wikipedia club page, mirroring the real pages' structure with invented names. In core/tests/fixtures/realdata/.
 - [x] T010 [P] [US2] Write tests for the ogol parsers. The squad page gives player ids, shirt numbers, positions, names, ages, nationalities, games and values. The player page gives birth date, height, foot, positions, and minutes, goals and assists by season. In core/tests/unit/test_realdata_ogol.py.
 - [x] T011 [US2] Implement the ogol parsers with html.parser, returning RawClub and RawPlayer (data-model.md), in core/src/manager_core/realdata/sources/ogol.py.
-- [ ] T012 [P] [US2] Write tests and implement the Wikipedia parser (club infobox: name, city, stadium, capacity, founded; competition final table) in core/tests/unit/test_realdata_wikipedia.py and core/src/manager_core/realdata/sources/wikipedia.py.
-- [ ] T013 [US2] Write tests and implement the merge (R3):
+- [x] T012 [P] [US2] Write tests and implement the Wikipedia parser (club infobox: name, city, stadium, capacity, founded; competition final table) in core/tests/unit/test_realdata_wikipedia.py and core/src/manager_core/realdata/sources/wikipedia.py.
+- [x] T013 [US2] Write tests and implement the merge (R3):
   - ids `p-og<id>`, and club slugs;
   - precedence: correction, then ogol, then Wikipedia;
   - disagreements listed;
@@ -171,7 +171,16 @@ it loads unchanged.
   Windows-1252 or UTF-8, `;` or `,` (from the header), quoted cells, CRLF, stray spaces,
   dd/mm/yyyy dates and VERDADEIRO/FALSO. E033 now means neither UTF-8 nor Windows-1252 (its
   fixture uses an unassigned byte). Writing stays canonical.
-- Next: Wikipedia parser (T012).
+- **Wikipedia (T012, T013)**: `collect --source wikipedia` fetched the 12 clubs' pt.wikipedia
+  pages (4 s pace, cached). The merge takes Wikipedia's name, city and founding year; the exact
+  capacity (Wikipedia's registry figures over ogol's round ones, ogol's over a rounded
+  "62 mil"); ogol's fuller stadium name, or ogol's stadium and capacity as a pair when the two
+  name different grounds (ogol's page is the 2026 season). Seven disagreements go to the report
+  for owner review: Betim founded 2019 or 2008; Betim, Itabirito and North's stadiums; the
+  capacities of Democrata, Tombense and URT. `sources.csv` lists both sources (Wikipedia: CC
+  BY-SA 4.0). T008: all 12 Módulo I squads are on ogol, with colours from ogol's club pages.
+- Next: README, roadmap and quickstart (T024); Módulo II (T023) when the owner wants it; the
+  full suites and the PR (T025).
 
 ## Dependencies
 

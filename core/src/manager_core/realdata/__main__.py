@@ -19,7 +19,7 @@ from manager_core import api
 from manager_core.realdata import corrections, strength
 from manager_core.realdata.build import COMPETITIONS, build
 from manager_core.realdata.fetch import DEFAULT_DELAY, Fetcher, SourceStopped
-from manager_core.realdata.sources import ogol
+from manager_core.realdata.sources import ogol, wikipedia
 
 PUBLIC_REPO = Path(__file__).resolve().parents[4]
 
@@ -36,19 +36,28 @@ def _inputs(data_repo: Path) -> dict:  # type: ignore[type-arg]
     return tomllib.loads((data_repo / "inputs" / "mineiro.toml").read_text("utf-8"))
 
 
-def collect(data_repo: Path, refresh: bool, delay: float) -> int:
-    """Club pages, then every rostered player's page, through the polite cached fetcher."""
+def collect(data_repo: Path, refresh: bool, delay: float, source: str = "all") -> int:
+    """ogol: club pages, then every rostered player's page; Wikipedia: each club's page. All
+    through the polite cached fetcher."""
     inputs = _inputs(data_repo)
     season = int(inputs["ogol_season"])
-    fetcher = Fetcher(data_repo / "cache" / "ogol", delay=delay, refresh=refresh)
     try:
-        for club in inputs["clubs"]:
-            page = fetcher.get(f"{ogol.BASE}{club['ogol']}?epoca_id={season}")
-            roster = ogol.parse_club(page).squad
-            print(f"{club['club_id']}: {len(roster)} players", flush=True)
-            for entry in roster:
-                fetcher.get(f"{ogol.BASE}/jogador/{entry.slug}/{entry.ogol_id}?epoca_id={season}")
-            print(f"  fetched {fetcher.fetched}, from cache {fetcher.cached}", flush=True)
+        if source in ("all", "ogol"):
+            fetcher = Fetcher(data_repo / "cache" / "ogol", delay=delay, refresh=refresh)
+            for club in inputs["clubs"]:
+                page = fetcher.get(f"{ogol.BASE}{club['ogol']}?epoca_id={season}")
+                roster = ogol.parse_club(page).squad
+                print(f"{club['club_id']}: {len(roster)} players", flush=True)
+                for entry in roster:
+                    fetcher.get(f"{ogol.BASE}/jogador/{entry.slug}/{entry.ogol_id}"
+                                f"?epoca_id={season}")
+                print(f"  fetched {fetcher.fetched}, from cache {fetcher.cached}", flush=True)
+        if source in ("all", "wikipedia"):
+            wiki = Fetcher(data_repo / "cache" / "wikipedia", delay=delay, refresh=refresh)
+            for club in inputs["clubs"]:
+                if club.get("wikipedia"):
+                    wikipedia.parse_club(wiki.get(wikipedia.url(club["wikipedia"])))
+            print(f"wikipedia: fetched {wiki.fetched}, from cache {wiki.cached}", flush=True)
     except SourceStopped as stop:
         print(f"stopped: {stop}", file=sys.stderr)
         return 2
@@ -62,6 +71,7 @@ def main(argv: list[str] | None = None) -> int:
     cmd.add_argument("--data-repo", type=Path, required=True)
     cmd.add_argument("--refresh", action="store_true")
     cmd.add_argument("--delay", type=float, default=DEFAULT_DELAY)
+    cmd.add_argument("--source", choices=("all", "ogol", "wikipedia"), default="all")
     cmd = sub.add_parser("build")
     cmd.add_argument("--data-repo", type=Path, required=True)
     cmd.add_argument("--competition", choices=sorted(COMPETITIONS), default="mineiro-1")
@@ -85,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
               file=sys.stderr)
         return 1
     if args.command == "collect":
-        return collect(args.data_repo, args.refresh, max(args.delay, DEFAULT_DELAY))
+        return collect(args.data_repo, args.refresh, max(args.delay, DEFAULT_DELAY), args.source)
     if args.command == "build":
         out = args.out if args.out.is_absolute() else args.data_repo / args.out
         if _inside_public(out):
