@@ -10,7 +10,7 @@ never the network or private data.
 ## Phase 1: Setup
 
 - [x] T001 Create the `manager_core.realdata` package skeleton (`__init__.py`, `__main__.py` with argparse subcommands `collect`, `build`, `report`, `correct` and `check-public` per contracts/realdata-cli.md) in core/src/manager_core/realdata/.
-- [ ] T002 [P] Lay out the private repository: `inputs/mineiro.toml` (the 12 Módulo I clubs of 2026 with `club_id`, `division`, `module`, `ogol_id`, `wikipedia_title` and owner `colors` as `#RRGGBB`), `.gitattributes` and a README, in C:\Users\DE0191297\Documents\manager-data (private repository, never the public one).
+- [x] T002 [P] Lay out the private repository: `inputs/mineiro.toml` (the 12 Módulo I clubs of 2026 with `club_id`, `division`, `module`, `ogol_id`, `wikipedia_title` and owner `colors` as `#RRGGBB`), `.gitattributes` and a README, in C:\Users\DE0191297\Documents\manager-data (private repository, never the public one). Committed and pushed 2026-10-19 (owner decision): inputs/ and cache/ tracked, datasets/ ignored (rebuilt).
 
 ## Phase 2: Foundational
 
