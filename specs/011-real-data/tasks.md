@@ -74,7 +74,7 @@ starts and plays a match day with a real club.
 - output is deterministic per player id;
 - the Módulo I build reaches SC-003.
 
-- [ ] T016 [P] [US3] Write the model parameters (club baselines by division; offsets for minutes share, log value, age and output per 90; the CA-to-attribute-mean mapping; position profiles; age curves; PA headroom) in core/src/manager_core/reference/synthesis/model.toml and profiles.toml.
+- [x] T016 [P] [US3] Write the model parameters (club baselines by division; offsets for minutes share, log value, age and output per 90; the CA-to-attribute-mean mapping; position profiles; age curves; PA headroom) in core/src/manager_core/reference/synthesis/model.toml and profiles.toml. Done as model.toml; the position profiles are the game's own position weights (`ratings.suitability`), so there is no separate profiles.toml.
 - [x] T017 [US3] Write tests and implement the synthesis model (R4). The tests cover:
   - attributes are in 1–20;
   - a goalkeeper's profile against a winger's;
@@ -117,7 +117,7 @@ it loads unchanged.
 
 ## Phase 8: Polish
 
-- [ ] T024 Write docs: README (real data: private repository, CLI, owner review), roadmap (011 status), and quickstart verification run.
+- [x] T024 Write docs: README (real data: private repository, CLI, owner review), roadmap (011 status), and quickstart verification run.
 - [ ] T025 Run the full suites (core, client), plus ruff and mypy. Open the PR and ask the owner before merging.
 
 ## Progress notes (2026-10-16)

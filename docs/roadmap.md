@@ -26,7 +26,7 @@ working game.
 | 008 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003 | — |
 | 009 | Match report: stats, xG, FM-style player ratings, PT-BR commentary | — |
 | 010 | Assistant: suggestions and optional auto-subs | — |
-| 011 | Real-data import for MG clubs (into `manager-data`), including an attribute-synthesis model. Also covers (moved from 001): tolerant reading of files re-saved by pt-BR Excel (format v1.1) and the manual-edit audit trail | — |
+| 011 | Real-data import for MG clubs (into `manager-data`), including an attribute-synthesis model. Also covers (moved from 001): tolerant reading of files re-saved by pt-BR Excel (format v1.1) and the manual-edit audit trail. [Spec](../specs/011-real-data/spec.md) | ⏳ in progress (Módulo I built; Módulo II and the PR left) |
 
 ### Open items
 - **Quick-sim under-dispersion (must be fixed before Milestone 0 closes).** Real goal totals are
@@ -59,9 +59,10 @@ working game.
   SoFIFA, so there are no ratings to convert. Transfermarkt has squads, ages and values but no
   attributes. 011 therefore needs an attribute-synthesis model (position + age + market value +
   league level → FM attributes), with SoFIFA conversion used only where ratings exist.
-  - Audit trail (moved from 001): a per-record hash shows *that* a record changed, not *which
-    field*. Decide whether to store previous canonical values so field-level diffs are auditable.
-    `record_flags.csv` flags persist across exports, and only `integrity.csv` is rewritten.
+  - Audit trail (moved from 001): resolved in 011 by the append-only `corrections.csv`
+    (record, field, old value, new value, date, note), applied last on every rebuild.
+  - As built (2026-10-19): ogol and Wikipedia instead of SoFIFA/Transfermarkt (owner decision);
+    no other game's ratings are converted.
   - Re-calibrate the CA mapping (001 research R8) against named, dated sources.
 - **006 (tactics)**: now also carries custom formations, separate in/out-of-possession shapes and
   free player placement, so it will likely split into two specs (tactics model, then formation

@@ -83,8 +83,29 @@ Development follows [GitHub Spec Kit](https://github.com/github/spec-kit). Each 
 spec, a plan and tasks, then an implementation on its own branch, merged through a PR.
 
 ## Data
-Real club and player data is **not** in this repository. It lives in a private data repo.
-This repo only contains code and a fictional sample dataset.
+Real club and player data is **not** in this repository. It lives in a private data repo
+(`manager-data`, next to this folder). This repo only contains code and a fictional sample
+dataset; a test fails if anything else is tracked (spec 011, SC-006).
+
+The real Mineiro (spec 011) is built from the private repo's inputs and cached pages:
+
+```powershell
+# the pages, fetched politely (4 s apart, robots obeyed) and cached; offline after the first run
+python -m manager_core.realdata collect --data-repo ..\manager-data
+# the 001 dataset and its import-report.md (offline, byte-stable)
+python -m manager_core.realdata build --data-repo ..\manager-data --out datasets\mineiro-2026
+# owner review: a correction, kept across every rebuild and flagged as manually edited
+python -m manager_core.realdata correct --data-repo ..\manager-data --record player:p-og123 `
+    --field finishing --value 14 --note "viu jogar"
+# SC-003: simulated Mineiro title shares against the real champions
+python -m manager_core.realdata strength --data-repo ..\manager-data --out datasets\mineiro-2026
+# play it
+python -m manager_core --data ..\manager-data\datasets\mineiro-2026 career new real --club cruzeiro
+```
+
+Attributes are synthesised from public signals (division, minutes, market value, age, goals);
+no other game's ratings are used. Read `import-report.md` after a build: it lists defaulted
+fields, the sources' disagreements and any correction to review.
 
 ## Layout
 - `tui/`: the terminal game (Textual), which calls only the core facade
