@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from manager_core.career import press
 from manager_core.career.career import Career
@@ -81,7 +81,34 @@ def _names(season: Season, report: MatchReport) -> dict[str, str]:
 class NewsItem:
     day: date
     kind: str  # draw / qualified / relegated / champion / title / result / suspension / season
+    # / assistant (spec 010)
     text: str
+
+
+def _assistant_news(career: Career) -> list[NewsItem]:
+    """The assistant (spec 010 FR-006): the opposition report the day before each user match (its
+    form and scorers as of that day; the opponent read from its squad as it is now), and the
+    squad advice on the season's first day."""
+    from manager_core.career import assistant
+
+    season = career.season
+    club = career.user_club_id
+    items: list[NewsItem] = []
+    matches = season.sorted_matches()
+    if matches:
+        first = matches[0].kickoff.date() - timedelta(days=1)
+        if first <= career.current_date:
+            advice = assistant.squad_advice(career)
+            text = (t("assistant.news.squad", text=" ".join(a.text for a in advice)) if advice
+                    else t("assistant.news.squad_ok"))
+            items.append(NewsItem(first, "assistant", text))
+    for m in matches:
+        day = m.kickoff.date() - timedelta(days=1)
+        if club not in (m.home_id, m.away_id) or day > career.current_date:
+            continue
+        report = assistant.opposition_report(career, m.id, as_of=day, with_suspensions=False)
+        items.append(NewsItem(day, "assistant", t("assistant.news.report", text=report.text)))
+    return items
 
 
 def career_news(career: Career) -> list[NewsItem]:
@@ -120,6 +147,7 @@ def career_news(career: Career) -> list[NewsItem]:
         for pid in sorted(sent):
             items.append(NewsItem(m.kickoff.date(), "suspension", t(
                 "news.suspended_red", player=season.dataset.player(pid).display_name)))
+    items += _assistant_news(career)
     for day, kind, text in press.stories(season, club, career.current_date):
         items.append(NewsItem(day, kind, text))
     for record in career.history:

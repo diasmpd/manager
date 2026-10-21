@@ -1,6 +1,8 @@
 extends "res://scenes/screen.gd"
 ## Team selection (spec 007 US2): the assistant's XI and bench, swaps, formation, assistant,
-## tactics, confirm. Every rule is the core's: swaps and confirmation are checked by it.
+## tactics, confirm. Every rule is the core's: swaps and confirmation are checked by it. Beside the
+## lists, the assistant's briefing (spec 010): the opposition report and its suggestions, each
+## with "Aplicar" when it has an action, sent through the same methods as a change by hand.
 
 var _selection: Dictionary = {}
 var _positions: Array = []
@@ -11,6 +13,8 @@ var _formation: OptionButton
 var _formations: Array = []
 var _heading: Label
 var _warned := false
+var _advice: VBoxContainer
+var _advice_token := 0
 
 
 func open() -> void:
@@ -46,6 +50,15 @@ func open() -> void:
 			UI.column([UI.label(UI.t("ui.select.others"), 16, true), _others])])
 	for child in lists.get_children():
 		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_advice = UI.column()
+	_advice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_advice)
+	var panel := UI.column([UI.label(UI.t("ui.assistant.title"), 16, true), scroll])
+	panel.custom_minimum_size.x = 360
+	lists.add_child(panel)
 	lists.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(lists)
 	add_child(UI.row([UI.button(UI.t("ui.desktop.swap"), _swap),
@@ -91,6 +104,7 @@ func _render() -> void:
 		UI.select_key(_xi, xi_slot)
 	if other_pid != null:
 		UI.select_key(_others, other_pid)
+	_refresh_advice()  # not awaited: the lists are drawn first
 
 
 func _swap() -> void:
@@ -161,3 +175,65 @@ func _confirm() -> void:
 		main.message(UI.t("ui.tactics.refitted",
 				{"positions": ", ".join(confirmed["tactic_changes"])}))
 	main.play_match_day()  # navigation frees this screen: not awaited
+
+
+# ---- the assistant's briefing (spec 010) -------------------------------------------------------
+
+
+func _refresh_advice() -> void:
+	_advice_token += 1
+	var mine := _advice_token
+	var briefing = await ask("assistant.briefing", {"selection": _selection})
+	if briefing == null or mine != _advice_token or _advice == null:
+		return
+	for child in _advice.get_children():
+		_advice.remove_child(child)
+		child.queue_free()
+	if briefing["report"] != null:
+		_advice.add_child(UI.label(UI.t("ui.assistant.report"), 14, true))
+		_advice.add_child(UI.label(briefing["report"]["text"], 13))
+	var shown := 0
+	for group in [["selection", "ui.assistant.selection"], ["tactic", "ui.assistant.tactic"],
+			["squad", "ui.assistant.squad"]]:
+		var items: Array = briefing[group[0]]
+		if items.is_empty():
+			continue
+		_advice.add_child(UI.label(UI.t(group[1]), 14, true))
+		for advice in items:
+			shown += 1
+			var text: String = ("⚠ " if advice["severity"] == "warning" else "") + advice["text"]
+			var line := UI.label(text, 13)
+			line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var row := UI.row([line])
+			if advice["action"] != null:
+				row.add_child(UI.button(UI.t("ui.assistant.apply"), _apply.bind(advice["action"])))
+			_advice.add_child(row)
+	if shown == 0:
+		_advice.add_child(UI.label(UI.t("ui.assistant.nothing"), 13))
+
+
+## A suggestion applied exactly as by hand: a swap changes the selection on screen (confirmed with
+## the rest); a role or a tactic is confirmed through the tactic methods.
+func _apply(action: Dictionary) -> void:
+	match action["type"]:
+		"swap":
+			var swapped = await ask("selection.swap", {"selection": _selection,
+					"slot": action["slot"], "player_id": action["player_id"]})
+			if swapped == null:
+				return
+			_selection = swapped
+			_warned = false
+			main.message(UI.t("ui.assistant.applied"))
+			_render()
+		"role", "tactic":
+			var tactic = action.get("tactic")
+			if action["type"] == "role":
+				var current = await ask("tactic.current")
+				if current == null:
+					return
+				tactic = await ask("tactic.set_role", {"tactic": current, "slot": action["slot"],
+						"phase": action["phase"], "role_id": action["role_id"]})
+			if tactic == null or await ask("tactic.confirm", {"tactic": tactic}) == null:
+				return
+			main.message(UI.t("ui.assistant.applied"))
+			_refresh_advice()

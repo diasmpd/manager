@@ -14,7 +14,8 @@ from manager_core.quicksim.params import load_params
 from manager_core.server.encode import selection_from_json, tactic_from_json, to_json
 from manager_core.server.protocol import Handler, Params, RpcError, Session, param
 
-CONTRACT = "1.2"  # 1.1: tactic.set_role; 1.2: worlds.list, a world for new careers
+CONTRACT = "1.3"  # 1.1: tactic.set_role; 1.2: worlds.list, a world for new careers;
+# 1.3: assistant.briefing
 NEWS_ON_HOME = 5
 
 
@@ -217,6 +218,12 @@ def tactic_options(s: Session, p: Params) -> Any:
     return api.tactic_options()
 
 
+def assistant_briefing(s: Session, p: Params) -> Any:
+    raw = param(p, "selection", dict, None)
+    shown = selection_from_json(raw) if raw is not None else None
+    return api.assistant_briefing(_career(s), shown)
+
+
 def tactic_current(s: Session, p: Params) -> Any:
     return api.current_tactic(_career(s))
 
@@ -330,7 +337,7 @@ def view_last_user_match(s: Session, p: Params) -> Any:
 
 METHODS: dict[str, Handler] = {
     "hello": hello, "shutdown": shutdown,
-    "worlds.list": worlds_list,
+    "worlds.list": worlds_list, "assistant.briefing": assistant_briefing,
     "career.list": career_list, "career.clubs": career_clubs, "career.new": career_new,
     "career.open": career_open, "career.save": career_save, "career.status": career_status,
     "career.continue": career_continue,

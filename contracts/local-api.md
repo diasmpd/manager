@@ -1,4 +1,4 @@
-# Contract: Local API, version 1.2
+# Contract: Local API, version 1.3
 
 The client starts the core as a child process:
 
@@ -51,7 +51,7 @@ The client refuses to run on a different major version (spec FR-005).
 
 History: 1.0 (spec 007); 1.1 adds `tactic.set_role` (the role-change rule moved from the clients
 into the core); 1.2 adds `worlds.list` and an optional `world` for `career.clubs` and
-`career.new` (spec 013).
+`career.new` (spec 013); 1.3 adds `assistant.briefing` (spec 010).
 
 The server takes `--data-repo <private data repository>` (spec 011): each valid dataset under its
 `datasets/` folder is offered as a world. Without it, or when it is missing, only the sample is.
@@ -83,6 +83,12 @@ will need `--saves` and `--data` passed explicitly; revisit when the game is pac
 | `career.save` | — | `{path}` | `save_career` |
 | `career.status` | — | `CareerStatus` | `career_status` |
 | `career.continue` | `to_season_end: bool = false` | `Stop` | `continue_career`; sends `progress` while running |
+
+### The assistant (spec 010)
+
+| Method | Params | → | Facade |
+|---|---|---|---|
+| `assistant.briefing` | `selection: Selection = the kept one` | `{report: OppositionReport \| null, selection: [Advice], tactic: [Advice], squad: [Advice]}` | `assistant_briefing` (since 1.3). An `Advice` is `{kind, severity, text, action}`; `action` is null, `{type: "swap", slot, player_id}` (apply with `selection.swap` then `selection.confirm`), `{type: "role", slot, phase, role_id}` (`tactic.set_role`, then `tactic.confirm`) or `{type: "tactic", tactic}` (`tactic.confirm`). Suggestions only: the core changes nothing |
 
 ### Team selection
 
