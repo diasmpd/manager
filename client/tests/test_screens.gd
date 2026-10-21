@@ -112,6 +112,18 @@ func test_play_to_the_first_match_and_watch_it(t) -> void:
 		return
 	var selection = main.current
 	t.check(selection._xi.get_root().get_child_count() == 11, "eleven starters listed")
+	# the assistant's briefing (spec 010): the report, then the suggestions
+	var briefed: bool = await _wait(t, func(): return selection._advice.get_child_count() > 2)
+	t.check(briefed, "the briefing is shown beside the lists")
+	t.check(selection._advice.get_child(0).text == UI.t("ui.assistant.report"),
+			"the opposition report comes first")
+	var buttons: Array = selection._advice.find_children("*", "Button", true, false)
+	t.check(not buttons.is_empty(), "a suggestion offers Aplicar")
+	if not buttons.is_empty():
+		buttons[0].pressed.emit()
+		var applied: bool = await _wait(t, func(): return (main._message.text
+				== UI.t("ui.assistant.applied")))
+		t.check(applied, "Aplicar applies the suggestion")
 	selection._confirm()
 	var shown: bool = await _wait(t, func(): return main.current_name == "match_day")
 	if not shown and main.current_name == "selection":  # a no-goalkeeper warning: confirm again

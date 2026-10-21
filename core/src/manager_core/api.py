@@ -15,8 +15,8 @@ from typing import Literal
 
 from manager_core.calibration import harness
 from manager_core.calibration.harness import CalibrationReport
+from manager_core.career import assistant, rollover, store, views
 from manager_core.career import career as career_mod
-from manager_core.career import rollover, store, views
 from manager_core.career import selection as selection_mod
 from manager_core.career.career import Career as Career  # re-exported: part of the facade
 from manager_core.career.career import SeasonRecord as SeasonRecord
@@ -807,6 +807,13 @@ def match_feed(season: Season, match_id: str) -> list[FeedLine]:
 
 def career_news(career: Career) -> list[NewsItem]:
     return views.career_news(career)
+
+
+def assistant_briefing(career: Career, selection: Selection | None = None) -> assistant.Briefing:
+    """The assistant's briefing for the next user match (spec 010): the opposition report, then
+    the selection, tactic and squad advice, on `selection` (the one on the owner's screen) when
+    given. Suggestions only: nothing is changed."""
+    return assistant.briefing(career, current_tactic(career), selection)
 
 
 def squad_view(career: Career) -> list[SquadRow]:

@@ -1,0 +1,29 @@
+# O assistente (spec 010): os limites das sugestões. Sugestões, nunca mudanças sozinhas
+# (Constituição V).
+
+# Escalação: um reserva sugerido no lugar de um titular precisa ser pelo menos esta fração melhor
+# na posição (adequação, que já conta a familiaridade); no máximo `max_swaps` sugestões.
+better_on_bench = 0.08
+max_swaps = 3
+
+# Funções: outra função válida sugerida quando adequa o jogador pelo menos estes pontos (escala
+# 1-20) a mais que a atual; no máximo `max_roles` sugestões.
+role_gain = 1.5
+max_roles = 3
+
+# Relatório do adversário.
+key_players = 3
+top_scorers = 2
+form_matches = 5
+
+# Elenco: jogadores naturais (familiaridade 15+) que cada setor precisa, para ter cobertura.
+ageing_age = 33
+youth_age = 21
+
+[cover]
+goleiro = { positions = ["GK"], need = 2 }
+zagueiro = { positions = ["DC"], need = 3 }
+lateral = { positions = ["DL", "DR", "WBL", "WBR"], need = 2 }
+meio = { positions = ["DM", "MC", "AMC"], need = 4 }
+ponta = { positions = ["ML", "MR", "AML", "AMR"], need = 2 }
+atacante = { positions = ["ST"], need = 2 }

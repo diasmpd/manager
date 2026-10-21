@@ -25,7 +25,7 @@ working game.
 | 007 | **Local API contract + Godot desktop client** (moved ahead of the positional engine on 2026-10-04: the owner wants to play in Godot this week). Same game as the terminal UI plus tactics, careers screen; text match view. [Spec](../specs/007-godot-client/spec.md) | ✅ done (PR) |
 | 008 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003 | ⏳ in progress (branch `008-positional-engine`, tuning; 008b's 2D view waits on it) |
 | 009 | Match report: stats, xG, FM-style player ratings, PT-BR commentary | — |
-| 010 | Assistant: suggestions and optional auto-subs | — |
+| 010 | Assistant: suggestions and optional auto-subs. [Spec](../specs/010-assistant/spec.md) | ⏳ suggestions done (opposition report, selection, tactic and squad advice; briefing + news); in-match advice and auto-subs come with 008 |
 | 011 | Real-data import for MG clubs (into `manager-data`), including an attribute-synthesis model. Also covers (moved from 001): tolerant reading of files re-saved by pt-BR Excel (format v1.1) and the manual-edit audit trail. [Spec](../specs/011-real-data/spec.md) | ✅ done (PR #13; Módulo II deferred by the owner) |
 | 012 | Match reports and team/player news, written by the game from its data (PR #12) | ✅ done (PR) |
 | 013 | Choose the world for a new career: the fictional sample or a real dataset built by 011 (FM's database choice). [Spec](../specs/013-world-choice/spec.md) | ⏳ in progress |
