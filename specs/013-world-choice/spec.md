@@ -73,6 +73,9 @@ spec 007: no world choice is shown, and careers start in the sample.
 - **FR-005**: The new-career form shows the world choice only when there is more than one world.
 - **FR-006**: No rule lives in the client (Principle III): the list, the labels and validation
   are the core's.
+- **FR-007** (owner decision 2026-10-21): a career starts in its world's own year, the year of the
+  dataset's reference date. The sample (2027-01-01) still starts in 2027; the real Mineiro
+  (2026-01-15) plays the 2026 season its squads were collected for. An explicit year still wins.
 
 ## Success Criteria *(mandatory)*
 

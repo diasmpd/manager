@@ -558,7 +558,8 @@ def run_calibration(dataset: Dataset, gate: str = "pr", baseline: Path | None = 
 
 
 def new_career(dataset: Dataset, name: str, club_id: str, master_seed: int | None = None,
-               ruleset_id: str = DEFAULT_RULESET, year: int = 2027) -> Career:
+               ruleset_id: str = DEFAULT_RULESET, year: int | None = None) -> Career:
+    """`year`: the world's own by default (see career.new_career)."""
     store.check_name(name)
     try:
         career = career_mod.new_career(dataset, name, club_id, master_seed, ruleset_id, year)

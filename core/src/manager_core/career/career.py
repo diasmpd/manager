@@ -98,9 +98,13 @@ def build_season(world: Dataset, ruleset_toml: str, year: int, master_seed: int,
 
 
 def new_career(world: Dataset, name: str, club_id: str, master_seed: int | None = None,
-               ruleset_id: str = "mg-modulo-i-2026", year: int = 2027) -> Career:
+               ruleset_id: str = "mg-modulo-i-2026", year: int | None = None) -> Career:
+    """`year` defaults to the world's own (its reference date's year): the sample starts in 2027,
+    a real dataset in the season its squads were collected for (owner decision 2026-10-21)."""
     if club_id not in world.clubs:
         raise UnknownClubError(club_id)
+    if year is None:
+        year = world.reference_date.year
     seed = default_seed(name) if master_seed is None else master_seed
     text = ruleset_text(ruleset_id)
     season = build_season(world, text, year, seed, None)
