@@ -53,6 +53,9 @@ func start() -> bool:
 	_set_state("starting")
 	var python := _python_path()
 	var args := PackedStringArray(["-m", "manager_core.server", "--saves", _saves_path()])
+	var data_repo := _data_repo_path()
+	if not data_repo.is_empty():  # the real worlds (spec 013); without it, the sample alone
+		args.append_array(["--data-repo", data_repo])
 	var info := OS.execute_with_pipe(python, args, false)
 	if info.is_empty():
 		return _fail(LOCAL["start_failed"].format({"detail": python}))
@@ -235,6 +238,18 @@ func _python_path() -> String:
 		return env
 	var configured: String = _config().get_value("core", "python", ".venv/Scripts/pythonw.exe")
 	return configured if configured.is_absolute_path() else _repo().path_join(configured)
+
+
+## The private data repository (spec 011), whose datasets are offered as worlds (spec 013):
+## MANAGER_DATA_REPO ("none" for none), else core.cfg; only when the folder exists.
+func _data_repo_path() -> String:
+	var configured := OS.get_environment("MANAGER_DATA_REPO")
+	if configured.is_empty():
+		configured = _config().get_value("core", "data_repo", "")
+	if configured.is_empty() or configured == "none":
+		return ""
+	var path := configured if configured.is_absolute_path() else _repo().path_join(configured)
+	return path if DirAccess.dir_exists_absolute(path) else ""
 
 
 func _saves_path() -> String:

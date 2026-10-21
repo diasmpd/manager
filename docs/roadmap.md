@@ -22,11 +22,13 @@ working game.
 | 005 | **Playable Mineiro season from the terminal** (Python TUI): includes basic squad and lineup selection (and formation choice, if 001 models it), so the user makes real decisions before 006. [Spec](../specs/005-terminal-season/spec.md) | ✅ done (PR) |
 | 006 | Tactics on the FM26 model: IP and OOP formations, 7-level mentality, the full set of team instructions by phase, IP and OOP roles (no duties) with suitability, player instructions, set pieces; effects through the quick sim with an exploit check; AI clubs with styles that adapt. [Spec](../specs/006-tactics/spec.md) | ✅ done (PR) |
 | 006b | Formation editor and free player placement (owner request), with the OOP shape mapping deferred from 006. Built with the positional engine 008 | — |
-| 007 | **Local API contract + Godot desktop client** (moved ahead of the positional engine on 2026-10-04: the owner wants to play in Godot this week). Same game as the terminal UI plus tactics, careers screen; text match view. [Spec](../specs/007-godot-client/spec.md) | ⏳ in progress |
-| 008 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003 | — |
+| 007 | **Local API contract + Godot desktop client** (moved ahead of the positional engine on 2026-10-04: the owner wants to play in Godot this week). Same game as the terminal UI plus tactics, careers screen; text match view. [Spec](../specs/007-godot-client/spec.md) | ✅ done (PR) |
+| 008 | Positional match engine: continuous movement, smart player behaviours (card caution, energy management, game state), cross-validated with 003 | ⏳ in progress (branch `008-positional-engine`, tuning; 008b's 2D view waits on it) |
 | 009 | Match report: stats, xG, FM-style player ratings, PT-BR commentary | — |
 | 010 | Assistant: suggestions and optional auto-subs | — |
-| 011 | Real-data import for MG clubs (into `manager-data`), including an attribute-synthesis model. Also covers (moved from 001): tolerant reading of files re-saved by pt-BR Excel (format v1.1) and the manual-edit audit trail. [Spec](../specs/011-real-data/spec.md) | ⏳ in progress (Módulo I built; Módulo II and the PR left) |
+| 011 | Real-data import for MG clubs (into `manager-data`), including an attribute-synthesis model. Also covers (moved from 001): tolerant reading of files re-saved by pt-BR Excel (format v1.1) and the manual-edit audit trail. [Spec](../specs/011-real-data/spec.md) | ✅ done (PR #13; Módulo II deferred by the owner) |
+| 012 | Match reports and team/player news, written by the game from its data (PR #12) | ✅ done (PR) |
+| 013 | Choose the world for a new career: the fictional sample or a real dataset built by 011 (FM's database choice). [Spec](../specs/013-world-choice/spec.md) | ⏳ in progress |
 
 ### Open items
 - **Quick-sim under-dispersion (must be fixed before Milestone 0 closes).** Real goal totals are

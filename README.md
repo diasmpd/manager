@@ -99,9 +99,14 @@ python -m manager_core.realdata correct --data-repo ..\manager-data --record pla
     --field finishing --value 14 --note "viu jogar"
 # SC-003: simulated Mineiro title shares against the real champions
 python -m manager_core.realdata strength --data-repo ..\manager-data --out datasets\mineiro-2026
-# play it
+# play it from the terminal
 python -m manager_core --data ..\manager-data\datasets\mineiro-2026 career new real --club cruzeiro
 ```
+
+In the desktop window (spec 013), the new-career form offers every built dataset of
+`..\manager-data` as a **world** beside the fictional sample: pick "mineiro-2026 (dados reais)",
+then the club. A save keeps its world, so it plays the same after a rebuild. Without the private
+repository, the form is exactly as before (`data_repo` in `client\core.cfg`).
 
 Attributes are synthesised from public signals (division, minutes, market value, age, goals);
 no other game's ratings are used. Read `import-report.md` after a build: it lists defaulted

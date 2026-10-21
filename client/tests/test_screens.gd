@@ -33,6 +33,16 @@ func test_create_a_career(t) -> void:
 	var loaded: bool = await _wait(t, func(): return (careers._clubs != null
 			and careers._clubs.item_count > 0))
 	t.check(loaded, "clubs loaded")
+	# two worlds (spec 013): the sample, and the runner's fictional copy in the data repository
+	t.check(careers._worlds.item_count == 2 and careers._worlds.is_inside_tree(),
+			"the world choice is offered")
+	t.check(careers._worlds.get_item_text(1).begins_with("copia-ficticia"),
+			"the data repository's world, with its counts: " + careers._worlds.get_item_text(1))
+	careers._worlds.select(1)
+	careers._worlds.item_selected.emit(1)
+	await _wait(t, func(): return careers._clubs.item_count > 0)
+	t.check(careers._world() == "copia-ficticia" and careers._clubs.item_count == 12,
+			"its clubs listed")
 	careers._name.text = "janela"
 	careers._clubs.select(0)
 	careers._create()

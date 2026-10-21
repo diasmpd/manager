@@ -1,4 +1,4 @@
-# Contract: Local API, version 1.1
+# Contract: Local API, version 1.2
 
 The client starts the core as a child process:
 
@@ -50,7 +50,11 @@ Both sides then exchange **one JSON object per line**, UTF-8, over the child's s
 The client refuses to run on a different major version (spec FR-005).
 
 History: 1.0 (spec 007); 1.1 adds `tactic.set_role` (the role-change rule moved from the clients
-into the core).
+into the core); 1.2 adds `worlds.list` and an optional `world` for `career.clubs` and
+`career.new` (spec 013).
+
+The server takes `--data-repo <private data repository>` (spec 011): each valid dataset under its
+`datasets/` folder is offered as a world. Without it, or when it is missing, only the sample is.
 
 **Packaging note**: the server finds the repo (saves, sample data) from its source location
 (`server/__main__.py`, `parents[4]`), so it runs from a source checkout. An installed package
@@ -71,9 +75,10 @@ will need `--saves` and `--data` passed explicitly; revisit when the game is pac
 
 | Method | Params | → | Facade |
 |---|---|---|---|
+| `worlds.list` | — | `[{id, label, fictional, clubs, players, reference_date}]` | the worlds a new career can start in: `sample` first, then each valid dataset of the data repository by folder name (since 1.2) |
 | `career.list` | — | `[SaveSummary]` | `list_saves` |
-| `career.clubs` | — | `[{id, name, reputation}]` | the sample world's clubs, for a new career |
-| `career.new` | `name, club_id` | `CareerStatus` (it is now open) | `new_career`, then `save_career` |
+| `career.clubs` | `world: str = "sample"` | `[{id, name, reputation}]` | the world's clubs, for a new career (`world` since 1.2) |
+| `career.new` | `name, club_id, world: str = "sample"` | `CareerStatus` (it is now open) | `new_career` in that world, then `save_career`; the save embeds the world. An unknown world is `NOT_FOUND` with `kind: "world"` |
 | `career.open` | `name` | `{status: CareerStatus, notices: [str]}` | `load_career` |
 | `career.save` | — | `{path}` | `save_career` |
 | `career.status` | — | `CareerStatus` | `career_status` |
