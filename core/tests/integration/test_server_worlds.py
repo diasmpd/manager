@@ -31,6 +31,8 @@ def data_repo(tmp_path: Path) -> Path:
     clubs = copy / "clubs.csv"
     clubs.write_bytes(clubs.read_bytes().replace("Grêmio Recreativo Alvorada;Alvorada;".encode(),
                                                  f"{RENAMED};{SHORT};".encode()))
+    meta = copy / "dataset.csv"  # collected for the 2026 season, like a real build
+    meta.write_bytes(meta.read_bytes().replace(b";2027-01-01;", b";2026-01-15;"))
     broken = repo / "datasets" / "aaa-quebrado"
     broken.mkdir(parents=True)
     (broken / "dataset.csv").write_text("format_version;reference_date\n1.0;ontem\n", "utf-8")
@@ -50,7 +52,7 @@ def test_the_worlds_of_a_data_repository(tmp_path: Path, data_repo: Path) -> Non
     assert [w["id"] for w in worlds] == ["sample", "mineiro-copia"]  # the broken one left out
     copy = worlds[1]
     assert copy["clubs"] == 12 and copy["players"] > 0 and copy["label"]
-    assert copy["reference_date"] == worlds[0]["reference_date"]
+    assert (worlds[0]["reference_date"], copy["reference_date"]) == ("2027-01-01", "2026-01-15")
 
 
 def test_clubs_and_careers_per_world(tmp_path: Path, data_repo: Path) -> None:
@@ -81,3 +83,13 @@ def test_an_unknown_world(tmp_path: Path, data_repo: Path) -> None:
                                                                  "club_id": "alvorada"})):
         error = client.error(method, world="aaa-quebrado", **params)
         assert error["data"]["kind"] == "world" and error["data"]["id"] == "aaa-quebrado"
+
+
+def test_a_career_starts_in_its_worlds_year(tmp_path: Path, data_repo: Path) -> None:
+    """Owner decision 2026-10-21: a real world plays the season its squads were collected for."""
+    client = _client(tmp_path / "saves", data_repo)
+    real = client.call("career.new", name="real", club_id="alvorada", world="mineiro-copia")
+    sample = client.call("career.new", name="ficticio", club_id="alvorada")
+    assert (real["year"], sample["year"]) == (2026, 2027)
+    assert real["next_match"]["kickoff"].startswith("2026-01")
+    assert sample["next_match"]["kickoff"].startswith("2027-01")
