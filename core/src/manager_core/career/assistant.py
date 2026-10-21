@@ -74,7 +74,8 @@ class OppositionReport:
     top_scorers: tuple[tuple[str, int], ...]  # (name, goals) before the report's day
     form: tuple[str, ...]  # V / E / D, the latest last
     suspended: tuple[str, ...]  # names
-    text: str
+    lines: tuple[str, ...]  # the report, one point per line (the briefing panel)
+    text: str  # the same in one paragraph (the news)
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,8 +203,7 @@ def opposition_report(career: Career, match_id: str, as_of: date | None = None,
                              for pid in _suspended(career, opponent))) if with_suspensions else ()
     name = season.club_name(opponent)
     parts = [t("assistant.report.head", opponent=name, style=style_label,
-               formation=theirs.formation.name),
-             t(f"assistant.report.band.{band}")]
+               formation=theirs.formation.name) + " " + t(f"assistant.report.band.{band}")]
     parts.append(t("assistant.report.key", players=", ".join(
         f"{k.name} ({k.position})" for k in key)))
     parts.append(t("assistant.report.form", form=" ".join(form)) if form
@@ -215,7 +215,7 @@ def opposition_report(career: Career, match_id: str, as_of: date | None = None,
         parts.append(t("assistant.report.suspended", players=", ".join(suspended)))
     return OppositionReport(match_id, opponent, name, home, neutral, style, style_label,
                             theirs.formation.name, band, key, scorers, form, suspended,
-                            " ".join(parts))
+                            tuple(parts), " ".join(parts))
 
 
 # ---- the selection (US2) ---------------------------------------------------------------------

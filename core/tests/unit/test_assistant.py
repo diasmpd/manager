@@ -55,6 +55,7 @@ def test_the_report_reads_the_opponent_as_the_ai_plays_it(world: Dataset) -> Non
     assert len(report.key_players) == assistant.params()["key_players"]
     assert report.form == () and "Ainda não jogaram" in report.text  # the first round
     assert report.opponent_name in report.text and report.style_label in report.text
+    assert report.text == " ".join(report.lines) and len(report.lines) >= 3
 
 
 def test_form_and_scorers_count_only_the_matches_before_the_day(world: Dataset,

@@ -191,13 +191,15 @@ func _refresh_advice() -> void:
 		child.queue_free()
 	if briefing["report"] != null:
 		_advice.add_child(UI.label(UI.t("ui.assistant.report"), 14, true))
-		_advice.add_child(UI.label(briefing["report"]["text"], 13))
+		for line in briefing["report"]["lines"]:
+			_advice.add_child(UI.label(line, 13))
 	var shown := 0
 	for group in [["selection", "ui.assistant.selection"], ["tactic", "ui.assistant.tactic"],
 			["squad", "ui.assistant.squad"]]:
 		var items: Array = briefing[group[0]]
 		if items.is_empty():
 			continue
+		_advice.add_child(HSeparator.new())
 		_advice.add_child(UI.label(UI.t(group[1]), 14, true))
 		for advice in items:
 			shown += 1
