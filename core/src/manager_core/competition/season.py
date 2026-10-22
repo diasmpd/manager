@@ -39,6 +39,7 @@ from manager_core.competition.rules import (
     EntrantKind,
     EntrantRule,
     KnockoutStageRule,
+    OverallOrder,
     Ruleset,
     Venue,
 )
@@ -55,6 +56,7 @@ from manager_core.competition.standings import (
     PlayedMatch,
     TableRow,
     build_table,
+    build_table_by_group_place,
     rank,
     records,
 )
@@ -284,6 +286,10 @@ class Season:
                 for m in self.sorted_matches() if m.stage_id == gid and m.id in self.results]
 
     def overall_table(self) -> list[TableRow]:
+        if self.ruleset.group_stage.overall is OverallOrder.BY_GROUP_PLACE:
+            orders = [[r.club_id for r in self.group_table(g.label)] for g in self.groups]
+            return build_table_by_group_place(orders, self.group_matches(), self.ruleset.scoring,
+                                              self.seed, self.ruleset.id)
         return build_table(self.participants, self.group_matches(), self.ruleset.scoring,
                            self.seed, f"{self.ruleset.id}:overall")
 

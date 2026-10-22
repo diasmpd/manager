@@ -37,16 +37,19 @@ def _check(season: Season) -> None:
     semis = set(out.main_entrants)
     assert len(semis) == 4
     assert out.champion in semis and out.runner_up in semis and out.champion != out.runner_up
-    # group winners + best second are the semifinalists
-    winners = {api.season_table(season, g.label)[0].club_id for g in api.season_groups(season)}
-    assert winners <= semis
-    # Inconfidência: first four non-semifinalists from 5th place on; never overlapping
+    # overall classification by group place (REC art. 9): the three group winners first, the
+    # best second 4th, so the semifinalists are exactly the top four
+    tables = [api.season_table(season, g.label) for g in api.season_groups(season)]
+    assert set(overall[:3]) == {t[0].club_id for t in tables}
+    assert semis == set(overall[:4])
+    # Inconfidência: 5th to 8th overall; never overlapping
     inc = out.side_entrants["inconfidencia"]
     assert not set(inc) & semis
-    assert inc == [c for c in overall[4:] if c not in semis][:4]
+    assert inc == overall[4:8]
     assert out.side_titles["inconfidencia"] in inc
-    # relegation: 11th and 12th overall
+    # relegation: 11th and 12th overall, the two worst group-bottom clubs
     assert out.relegated == overall[10:12]
+    assert set(out.relegated) <= {t[-1].club_id for t in tables}
     # dates: knockout after first phase; rest everywhere; only the Inconfidência final after window
     matches = api.season_fixtures(season)
     group_end = max(m.kickoff for m in matches if m.stage_id == "primeira-fase")

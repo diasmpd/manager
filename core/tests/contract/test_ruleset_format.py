@@ -8,6 +8,7 @@ from manager_core.competition.rules import (
     GroupStageRule,
     KnockoutStageRule,
     Matching,
+    OverallOrder,
     Pairing,
     Tiebreaker,
     TieRule,
@@ -58,6 +59,7 @@ def test_mineiro_stages() -> None:
     assert first.matching is Matching.OTHER_GROUPS
     assert first.draw is DrawMethod.POTS_BY_REPUTATION
     assert [(o.kind, o.places) for o in first.outcomes] == [("relegated", (11, 12))]
+    assert first.overall is OverallOrder.BY_GROUP_PLACE
 
     semi, final, inc_semi, inc_final = r.stages[1:]
     assert all(isinstance(s, KnockoutStageRule) for s in (semi, final, inc_semi, inc_final))
@@ -72,7 +74,7 @@ def test_mineiro_stages() -> None:
     entrant = inc_semi.entrants[0]
     assert (entrant.kind, entrant.places, entrant.exclude_tracks) == (
         EntrantKind.OVERALL_PLACES, (5, 8), ("main",))
-    assert inc_semi.tie_rule is TieRule.POINTS_THEN_CAMPAIGN
+    assert inc_semi.tie_rule is inc_final.tie_rule is TieRule.PENALTIES  # REC arts. 21, 24
     assert inc_semi.dates_with == "semifinal"
     assert (inc_final.title, inc_final.legs, inc_final.may_exceed_window) == (
         "Troféu Inconfidência", 2, True)

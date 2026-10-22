@@ -37,6 +37,11 @@ class Matching(StrEnum):
     ALL = "all"
 
 
+class OverallOrder(StrEnum):
+    TABLE = "table"  # one table of every club, by points and tiebreakers
+    BY_GROUP_PLACE = "by_group_place"  # group winners first, ranked among themselves, then 2nds...
+
+
 class DrawMethod(StrEnum):
     POTS_BY_REPUTATION = "pots_by_reputation"
     FIXED = "fixed"
@@ -118,6 +123,7 @@ class GroupStageRule:
     fixed_groups: tuple[tuple[str, ...], ...] = ()
     outcomes: tuple[OutcomeRule, ...] = ()
     name: str | None = None  # in-game display name (data, like club names)
+    overall: OverallOrder = OverallOrder.TABLE
 
 
 @dataclass(frozen=True, slots=True)
@@ -460,10 +466,12 @@ def _parse_group_stage(r: _Reader, raw: dict[str, Any], path: str, sid: str,
             report.add("R006", f"{path}.outcomes[{j}]", places=f"{places[0]}–{places[1]}")
         outcomes.append(OutcomeRule("relegated", places))
     name = r.get(raw, "name", str, path, default=None)
-    if None in (count, size, matching, rounds, draw):
+    overall = r.enum(raw, "overall", OverallOrder, path, default=OverallOrder.TABLE)
+    if None in (count, size, matching, rounds, draw, overall):
         return None
-    assert count and size and matching and rounds and draw
-    return GroupStageRule(sid, count, size, matching, rounds, draw, fixed, tuple(outcomes), name)
+    assert count and size and matching and rounds and draw and overall
+    return GroupStageRule(sid, count, size, matching, rounds, draw, fixed, tuple(outcomes), name,
+                          overall)
 
 
 def _parse_knockout(r: _Reader, raw: dict[str, Any], path: str, sid: str, n: int,

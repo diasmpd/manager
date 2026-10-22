@@ -1,10 +1,12 @@
 # Campeonato Mineiro – Módulo I, formato FMF 2026.
 #
-# Fontes (consultadas em 2026-10-02):
+# Fonte oficial (consultada em 2026-10-22): Regulamento Específico da Competição (REC),
+# Campeonato Mineiro SICOOB 2026 – Módulo I, FMF:
+#   http://esumula.fmf.com.br/Arquivos/ArquivosCompeticao/1907/Arquivo_19072887.pdf
+# Fontes de imprensa usadas antes do REC (consultadas em 2026-10-02):
 #   Lance:     https://www.lance.com.br/futebol-nacional/grandes-classificam-e-equipe-de-serie-b-cai-veja-as-definicoes-da-primeira-fase-do-campeonato-mineiro.html
 #   Flashscore: https://www.flashscore.com.br/noticias/futebol-mineiro-guia-do-campeonato-mineiro-2026-regulamento-times-grupos-e-onde-assistir/tfUf0gJr/
 #   Itatiaia:  https://www.itatiaia.com.br/esportes/futebol/futebol-nacional/campeonato-mineiro/fmf-confirma-retorno-da-final-unica-para-o-campeonato-mineiro-de-2026/
-# Itens marcados "a confirmar" ainda precisam ser checados no regulamento oficial da FMF.
 
 format_version = 1
 
@@ -22,7 +24,7 @@ valid_from = 2026                  # vale até um regulamento novo definir valid
 win = 3
 draw = 1
 loss = 0
-# A confirmar: ordem usual dos regulamentos estaduais brasileiros.
+# REC art. 8º §4º; o confronto direto só vale entre dois clubes (§5º).
 tiebreakers = ["wins", "goal_difference", "goals_for", "head_to_head",
                "fewer_red_cards", "fewer_yellow_cards", "draw"]
 
@@ -41,7 +43,9 @@ name = "Arena Estadual das Gerais" # equivalente fictício do Mineirão
 city = "Vale do Ouro"
 capacity = 62000
 
-# Primeira fase: 3 grupos de 4; cada clube enfrenta os 8 clubes dos outros dois grupos (Lance).
+# Primeira fase: 3 grupos de 4; cada clube enfrenta os 8 clubes dos outros dois grupos (REC art. 8º).
+# "Classificação Geral" (art. 9º): os três líderes entre si, depois os três 2º, os três 3º e os
+# três 4º. Ela define semifinais, Troféu Inconfidência e rebaixamento (11º e 12º gerais).
 [[stages]]
 id = "primeira-fase"
 name = "Primeira fase"
@@ -50,10 +54,13 @@ group_count = 3
 group_size = 4
 matching = "other_groups"
 rounds = 1
-draw = "pots_by_reputation"        # FMF usa ranking próprio; reputação é o substituto no M0
-outcomes = [{ kind = "relegated", overall_places = [11, 12] }]   # dois piores (Lance)
+draw = "pots_by_reputation"        # FMF sorteia no Conselho Técnico; reputação é o substituto no M0
+overall = "by_group_place"
+outcomes = [{ kind = "relegated", overall_places = [11, 12] }]   # REC art. 9º §3º
 
-# Semifinal: líderes dos grupos + melhor 2º; ida e volta; empate no agregado -> pênaltis (Flashscore).
+# Semifinal (REC arts. 12–14): 1º x 4º e 2º x 3º gerais, ida e volta, o mais bem colocado decide
+# em casa. Pontos, depois saldo nos dois jogos, depois pênaltis, sem prorrogação; sem gol fora,
+# isso equivale a agregado -> pênaltis.
 [[stages]]
 id = "semifinal"
 name = "Semifinal"
@@ -64,12 +71,12 @@ entrants = [
   { from = "primeira-fase", rule = "group_winners" },
   { from = "primeira-fase", rule = "best_of_place", place = 2, count = 1 },
 ]
-pairing = "campaign_1v4_2v3"       # a confirmar
+pairing = "campaign_1v4_2v3"
 deciding_leg_host = "better_campaign"
 tie_rule = "penalties"
 venue = "home"
 
-# Final em jogo único no Mineirão (Itatiaia); empate -> pênaltis (a confirmar).
+# Final única com mando da FMF; empate -> pênaltis, sem prorrogação (REC art. 17 §2º).
 [[stages]]
 id = "final"
 name = "Final"
@@ -82,8 +89,10 @@ pairing = "campaign_high_low"
 tie_rule = "penalties"
 venue = "neutral"
 
-# Troféu Inconfidência: 5º-8º na classificação geral, pulando semifinalistas (decisão do dono;
-# a confirmar). Ida e volta; empate -> soma de pontos, depois melhor campanha (Flashscore).
+# Troféu Inconfidência (REC arts. 19–24): 5º a 8º gerais, 5º x 8º e 6º x 7º, ida e volta.
+# Pontos, depois saldo, depois pênaltis, sem prorrogação (= agregado -> pênaltis).
+# Com a classificação geral por posição no grupo, os semifinalistas são sempre os 4 primeiros;
+# exclude_tracks só satisfaz a validação R012.
 [[stages]]
 id = "inconfidencia-semifinal"
 name = "Troféu Inconfidência – semifinal"
@@ -93,7 +102,7 @@ legs = 2
 entrants = [{ from = "primeira-fase", rule = "overall_places", places = [5, 8], exclude_tracks = ["main"] }]
 pairing = "campaign_1v4_2v3"
 deciding_leg_host = "better_campaign"
-tie_rule = "points_then_campaign"
+tie_rule = "penalties"
 venue = "home"
 dates_with = "semifinal"
 
@@ -107,7 +116,9 @@ legs = 2
 entrants = [{ from = "inconfidencia-semifinal", rule = "winners_of" }]
 pairing = "campaign_high_low"
 deciding_leg_host = "better_campaign"
-tie_rule = "points_then_campaign"
+tie_rule = "penalties"
 venue = "home"
 dates_with = "final"
-may_exceed_window = true           # 2º jogo no fim de semana após a final (decisão do dono)
+# REC art. 22 §1º: jogos em 04.03 (quarta) e 07.03 (dia da final). O agendador ainda põe o
+# jogo extra no fim de semana seguinte; a ida no meio de semana anterior fica para o calendário.
+may_exceed_window = true

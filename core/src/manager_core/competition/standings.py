@@ -16,6 +16,7 @@ from manager_core.competition.rules import Scoring, Tiebreaker
 from manager_core.competition.seeds import sub_seed
 
 POINTS = "points"
+GROUP_PLACE = "group_place"
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,7 +157,30 @@ def rank(club_ids: Sequence[str], recs: dict[str, _Record], matches: Sequence[Pl
 def build_table(club_ids: Sequence[str], matches: Sequence[PlayedMatch], scoring: Scoring,
                 seed: int, label: str) -> list[TableRow]:
     recs = records(club_ids, matches)
-    ordered = rank(club_ids, recs, matches, scoring, seed, label)
+    return _rows(rank(club_ids, recs, matches, scoring, seed, label), recs, scoring)
+
+
+def build_table_by_group_place(group_orders: Sequence[Sequence[str]],
+                               matches: Sequence[PlayedMatch], scoring: Scoring, seed: int,
+                               label: str) -> list[TableRow]:
+    """Overall classification by group place (FMF REC 2026, art. 9): the group winners first,
+    ranked among themselves, then the 2nd-placed clubs, and so on. Each tier uses the same
+    ranking as a `best_of_place` entrant rule, so the two always agree."""
+    clubs = [c for order in group_orders for c in order]
+    recs = records(clubs, matches)
+    ordered: list[tuple[str, str | None]] = []
+    for place in range(1, max(len(o) for o in group_orders) + 1):
+        tier = [o[place - 1] for o in group_orders if len(o) >= place]
+        ranked = rank(tier, records(tier, matches), matches, scoring, seed,
+                      f"{label}:best-of-place-{place}")
+        ordered.extend(ranked[:-1])
+        ordered.append((ranked[-1][0], GROUP_PLACE))
+    ordered[-1] = (ordered[-1][0], None)
+    return _rows(ordered, recs, scoring)
+
+
+def _rows(ordered: Sequence[tuple[str, str | None]], recs: dict[str, _Record],
+          scoring: Scoring) -> list[TableRow]:
     rows = []
     for place, (club, decided_by) in enumerate(ordered, start=1):
         r = recs[club]
