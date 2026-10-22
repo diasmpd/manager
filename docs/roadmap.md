@@ -37,12 +37,14 @@ working game.
   24.5%). It needs a mechanism with negative feedback on the totals that keeps the late
   game-state ordering. Tried in 006 and removed: a response to conceding (added spread) and game
   management (broke the leading side's late edge). See `specs/006-tactics/research.md` R6.
-- **Confirm in the official FMF 2026 regulation** (002 used press sources): tiebreaker order,
-  semifinal pairing, and the Troféu Inconfidência entrants and dates (5th–8th skipping
-  semifinalists vs. the best 4 outside the semifinals). Each one is a value in
-  `reference/competitions/mg-modulo-i-2026.toml`, so a fix is a data change.
 - **Calendar dates are approximate**: FIFA windows (default and 2027), Copa do Brasil and
   Brasileirão windows in `reference/calendar/`. Refine when those competitions are specified.
+  Also: the official Troféu Inconfidência final legs are midweek before the Mineiro final and on
+  its date (FMF REC 2026 art. 22), but the scheduler puts the second leg on the next weekend.
+
+The FMF 2026 regulation (REC Módulo I) was checked on 2026-10-22. The tiebreakers and semifinal
+pairing were already right. The overall classification is now by group place (art. 9), which
+changes relegation and the Inconfidência entrants, and Inconfidência ties go to penalties.
 
 ### Notes for specific specs
 - **003 → 004/005**: the quick sim records cards per player, so suspensions (3 yellows, reds)

@@ -168,6 +168,7 @@ MESSAGES: dict[str, str] = {
     "criterion.fewer_red_cards": "menos vermelhos",
     "criterion.fewer_yellow_cards": "menos amarelos",
     "criterion.draw": "sorteio",
+    "criterion.group_place": "posição no grupo",
     "tie.aggregate": "agregado",
     "tie.penalties": "pênaltis",
     "tie.points": "pontos",

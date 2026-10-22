@@ -7,7 +7,12 @@ import pytest
 
 from manager_core.competition.results import Result
 from manager_core.competition.rules import load_ruleset
-from manager_core.competition.standings import PlayedMatch, build_table
+from manager_core.competition.standings import (
+    GROUP_PLACE,
+    PlayedMatch,
+    build_table,
+    build_table_by_group_place,
+)
 
 SCENARIOS = sorted((Path(__file__).resolve().parents[1] / "fixtures" / "tiebreaks").glob("*.toml"))
 SCORING = load_ruleset("mg-modulo-i-2026").scoring
@@ -63,3 +68,16 @@ def test_columns_are_consistent() -> None:
         assert r.points == 3 * r.won + r.drawn
     assert [r.place for r in rows] == list(range(1, len(rows) + 1))
     assert rows[-1].decided_by is None
+
+
+def test_overall_by_group_place_ranks_tiers_not_points() -> None:
+    # a2 (2nd of group A, 4 pts) outscores a1 (winner of A, 3 pts) but still ranks below every
+    # group winner (FMF REC 2026, art. 9)
+    matches = _played([["a1", "b2", 3, 0], ["b1", "a1", 1, 0], ["a2", "b2", 5, 0],
+                       ["a2", "b1", 2, 2]])
+    rows = build_table_by_group_place([["a1", "a2"], ["b1", "b2"]], matches, SCORING, seed=1,
+                                      label="t")
+    assert [r.club_id for r in rows] == ["b1", "a1", "a2", "b2"]
+    assert [r.place for r in rows] == [1, 2, 3, 4]
+    assert [r.decided_by for r in rows] == ["points", GROUP_PLACE, "points", None]
+    assert rows[2].points == 4 and rows[1].points == 3
